@@ -4,14 +4,15 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 /**
- * Entity для хранения данных пользователя в локальной БД
+ * Room entity for storing user (courier) data in local database
+ * Cached from API for offline access
  */
 @Entity(tableName = "user")
 data class UserEntity(
     @PrimaryKey
-    val id: String,
-    val name: String,
+    val id: Long,
+    val username: String,
+    val fullName: String,
     val email: String?,
-    val phone: String,
-    val updatedAt: Long
+    val phone: String?
 )

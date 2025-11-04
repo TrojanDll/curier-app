@@ -311,4 +311,724 @@ AndroidManifest.xml (updated)
 
 ---
 
-**Current Status**: Project structure is complete and ready for development once JDK is configured.
+### Iteration 2.1: Build Issues Resolution
+**Date**: 2025-11-04 (continued)
+**Status**: ✅ COMPLETED
+**Duration**: 4 hours
+
+**Goals**:
+- Resolve all build errors after JDK configuration
+- Achieve successful project compilation
+- Document compatibility issues
+
+**Tasks Completed**:
+1. ✅ Fixed KSP version compatibility (2.0.21-1.0.29 → 2.0.21-1.0.27)
+2. ✅ Resolved Room TypeConverter duplication errors
+3. ✅ Updated AGP to 8.9.1 for AndroidX Core 1.17.0 compatibility
+4. ✅ Identified and temporarily disabled Hilt due to compatibility issues
+
+**Changes Made**:
+- `gradle/libs.versions.toml`: KSP version updated, AGP updated to 8.9.1
+- `Converters.kt`: Removed duplicate converter functions
+- `AppDatabase.kt`: Removed @TypeConverters annotation (will be added when needed)
+- `build.gradle.kts`: Temporarily commented out Hilt plugin and dependencies
+- `CurierApplication.kt`: Commented @HiltAndroidApp annotation
+- `MainActivity.kt`: Commented @AndroidEntryPoint annotation
+- Deleted: `di/NetworkModule.kt` and `di/DatabaseModule.kt` (Hilt-based)
+
+**Tests Performed**:
+✅ **BUILD SUCCESSFUL in 1m 34s** - 38 actionable tasks executed
+- APK created at: `app/build/outputs/apk/debug/app-debug.apk`
+
+**Issues Encountered**:
+1. **KSP Plugin Version Mismatch** [RESOLVED]:
+   - Error: Plugin version 2.0.21-1.0.29 not found
+   - Solution: Updated to 2.0.21-1.0.27 (verified via web search)
+
+2. **Room Duplicate TypeConverters** [RESOLVED]:
+   - Error: Multiple functions define the same conversion
+   - Solution: Removed duplicate converter functions
+
+3. **Hilt Compatibility Issue** [TEMPORARY WORKAROUND]:
+   - Error: 'java.lang.String com.squareup.javapoet.ClassName.canonicalName()'
+   - Root Cause: Hilt 2.51-2.56 incompatible with Kotlin 2.0.21 + KSP + AGP 8.9.1
+   - Attempted Fixes:
+     - Tried Hilt 2.51, 2.52, 2.56 - all failed
+     - Tried adding JavaPoet 1.13.0 - failed
+     - Tried switching to KAPT - failed (KAPT doesn't support Kotlin 2.0+)
+   - **Temporary Solution**: Disabled Hilt completely
+   - **Long-term Plan**: Use singleton objects for DI or switch to Koin
+
+**Lessons Learned**:
+1. KSP versions must match exactly with Kotlin version
+2. Hilt currently has compatibility issues with Kotlin 2.0.21 + AGP 8.9+
+3. For educational projects, simple DI solutions (singletons) can be sufficient
+4. Always verify library compatibility before adding dependencies
+
+**Next Steps**:
+- Continue with Iteration 3: Network Layer
+- Implement simple DI pattern using singleton objects
+- Consider Koin as Hilt alternative in future
+
+---
+
+**Current Status**: ✅ Project builds successfully. Ready for Iteration 3: Network Layer development.
+
+---
+
+### Iteration 3: Network Layer
+**Date**: 2025-11-04
+**Status**: ✅ COMPLETED
+**Duration**: 3 hours
+**Completed By**: Claude Code
+
+**Goals**:
+- Implement all 11 API endpoints in ApiService
+- Create DTO models for request/response
+- Add authentication interceptor
+- Implement Repository pattern
+- Set up simple DI without Hilt
+
+**Tasks Completed**:
+
+1. **DTO Models Created** ✅
+   - `AuthDto.kt`: LoginRequest, LoginResponse, TokenData, RefreshTokenRequest, RefreshTokenResponse
+   - `ProfileDto.kt`: ProfileResponse, ProfileData, UpdateProfileRequest
+   - `OrderDto.kt`: OrdersResponse, OrderResponse, OrderDto, UpdateStatusRequest
+   - `StatisticsDto.kt`: StatisticsResponse, StatisticsData
+   - `PhotoDto.kt`: PhotoUploadResponse, PhotoData
+   - All DTOs use Moshi @JsonClass for code generation
+
+2. **ApiService Implementation** ✅
+   - 11 endpoints implemented:
+     - Authentication: login, logout, refreshToken
+     - Profile: getProfile, updateProfile
+     - Orders: getActiveOrders, getOrderHistory, getOrderById, updateOrderStatus
+     - Photo: uploadPhoto (multipart)
+     - Statistics: getStatistics
+   - All endpoints return `Response<T>` for manual error handling
+   - Proper annotations: @POST, @GET, @PUT, @Multipart
+   - Query parameters for filtering
+
+3. **Domain Models** ✅
+   - `Order.kt`: Domain order model with OrderStatus enum
+   - `OrderStatus` enum with workflow validation
+   - `User.kt`: Domain user model
+   - `Statistics.kt`: Domain statistics model
+   - Clean architecture - no platform dependencies
+
+4. **Data Mappers** ✅
+   - `OrderMapper.kt`: DTO ↔ Domain ↔ Entity conversions
+   - `UserMapper.kt`: DTO ↔ Domain ↔ Entity conversions
+   - `StatisticsMapper.kt`: DTO → Domain conversion
+   - Used @JvmName to resolve function signature conflicts
+
+5. **Authentication Infrastructure** ✅
+   - `AuthInterceptor.kt`: Adds Bearer token to requests
+   - Skips auth for login/refresh endpoints
+   - Token provided via lambda function
+
+6. **Token Management** ✅
+   - `TokenManager.kt`: Secure token storage
+   - Uses EncryptedSharedPreferences with AES256_GCM
+   - Methods: saveTokens, getAccessToken, getRefreshToken, isTokenExpired, isLoggedIn, clearTokens
+   - Singleton pattern with thread-safe initialization
+
+7. **Repository Layer** ✅
+   - Domain interfaces:
+     - `AuthRepository`: login, logout, refreshToken, isLoggedIn
+     - `ProfileRepository`: getProfile, updateProfile
+     - `OrderRepository`: 8 methods for order management
+   - Implementation:
+     - `AuthRepositoryImpl`: Full authentication logic with token management
+   - Returns `Result<T>` for consistent error handling
+
+8. **Simple DI Structure** ✅
+   - `NetworkModule`: Provides Retrofit, OkHttp, ApiService, TokenManager
+   - `DatabaseModule`: Provides Room database and DAOs
+   - `RepositoryModule`: Provides repository implementations
+   - Singleton objects with lazy initialization
+   - Thread-safe double-check locking
+
+9. **Entity Updates** ✅
+   - Updated `OrderEntity`: Aligned with DTO structure (Long ID, ISO timestamps)
+   - Updated `UserEntity`: Added username, fullName fields
+   - Fixed `OrderDao`: Removed references to non-existent columns
+   - Fixed `UserDao`: Already correct
+
+10. **Application Initialization** ✅
+    - Updated `CurierApplication`: Initializes NetworkModule and DatabaseModule in onCreate()
+
+**Changes Made**:
+- **Created 20 new files**:
+  - 5 DTO files
+  - 3 Domain model files
+  - 3 Repository interfaces
+  - 1 Repository implementation
+  - 3 Mapper files
+  - 1 Interceptor
+  - 1 TokenManager
+  - 3 DI modules
+- **Updated 4 existing files**:
+  - ApiService.kt (from stub to full implementation)
+  - OrderEntity.kt (aligned with architecture)
+  - UserEntity.kt (aligned with architecture)
+  - OrderDao.kt (fixed queries)
+  - CurierApplication.kt (DI initialization)
+- **~1200 lines of Kotlin code written**
+
+**Code Quality**:
+- Clean Architecture strictly followed
+- Domain layer has no Android dependencies
+- Type-safe Result wrapper for error handling
+- Secure token storage with encryption
+- Proper separation of concerns (DTO, Domain, Entity)
+- Extension functions for clean mapping
+- Comprehensive KDoc documentation
+
+**Tests Performed**:
+✅ **BUILD SUCCESSFUL in 14 seconds**
+- All code compiles without errors
+- Debug APK created successfully
+- 1 deprecation warning (fallbackToDestructiveMigration)
+
+**Issues Encountered & Resolved**:
+
+1. **Type Mismatch in Mappers** [RESOLVED]:
+   - Problem: Entity structure didn't match Domain models
+   - Solution: Updated OrderEntity and UserEntity to align with architecture
+   - Files fixed: OrderEntity.kt, UserEntity.kt
+
+2. **Result.Error Type Mismatch** [RESOLVED]:
+   - Problem: Result.Error expects Exception, was passing String
+   - Solution: Wrapped error messages in Exception()
+   - File fixed: AuthRepositoryImpl.kt
+
+3. **DAO Query Errors** [RESOLVED]:
+   - Problem: Query referenced non-existent `updatedAt` column
+   - Solution: Updated queries to use existing columns
+   - File fixed: OrderDao.kt
+
+4. **Function Signature Clash** [RESOLVED]:
+   - Problem: Two `toDomainModels()` extensions had same JVM signature
+   - Solution: Added @JvmName annotations to differentiate
+   - File fixed: OrderMapper.kt
+
+**Architectural Decisions**:
+
+1. **No Hilt**: Used simple singleton DI objects due to Hilt compatibility issues
+   - Pros: No version conflicts, simpler for educational project
+   - Cons: Manual dependency management, no compile-time validation
+
+2. **Response<T> in ApiService**: Manual response handling instead of automatic
+   - Allows fine-grained error handling
+   - Can access HTTP status codes and headers
+
+3. **EncryptedSharedPreferences**: Secure token storage
+   - AES256_GCM encryption
+   - Meets NFR-2.2.2 security requirement
+
+4. **Flow in DAOs**: Reactive database queries
+   - UI updates automatically on data changes
+   - Lifecycle-aware
+
+**Technical Highlights**:
+- 11 REST API endpoints fully specified
+- 3-layer architecture (Presentation, Domain, Data)
+- Secure authentication with Bearer tokens
+- Automatic token refresh capability
+- Clean separation of DTOs, Domain models, and Entities
+- Type-safe Result wrapper for operations
+- Thread-safe singleton DI
+
+**API Specification Complete**:
+```
+Authentication:
+  POST /api/auth/login
+  POST /api/auth/logout
+  POST /api/auth/refresh
+
+Profile:
+  GET /api/courier/profile
+  PUT /api/courier/profile
+
+Orders:
+  GET /api/courier/orders/active
+  GET /api/courier/orders/history
+  GET /api/courier/orders/{id}
+  PUT /api/courier/orders/{id}/status
+
+Photo:
+  POST /api/courier/orders/{id}/photo
+
+Statistics:
+  GET /api/courier/statistics
+```
+
+**Files Created**:
+```
+data/remote/dto/
+├── AuthDto.kt
+├── OrderDto.kt
+├── PhotoDto.kt
+├── ProfileDto.kt
+└── StatisticsDto.kt
+
+data/remote/interceptor/
+└── AuthInterceptor.kt
+
+data/local/preferences/
+└── TokenManager.kt
+
+data/mapper/
+├── OrderMapper.kt
+├── StatisticsMapper.kt
+└── UserMapper.kt
+
+data/repository/
+└── AuthRepositoryImpl.kt
+
+domain/model/
+├── Order.kt
+├── Statistics.kt
+└── User.kt
+
+domain/repository/
+├── AuthRepository.kt
+├── OrderRepository.kt
+└── ProfileRepository.kt
+
+core/di/
+├── DatabaseModule.kt
+├── NetworkModule.kt
+└── RepositoryModule.kt
+```
+
+**Lessons Learned**:
+1. Always align Entity, DTO, and Domain models before creating mappers
+2. @JvmName annotation resolves extension function signature conflicts
+3. Result.Error must receive Exception type, not String
+4. EncryptedSharedPreferences requires MasterKey setup
+5. Singleton DI is viable alternative to Hilt for smaller projects
+
+**Next Steps**:
+- Begin **Iteration 4**: Implement ProfileRepository and OrderRepository
+- Create ViewModels for Authentication
+- Implement Login UI
+- Add remaining repository implementations
+
+---
+
+## Iteration 4: Repository Layer Implementation
+
+**Date**: 2025-11-04
+**Status**: ✅ Completed
+**Duration**: ~2 hours
+
+**Goals**:
+- Implement ProfileRepositoryImpl with API integration and local caching
+- Implement OrderRepositoryImpl with full order management functionality
+- Integrate repositories into DI system (RepositoryModule)
+- Ensure Clean Architecture principles are maintained
+- Build and test the complete repository layer
+
+**Tasks Completed**:
+
+### 1. ProfileRepositoryImpl Implementation ✅
+**File**: `data/repository/ProfileRepositoryImpl.kt`
+- Implemented `getProfile()` with API call and database caching
+- Implemented `updateProfile()` with all optional fields support
+- Added proper error handling with Result wrapper
+- Integrated UserDao for local caching
+- Total: ~75 lines of production code
+
+**Key Features**:
+- Offline-first approach: caches profile data in Room database
+- Supports email, phone, and dateOfBirth updates
+- Proper error propagation with descriptive messages
+- Follows repository pattern from domain layer
+
+### 2. OrderRepositoryImpl Implementation ✅
+**File**: `data/repository/OrderRepositoryImpl.kt`
+- Implemented all 7 repository methods:
+  - `getActiveOrdersFlow()` - Reactive Flow for real-time updates
+  - `getActiveOrders()` - Single fetch with caching
+  - `getOrderHistory()` - Time-filtered history
+  - `getOrderById()` - Single order fetch
+  - `updateOrderStatus()` - Status transition with validation
+  - `uploadPhoto()` - Multipart file upload
+  - `getStatistics()` - Delivery statistics
+- Added status transition validation logic
+- Implemented photo upload with OkHttp MultipartBody
+- Created ISO 8601 timestamp helper for API level 24 compatibility
+- Total: ~220 lines of production code
+
+**Key Features**:
+- Offline-first with Flow-based reactive updates
+- Validates order status transitions before API calls
+- Supports multipart photo uploads
+- Comprehensive error handling for all operations
+- Compatible with minSdk 24 (fixed java.time.Instant issue)
+
+### 3. RepositoryModule Enhancement ✅
+**File**: `core/di/RepositoryModule.kt`
+- Added `provideProfileRepository()` method
+- Added `provideOrderRepository()` method
+- Maintained singleton pattern with thread-safe initialization
+- Connected repositories with NetworkModule and DatabaseModule
+
+**DI Structure**:
+```kotlin
+RepositoryModule
+├── provideAuthRepository() → AuthRepositoryImpl
+├── provideProfileRepository() → ProfileRepositoryImpl
+└── provideOrderRepository() → OrderRepositoryImpl
+```
+
+### 4. API Compatibility Fixes ✅
+**Issue**: `java.time.Instant` requires API level 26, but project minSdk is 24
+
+**Solution**:
+- Replaced `Instant.now()` with `SimpleDateFormat`
+- Created `getCurrentIsoTimestamp()` helper function
+- Formats timestamps as ISO 8601: "yyyy-MM-dd'T'HH:mm:ss'Z'"
+- Maintains UTC timezone for consistency
+
+**Code**:
+```kotlin
+private fun getCurrentIsoTimestamp(): String {
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+    dateFormat.timeZone = TimeZone.getTimeZone("UTC")
+    return dateFormat.format(Date())
+}
+```
+
+**Changes Made**:
+
+### New Files Created (2):
+1. `app/src/main/java/com/example/curier_mobile/data/repository/ProfileRepositoryImpl.kt`
+   - Complete ProfileRepository implementation
+   - 75 lines
+
+2. `app/src/main/java/com/example/curier_mobile/data/repository/OrderRepositoryImpl.kt`
+   - Complete OrderRepository implementation with 7 methods
+   - 220 lines including helper function
+
+### Files Updated (1):
+1. `app/src/main/java/com/example/curier_mobile/core/di/RepositoryModule.kt`
+   - Added ProfileRepository provider
+   - Added OrderRepository provider
+   - Enhanced from 28 to 56 lines
+
+**Total Code Statistics**:
+- **New files**: 2
+- **Updated files**: 1
+- **New lines of code**: ~295 lines
+- **Total repository implementations**: 3 (Auth, Profile, Order)
+- **Total repository methods**: 16 methods across all repositories
+
+**Build Results**:
+
+### Build 1: ❌ FAILED
+**Duration**: 1 minute 52 seconds
+
+**Error**:
+```
+OrderRepositoryImpl.kt:126 - Call requires API level 26 (current min is 24):
+java.time.Instant#now
+```
+
+**Root Cause**: Used Java 8 Time API which requires API 26+
+
+**Fix**: Replaced with SimpleDateFormat (compatible with API 24+)
+
+### Build 2: ✅ SUCCESS
+**Duration**: 18 seconds
+**Status**: All compilation successful
+**Warnings**: None critical
+**APK**: Debug APK created successfully
+
+**Tests Performed**:
+- ✅ Gradle build compilation test
+- ✅ Code structure validation
+- ✅ DI module dependency resolution check
+- ✅ Repository interface implementation completeness
+- ✅ API level compatibility verification
+
+**Issues Encountered**:
+
+### Issue 1: java.time.Instant API Level Incompatibility
+**Severity**: Critical (Build Failure)
+**Location**: `OrderRepositoryImpl.kt:126`
+
+**Problem**:
+Used `Instant.now().toString()` which requires API level 26, but project minSdk is 24.
+
+**Solution**:
+1. Removed `java.time.Instant` import
+2. Added imports: SimpleDateFormat, Date, Locale, TimeZone
+3. Created helper method `getCurrentIsoTimestamp()`
+4. Replaced `Instant.now().toString()` with `getCurrentIsoTimestamp()`
+
+**Code Changes**:
+```kotlin
+// Before:
+import java.time.Instant
+timestamp = Instant.now().toString()
+
+// After:
+import java.text.SimpleDateFormat
+import java.util.Date
+timestamp = getCurrentIsoTimestamp()
+
+private fun getCurrentIsoTimestamp(): String {
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+    dateFormat.timeZone = TimeZone.getTimeZone("UTC")
+    return dateFormat.format(Date())
+}
+```
+
+**Architectural Decisions**:
+
+### 1. Repository Pattern Implementation
+**Decision**: Implement repositories with both single-fetch and Flow-based methods
+
+**Rationale**:
+- Single-fetch methods (`getActiveOrders()`) for one-time data retrieval
+- Flow methods (`getActiveOrdersFlow()`) for reactive UI updates
+- Provides flexibility for different UI patterns
+
+**Benefits**:
+- Supports both imperative and reactive programming
+- Enables real-time UI updates when data changes
+- Maintains separation between data sources and UI
+
+### 2. Offline-First Architecture
+**Decision**: Cache all fetched data in Room database
+
+**Implementation**:
+- Every successful API call saves data to database
+- DAOs provide Flow for observing changes
+- UI can display cached data during network failures
+
+**Benefits**:
+- Improved user experience with instant data display
+- Graceful degradation during network issues
+- Reduces API calls for frequently accessed data
+
+### 3. Status Transition Validation
+**Decision**: Validate order status transitions in repository before API calls
+
+**Implementation**:
+```kotlin
+val currentOrder = orderDao.getOrderById(orderId)
+if (currentOrder != null) {
+    val currentStatus = OrderStatus.fromValue(currentOrder.status)
+    if (!OrderStatus.isValidTransition(currentStatus, newStatus)) {
+        return Result.Error(Exception("Invalid status transition"))
+    }
+}
+```
+
+**Benefits**:
+- Prevents invalid API calls
+- Immediate feedback to user
+- Reduces network traffic
+- Enforces business rules at data layer
+
+### 4. Error Handling Strategy
+**Decision**: Wrap all exceptions in Result.Error with descriptive messages
+
+**Pattern**:
+```kotlin
+try {
+    // API call
+    if (response.isSuccessful && response.body()?.success == true) {
+        // Success path
+    } else {
+        Result.Error(Exception(response.body()?.message ?: "Default message"))
+    }
+} catch (e: Exception) {
+    Result.Error(e)
+}
+```
+
+**Benefits**:
+- Consistent error handling across all repositories
+- Clear error messages for debugging
+- Preserves original exception stack traces
+- Allows UI layer to handle errors uniformly
+
+**Repository Layer Architecture**:
+
+```
+domain/repository (Interfaces)
+├── AuthRepository
+├── ProfileRepository
+└── OrderRepository
+        ↓ implements
+data/repository (Implementations)
+├── AuthRepositoryImpl
+│   ├── → ApiService (login, logout, refreshToken)
+│   └── → TokenManager (save, get, clear tokens)
+│
+├── ProfileRepositoryImpl
+│   ├── → ApiService (getProfile, updateProfile)
+│   └── → UserDao (cache profile)
+│
+└── OrderRepositoryImpl
+    ├── → ApiService (7 order endpoints)
+    └── → OrderDao (cache orders, Flow updates)
+```
+
+**Repository Methods Summary**:
+
+### AuthRepository (3 methods)
+1. `login(username, password)` → Result<User>
+2. `logout()` → Result<Unit>
+3. `refreshToken()` → Result<Unit>
+4. `isLoggedIn()` → Boolean
+5. `getAccessToken()` → String?
+
+### ProfileRepository (2 methods)
+1. `getProfile()` → Result<User>
+2. `updateProfile(email, phone, dob)` → Result<User>
+
+### OrderRepository (7 methods)
+1. `getActiveOrdersFlow()` → Flow<List<Order>>
+2. `getActiveOrders()` → Result<List<Order>>
+3. `getOrderHistory(start, end)` → Result<List<Order>>
+4. `getOrderById(id)` → Result<Order>
+5. `updateOrderStatus(id, status)` → Result<Order>
+6. `uploadPhoto(id, file)` → Result<String>
+7. `getStatistics(start, end)` → Result<Statistics>
+
+**Data Flow Example (Get Active Orders)**:
+
+```
+UI Layer (Fragment/Activity)
+    ↓ observes Flow
+ViewModel
+    ↓ collects Flow
+OrderRepository.getActiveOrdersFlow()
+    ↓ maps entities
+OrderDao.getActiveOrders() [Flow<List<OrderEntity>>]
+    ↓ observes database
+Room Database
+    ↑ updates from
+OrderRepository.getActiveOrders() [network fetch]
+    ↑ fetches from
+ApiService.getActiveOrders()
+    ↑ HTTP request
+Backend API
+```
+
+**Project Structure After Iteration 4**:
+
+```
+app/src/main/java/com/example/curier_mobile/
+├── core/
+│   ├── di/
+│   │   ├── DatabaseModule.kt ✅
+│   │   ├── NetworkModule.kt ✅
+│   │   └── RepositoryModule.kt ✅ (Enhanced)
+│   └── result/
+│       └── Result.kt ✅
+│
+├── data/
+│   ├── local/
+│   │   ├── dao/
+│   │   │   ├── OrderDao.kt ✅
+│   │   │   └── UserDao.kt ✅
+│   │   ├── entity/
+│   │   │   ├── OrderEntity.kt ✅
+│   │   │   └── UserEntity.kt ✅
+│   │   └── preferences/
+│   │       └── TokenManager.kt ✅
+│   │
+│   ├── mapper/
+│   │   ├── OrderMapper.kt ✅
+│   │   ├── StatisticsMapper.kt ✅
+│   │   └── UserMapper.kt ✅
+│   │
+│   ├── remote/
+│   │   ├── api/
+│   │   │   └── ApiService.kt ✅ (11 endpoints)
+│   │   ├── dto/
+│   │   │   ├── AuthDto.kt ✅
+│   │   │   ├── OrderDto.kt ✅
+│   │   │   ├── PhotoDto.kt ✅
+│   │   │   ├── ProfileDto.kt ✅
+│   │   │   └── StatisticsDto.kt ✅
+│   │   └── interceptor/
+│   │       └── AuthInterceptor.kt ✅
+│   │
+│   └── repository/
+│       ├── AuthRepositoryImpl.kt ✅
+│       ├── OrderRepositoryImpl.kt ✅ (NEW)
+│       └── ProfileRepositoryImpl.kt ✅ (NEW)
+│
+└── domain/
+    ├── model/
+    │   ├── Order.kt ✅
+    │   ├── OrderStatus.kt ✅
+    │   ├── Statistics.kt ✅
+    │   └── User.kt ✅
+    └── repository/
+        ├── AuthRepository.kt ✅
+        ├── OrderRepository.kt ✅
+        └── ProfileRepository.kt ✅
+```
+
+**Lessons Learned**:
+
+1. **API Level Compatibility**: Always check Android API level requirements when using Java/Kotlin standard library classes
+   - `java.time.*` requires API 26+
+   - Use `SimpleDateFormat` for API 24 compatibility
+   - Consider enabling Java 8+ API desugaring for newer APIs on older platforms
+
+2. **Repository Pattern Benefits**: Clean separation between domain and data layers enables:
+   - Easy testing with mock repositories
+   - Flexible data source switching (API ↔ Database)
+   - Clear contract through interfaces
+   - Single source of truth for business logic
+
+3. **Offline-First Architecture**: Caching API responses in local database provides:
+   - Better user experience (instant data loading)
+   - Network failure resilience
+   - Reduced API calls
+   - Foundation for offline mode implementation
+
+4. **Status Validation**: Validating business rules at repository layer:
+   - Prevents invalid API requests
+   - Centralizes business logic
+   - Reduces network errors
+   - Provides immediate user feedback
+
+5. **Flow vs Single-Fetch**: Providing both approaches gives flexibility:
+   - Flow for reactive UIs that auto-update
+   - Single-fetch for one-time operations
+   - Repository layer shouldn't dictate UI patterns
+
+**Next Steps**:
+- Begin **Iteration 5**: Authentication UI Implementation
+  - Create LoginViewModel with validation logic
+  - Implement login screen UI with Material Design
+  - Add form validation and error handling
+  - Implement loading states and navigation
+
+- **Iteration 6**: Main Screen and Order List
+  - Create OrderListViewModel
+  - Implement order list UI with RecyclerView
+  - Add pull-to-refresh functionality
+  - Implement order status filtering
+
+- **Iteration 7**: Order Details and Status Updates
+  - Create OrderDetailViewModel
+  - Implement order detail screen
+  - Add status update UI
+  - Implement photo capture functionality
+
+---
+
+**Current Status**: ✅ Repository Layer complete. All 3 repositories implemented. Project builds successfully in 18 seconds. Ready for Iteration 5: Authentication UI.

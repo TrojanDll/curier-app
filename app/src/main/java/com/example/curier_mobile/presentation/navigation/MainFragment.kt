@@ -2,12 +2,15 @@ package com.example.curier_mobile.presentation.navigation
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.ui.setupWithNavController
+import com.example.curier_mobile.R
 import com.example.curier_mobile.databinding.FragmentMainBinding
 import com.example.curier_mobile.presentation.common.BaseFragment
 
 /**
- * Главный контейнер с Bottom Navigation
- * TODO: Будет реализован в текущей итерации
+ * Main container fragment with Bottom Navigation
+ * Manages nested navigation for Orders, History, and Profile tabs
  */
 class MainFragment : BaseFragment<FragmentMainBinding>() {
 
@@ -19,10 +22,19 @@ class MainFragment : BaseFragment<FragmentMainBinding>() {
     }
 
     override fun setupUI() {
-        // TODO: Setup Bottom Navigation
+        // Setup nested navigation
+        val navHostFragment = childFragmentManager
+            .findFragmentById(R.id.nav_host_fragment_main) as NavHostFragment
+        val navController = navHostFragment.navController
+
+        // Set navigation graph programmatically
+        navController.setGraph(R.navigation.nav_graph_main)
+
+        // Setup BottomNavigationView with NavController
+        binding.bottomNavigation.setupWithNavController(navController)
     }
 
     override fun observeViewModel() {
-        // TODO: Observe ViewModel if needed
+        // No ViewModel for this container fragment
     }
 }

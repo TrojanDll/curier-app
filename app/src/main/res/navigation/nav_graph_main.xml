@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph_main"
+    app:startDestination="@id/ordersListFragment">
+
+    <!-- Orders Tab -->
+    <fragment
+        android:id="@+id/ordersListFragment"
+        android:name="com.example.curier_mobile.presentation.orders.OrdersListFragment"
+        android:label="Активные заказы">
+        <action
+            android:id="@+id/action_ordersListFragment_to_orderDetailsFragment"
+            app:destination="@id/orderDetailsFragment" />
+    </fragment>
+
+    <!-- Order Details (opened from orders list) -->
+    <fragment
+        android:id="@+id/orderDetailsFragment"
+        android:name="com.example.curier_mobile.presentation.orders.OrderDetailsFragment"
+        android:label="Детали заказа">
+        <argument
+            android:name="orderId"
+            app:argType="string" />
+    </fragment>
+
+    <!-- History Tab (placeholder for now) -->
+    <fragment
+        android:id="@+id/historyFragment"
+        android:name="com.example.curier_mobile.presentation.history.HistoryFragment"
+        android:label="История" />
+
+    <!-- Profile Tab (placeholder for now) -->
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.example.curier_mobile.presentation.profile.ProfileFragment"
+        android:label="Профиль" />
+
+</navigation>

@@ -1031,4 +1031,341 @@ app/src/main/java/com/example/curier_mobile/
 
 ---
 
-**Current Status**: ✅ Repository Layer complete. All 3 repositories implemented. Project builds successfully in 18 seconds. Ready for Iteration 5: Authentication UI.
+## Iteration 5: Authentication UI Implementation
+
+**Date**: 2025-11-04
+**Status**: ✅ Completed
+**Duration**: ~1.5 hours
+
+**Goals**:
+- Implement LoginViewModel with state management and form validation
+- Create login screen UI with Material Design 3
+- Add reactive form validation with real-time feedback
+- Integrate authentication flow with navigation
+- Test complete authentication flow end-to-end
+
+**Tasks Completed**:
+
+### 1. LoginViewModel Implementation ✅
+**Files Created**:
+- `presentation/auth/LoginUiState.kt` - UI state data class
+- `presentation/auth/LoginViewModel.kt` - ViewModel with validation logic
+- `presentation/ViewModelFactory.kt` - Factory for DI
+
+**Key Features**:
+- StateFlow-based reactive state management
+- Form validation (username, password min 6 chars)
+- Real-time field validation with error clearing
+- Loading state handling
+- Success state with user data
+- Integration with AuthRepository
+
+### 2. Login UI Layout ✅
+**Files Updated**:
+- `res/layout/fragment_login.xml` - Complete Material Design 3 layout
+- `res/values/strings.xml` - All UI strings
+
+**UI Components**:
+- Logo ImageView (120dp)
+- Title with Material3 typography
+- TextInputLayout with OutlinedBox style
+- Password toggle button
+- Error message TextView
+- MaterialButton with loading state
+- CircularProgressIndicator overlay
+
+### 3. LoginFragment Implementation ✅
+**File Updated**: `presentation/auth/LoginFragment.kt`
+
+**Features**:
+- ViewBinding integration
+- ViewModel lifecycle-aware observation
+- Real-time text field listeners
+- UI state synchronization
+- Navigation to main screen on success
+- Snackbar success message
+
+### 4. Navigation Setup ✅
+**File**: `res/navigation/nav_graph.xml` (already configured)
+
+**Actions**:
+- `action_login_to_main` - Login → Main (clears backstack)
+- `action_main_to_login` - Logout flow
+
+**Changes Made**:
+
+### New Files (3):
+1. `LoginUiState.kt` - 15 lines
+2. `LoginViewModel.kt` - 105 lines
+3. `ViewModelFactory.kt` - 22 lines
+
+### Updated Files (3):
+1. `fragment_login.xml` - Complete Material Design 3 layout
+2. `strings.xml` - Added 20+ string resources
+3. `LoginFragment.kt` - Full implementation (93 lines)
+
+**Total**: ~235 lines of new code
+
+**Build Results**:
+- Status: ✅ SUCCESS
+- Duration: 20 seconds
+- Errors: 0
+- Warnings: 0
+
+**Architecture Decisions**:
+
+### 1. StateFlow for UI State
+**Decision**: Use StateFlow instead of LiveData
+
+**Benefits**:
+- Better Kotlin coroutines integration
+- Type-safe state updates
+- Lifecycle-aware collection with repeatOnLifecycle
+- Immutable state with data class copy
+
+### 2. Single UiState Data Class
+**Decision**: Combine all UI state in one data class
+
+**Benefits**:
+- Single source of truth
+- Atomic state updates
+- Easy testing
+- Clear state dependencies
+
+### 3. Validation on Submit
+**Decision**: Validate on button click, clear errors on text change
+
+**Benefits**:
+- Non-intrusive UX
+- Clear error feedback
+- Progressive disclosure
+- Reduced validation noise
+
+**Authentication Flow**:
+
+```
+User Input (LoginFragment)
+    ↓ text changes
+LoginViewModel.onUsernameChanged() / onPasswordChanged()
+    ↓ updates StateFlow
+LoginUiState updated
+    ↓ observed by Fragment
+UI updated (clear errors)
+    ↓ user clicks Login
+LoginViewModel.onLoginClicked()
+    ↓ validates fields
+If valid → performLogin()
+    ↓ calls repository
+AuthRepository.login()
+    ↓ API call + token save
+Result.Success<User>
+    ↓ updates state
+LoginUiState(isLoginSuccessful = true)
+    ↓ Fragment observes
+Navigate to MainFragment
+```
+
+**Validation Rules**:
+- Username: Not blank
+- Password: Not blank, min 6 characters
+- Real-time error clearing on text change
+- Form-level error for API failures
+
+**Next Steps**:
+- **Iteration 6**: Main screen with Bottom Navigation
+  - Create MainFragment with BottomNavigationView
+  - Implement Orders list screen
+  - Add SwipeRefreshLayout
+  - Create order list item layout
+
+---
+
+## Iteration 6: Main Screen & Orders List
+
+**Date**: 2025-11-04
+**Status**: ✅ Completed
+**Duration**: ~2 hours
+
+**Goals**:
+- Implement OrdersViewModel with reactive state management
+- Create OrdersListFragment with RecyclerView and pull-to-refresh
+- Build OrderAdapter with DiffUtil for efficient list updates
+- Setup nested navigation graph for bottom navigation
+- Integrate MainFragment with BottomNavigationView
+- Full offline-first architecture with Room database Flow
+
+**Tasks Completed**:
+
+### 1. OrdersViewModel ✅
+**Files Created**:
+- `OrdersUiState.kt` - UI state data class
+- `OrdersViewModel.kt` - ViewModel with Flow-based updates
+
+**Features**:
+- Observes orders from Room database via Flow (real-time updates)
+- Fetches fresh data from API on init
+- Pull-to-refresh support
+- Loading and error state management
+- Inherits from BaseViewModel for error handling
+
+### 2. OrderAdapter ✅
+**File**: `OrderAdapter.kt`
+
+**Features**:
+- ListAdapter with DiffUtil for efficient updates
+- ViewHolder pattern with ViewBinding
+- Status badge with color coding
+- Time formatting (ISO 8601 → HH:mm)
+- Click listener for navigation to order details
+
+### 3. OrdersListFragment ✅
+**Files**:
+- `OrdersListFragment.kt` - Fragment implementation
+- `fragment_orders_list.xml` - Layout with SwipeRefreshLayout
+
+**UI Components**:
+- RecyclerView with LinearLayoutManager
+- SwipeRefreshLayout for pull-to-refresh
+- Empty state view
+- Loading indicator
+- Error handling with Snackbar
+
+### 4. Order List Item Layout ✅
+**File**: `item_order.xml`
+
+**Design**:
+- MaterialCardView with elevation
+- Order number + Status chip
+- Customer name and phone
+- Delivery address with icon
+- Assigned time
+
+### 5. Nested Navigation Graph ✅
+**File**: `nav_graph_main.xml`
+
+**Structure**:
+- OrdersListFragment (start destination)
+- OrderDetailsFragment (with orderId argument)
+- HistoryFragment (placeholder)
+- ProfileFragment (placeholder)
+
+### 6. MainFragment Integration ✅
+**File**: `MainFragment.kt`
+
+**Features**:
+- Nested NavHostFragment setup
+- BottomNavigationView integrated with NavController
+- Automatic fragment switching on tab click
+- Programmatic navigation graph setup
+
+### 7. Placeholder Fragments ✅
+**Files**:
+- `HistoryFragment.kt` + `ProfileFragment.kt`
+- `fragment_placeholder.xml`
+
+**Purpose**: Allow navigation testing while implementing real features later
+
+### 8. ViewModelFactory Update ✅
+Added OrdersViewModel creation with OrderRepository injection
+
+**Changes Made**:
+
+### New Files (10):
+1. `OrdersUiState.kt` - 10 lines
+2. `OrdersViewModel.kt` - 100 lines
+3. `OrderAdapter.kt` - 90 lines
+4. `OrdersListFragment.kt` - 95 lines
+5. `fragment_orders_list.xml` - 70 lines
+6. `item_order.xml` - 85 lines
+7. `nav_graph_main.xml` - 25 lines
+8. `HistoryFragment.kt` - 25 lines
+9. `ProfileFragment.kt` - 25 lines
+10. `fragment_placeholder.xml` - 15 lines
+
+### Updated Files (3):
+1. `MainFragment.kt` - Full implementation
+2. `bottom_nav_menu.xml` - Updated IDs to match fragments
+3. `ViewModelFactory.kt` - Added OrdersViewModel
+
+**Total**: ~540 lines of new code
+
+**Build Results**:
+- Status: ✅ SUCCESS
+- Duration: 21 seconds
+- Errors: 0
+- Warnings: 1 (non-critical deprecation)
+
+**Architecture Decisions**:
+
+### 1. Offline-First with Flow
+**Implementation**:
+```kotlin
+// Observe local database
+orderRepository.getActiveOrdersFlow().collect { orders ->
+    _uiState.update { it.copy(orders = orders) }
+}
+
+// Fetch from API in parallel
+orderRepository.getActiveOrders() // Saves to DB
+```
+
+**Benefits**:
+- Instant UI updates from database
+- Background API sync
+- Automatic UI refresh when data changes
+- Works offline with cached data
+
+### 2. Nested Navigation
+**Decision**: Separate navigation graph for bottom tabs
+
+**Benefits**:
+- Independent navigation stacks per tab
+- Clean separation of concerns
+- Easy to add/remove tabs
+- Standard Android Navigation pattern
+
+### 3. DiffUtil in Adapter
+**Benefits**:
+- Efficient RecyclerView updates
+- Smooth animations
+- Only changed items rebound
+- Performance optimization for large lists
+
+**Data Flow**:
+
+```
+Room Database (OrderEntity)
+    ↓ Flow emission
+OrderRepository.getActiveOrdersFlow()
+    ↓ maps to domain
+OrdersViewModel (observes Flow)
+    ↓ updates StateFlow
+OrdersUiState updated
+    ↓ collected by
+OrdersListFragment
+    ↓ submits to
+OrderAdapter (DiffUtil)
+    ↓ binds to
+RecyclerView items
+```
+
+**Issues Encountered**:
+
+**Issue 1**: XML tag case mismatch
+- Error: `swiperefreshLayout` vs `SwipeRefreshLayout`
+- Fix: Corrected closing tag case
+
+**Issue 2**: Unresolved reference to errorMessage
+- Error: Tried to access BaseViewModel.errorMessage
+- Fix: Handle errors directly in UiState
+
+**Next Steps**:
+- **Iteration 7**: Order Details Screen
+  - Full OrderDetailsFragment implementation
+  - Status update buttons
+  - Customer contact integration
+  - Navigation integration
+
+---
+
+**Current Status**: ✅ Main screen complete. Orders list functional with offline support. Bottom navigation working. Project builds in 21 seconds. Ready for Iteration 7: Order Details.

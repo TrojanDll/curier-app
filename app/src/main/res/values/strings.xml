@@ -1,3 +1,28 @@
 <resources>
-    <string name="app_name">curier_mobile</string>
+    <string name="app_name">Curier Mobile</string>
+
+    <!-- Login Screen -->
+    <string name="login_title">Вход в систему</string>
+    <string name="login_username_hint">Логин</string>
+    <string name="login_password_hint">Пароль</string>
+    <string name="login_button">Войти</string>
+
+    <!-- Navigation -->
+    <string name="nav_orders">Заказы</string>
+    <string name="nav_history">История</string>
+    <string name="nav_statistics">Статистика</string>
+    <string name="nav_profile">Профиль</string>
+
+    <!-- Order Statuses -->
+    <string name="status_picked_up">Забрал заказ</string>
+    <string name="status_near_customer">Возле дома клиента</string>
+    <string name="status_delivered">Передал заказ</string>
+    <string name="status_returned">Вернулся на предприятие</string>
+
+    <!-- Common -->
+    <string name="error_network">Ошибка сети</string>
+    <string name="error_unknown">Неизвестная ошибка</string>
+    <string name="retry">Повторить</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Отмена</string>
 </resources>

@@ -1,0 +1,30 @@
+package com.example.curier_mobile.presentation
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import com.example.curier_mobile.core.di.RepositoryModule
+import com.example.curier_mobile.presentation.auth.LoginViewModel
+import com.example.curier_mobile.presentation.orders.OrdersViewModel
+
+/**
+ * Factory for creating ViewModels with dependencies
+ */
+class ViewModelFactory : ViewModelProvider.Factory {
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        return when {
+            modelClass.isAssignableFrom(LoginViewModel::class.java) -> {
+                LoginViewModel(
+                    authRepository = RepositoryModule.provideAuthRepository()
+                ) as T
+            }
+            modelClass.isAssignableFrom(OrdersViewModel::class.java) -> {
+                OrdersViewModel(
+                    orderRepository = RepositoryModule.provideOrderRepository()
+                ) as T
+            }
+            else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
+        }
+    }
+}

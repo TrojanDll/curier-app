@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
-        android:id="@+id/navigation_orders"
+        android:id="@+id/ordersListFragment"
         android:icon="@android:drawable/ic_menu_agenda"
         android:title="Заказы" />
     <item
-        android:id="@+id/navigation_history"
+        android:id="@+id/historyFragment"
         android:icon="@android:drawable/ic_menu_recent_history"
         android:title="История" />
     <item
-        android:id="@+id/navigation_profile"
+        android:id="@+id/profileFragment"
         android:icon="@android:drawable/ic_menu_myplaces"
         android:title="Профиль" />
 </menu>

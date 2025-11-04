@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.ksp)
-    alias(libs.plugins.hilt)
+    // alias(libs.plugins.hilt) // Временно отключено из-за проблем совместимости
 }
 
 android {
@@ -66,9 +66,10 @@ dependencies {
     implementation(libs.androidx.navigation.ui)
 
     // Dependency Injection
-    implementation(libs.hilt.android)
-    ksp(libs.hilt.compiler)
-    ksp(libs.androidx.hilt.compiler)
+    // TODO: Вернуть Hilt после решения проблемы совместимости с Kotlin 2.0.21
+    // implementation(libs.hilt.android)
+    // ksp(libs.hilt.compiler)
+    // ksp(libs.androidx.hilt.compiler)
 
     // Networking
     implementation(libs.retrofit)

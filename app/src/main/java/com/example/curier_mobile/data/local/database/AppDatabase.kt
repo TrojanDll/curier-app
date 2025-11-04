@@ -19,7 +19,7 @@ import com.example.curier_mobile.data.local.entity.UserEntity
     version = 1,
     exportSchema = false
 )
-@TypeConverters(Converters::class)
+// @TypeConverters(Converters::class) - будет добавлено при необходимости конвертации сложных типов
 abstract class AppDatabase : RoomDatabase() {
     abstract fun orderDao(): OrderDao
     abstract fun userDao(): UserDao

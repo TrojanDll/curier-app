@@ -6,7 +6,8 @@
       "Bash(gradlew.bat build:*)",
       "Bash(.gradlew.bat build:*)",
       "Bash(./gradlew build:*)",
-      "Bash(./gradlew assembleDebug:*)"
+      "Bash(./gradlew assembleDebug:*)",
+      "Bash(./gradlew clean:*)"
     ],
     "deny": [],
     "ask": []

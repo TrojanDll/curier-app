@@ -4,16 +4,9 @@ import androidx.room.TypeConverter
 
 /**
  * Конвертеры для Room Database
+ * Пока не требуются, так как все поля используют примитивные типы
+ * В будущем здесь можно добавить конвертеры для сложных типов (например, List<StatusChange>)
  */
 class Converters {
-
-    @TypeConverter
-    fun fromTimestamp(value: Long?): Long? {
-        return value
-    }
-
-    @TypeConverter
-    fun dateToTimestamp(date: Long?): Long? {
-        return date
-    }
+    // TODO: Добавить конвертеры при необходимости (например, для JSON serialization списков)
 }

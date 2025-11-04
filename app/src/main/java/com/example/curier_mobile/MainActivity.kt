@@ -4,12 +4,13 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
-import dagger.hilt.android.AndroidEntryPoint
+// import dagger.hilt.android.AndroidEntryPoint
 
 /**
- * Главная Activity с поддержкой Navigation Component и Hilt DI
+ * Главная Activity с поддержкой Navigation Component
+ * TODO: Добавить @AndroidEntryPoint после решения проблемы совместимости Hilt
  */
-@AndroidEntryPoint
+// @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
     private lateinit var navController: NavController

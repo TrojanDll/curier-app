@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "WebSearch",
+      "Bash(gradlew.bat build:*)",
+      "Bash(.gradlew.bat build:*)",
+      "Bash(./gradlew build:*)",
+      "Bash(./gradlew assembleDebug:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

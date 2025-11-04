@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/loginFragment">
+
+    <!-- Auth Navigation -->
+    <fragment
+        android:id="@+id/loginFragment"
+        android:name="com.example.curier_mobile.presentation.auth.LoginFragment"
+        android:label="Вход">
+        <action
+            android:id="@+id/action_login_to_main"
+            app:destination="@id/mainFragment"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <!-- Main Container with Bottom Navigation -->
+    <fragment
+        android:id="@+id/mainFragment"
+        android:name="com.example.curier_mobile.presentation.navigation.MainFragment"
+        android:label="Главная">
+        <action
+            android:id="@+id/action_main_to_login"
+            app:destination="@id/loginFragment"
+            app:popUpTo="@id/nav_graph"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <!-- Order Details (can be opened from Orders tab) -->
+    <fragment
+        android:id="@+id/orderDetailsFragment"
+        android:name="com.example.curier_mobile.presentation.orders.OrderDetailsFragment"
+        android:label="Детали заказа">
+        <argument
+            android:name="orderId"
+            app:argType="string" />
+    </fragment>
+
+</navigation>

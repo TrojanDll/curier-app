@@ -7,6 +7,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.example.curier_mobile.R
 import com.example.curier_mobile.databinding.FragmentHistoryBinding
 import com.example.curier_mobile.presentation.ViewModelFactory
 import com.example.curier_mobile.presentation.common.BaseFragment
@@ -31,6 +32,11 @@ class HistoryFragment : BaseFragment<FragmentHistoryBinding>() {
             // History orders are read-only, no navigation
         }
         binding.rvHistory.adapter = orderAdapter
+
+        // Setup SwipeRefreshLayout
+        binding.swipeRefresh.setOnRefreshListener {
+            viewModel.refreshHistory()
+        }
     }
 
     override fun observeViewModel() {
@@ -47,6 +53,9 @@ class HistoryFragment : BaseFragment<FragmentHistoryBinding>() {
         // Loading state
         binding.progressIndicator.visibility = if (state.isLoading) View.VISIBLE else View.GONE
 
+        // Refreshing state
+        binding.swipeRefresh.isRefreshing = state.isRefreshing
+
         // Orders list
         orderAdapter.submitList(state.orders)
 
@@ -57,9 +66,13 @@ class HistoryFragment : BaseFragment<FragmentHistoryBinding>() {
             View.GONE
         }
 
-        // Error
+        // Error with retry action
         state.error?.let { error ->
-            Snackbar.make(binding.root, error, Snackbar.LENGTH_LONG).show()
+            Snackbar.make(binding.root, error, Snackbar.LENGTH_LONG)
+                .setAction(R.string.retry) {
+                    viewModel.loadHistory()
+                }
+                .show()
             viewModel.clearError()
         }
     }

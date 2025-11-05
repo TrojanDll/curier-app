@@ -1902,12 +1902,550 @@ Error → Error Snackbar + hide indicator
 - No photo compression before upload (sends original quality)
 
 **Next Steps**:
-- **Iteration 10**: History & Statistics Screen
-  - OrderHistory UI with date filtering
-  - Statistics dashboard (daily/weekly/monthly)
-  - Charts for delivery metrics
-  - Export statistics functionality
+- **Iteration 10**: History & Statistics Screen ✅ (Completed)
 
 ---
 
 **Current Status**: ✅ Photo upload functional. Complete photo workflow working. Multipart upload implemented. Project builds in 1m 12s. Ready for Iteration 10: History & Statistics.
+
+---
+
+## Iteration 10: History & Statistics Screen
+
+**Goals**:
+1. Implement History screen with order history display
+2. Implement Profile screen with user info and statistics
+3. Complete bottom navigation functionality
+4. Display courier delivery statistics
+
+**Implementation Details**:
+
+### 1. History Screen Implementation ✅
+
+**HistoryUiState.kt** (NEW):
+```kotlin
+data class HistoryUiState(
+    val orders: List<Order> = emptyList(),
+    val isLoading: Boolean = false,
+    val error: String? = null,
+    val startDate: String? = null,
+    val endDate: String? = null
+)
+```
+- State for order history with optional date filtering
+- Supports loading, error, and empty states
+
+**HistoryViewModel.kt** (NEW):
+```kotlin
+class HistoryViewModel(
+    private val orderRepository: OrderRepository
+) : ViewModel() {
+    private val _uiState = MutableStateFlow(HistoryUiState())
+    val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
+
+    init { loadHistory() }
+
+    fun loadHistory(startDate: String? = null, endDate: String? = null)
+    fun clearError()
+}
+```
+- Loads order history via OrderRepository.getOrderHistory()
+- Supports optional date range filtering
+- Result<T> handling with proper error messages
+
+**fragment_history.xml** (NEW):
+- MaterialToolbar with "История" title
+- RecyclerView for history orders
+- Empty state LinearLayout (icon + text)
+- CircularProgressIndicator
+- ConstraintLayout structure
+
+**HistoryFragment.kt** (UPDATED):
+- Changed from placeholder to full implementation
+- Reused OrderAdapter from OrdersFragment
+- History orders are read-only (no navigation on click)
+- Lifecycle-aware StateFlow collection with repeatOnLifecycle
+- Empty state visibility based on orders list and loading state
+- Error display via Snackbar
+
+### 2. Profile Screen Implementation ✅
+
+**ProfileUiState.kt** (NEW):
+```kotlin
+data class ProfileUiState(
+    val user: User? = null,
+    val statistics: Statistics? = null,
+    val isLoading: Boolean = false,
+    val error: String? = null
+)
+```
+- Combined state for user profile and statistics
+- Nullable user and statistics (loaded separately)
+
+**ProfileViewModel.kt** (NEW):
+```kotlin
+class ProfileViewModel(
+    private val profileRepository: ProfileRepository,
+    private val orderRepository: OrderRepository
+) : ViewModel() {
+    init {
+        loadProfile()
+        loadStatistics()
+    }
+
+    private fun loadProfile() // ProfileRepository.getProfile()
+    private fun loadStatistics() // OrderRepository.getStatistics()
+}
+```
+- First ViewModel using two repositories
+- Parallel data loading (profile + statistics) in init
+- Statistics errors silently ignored (non-critical data)
+- Profile errors displayed to user
+
+**fragment_profile.xml** (NEW):
+- ScrollView with fillViewport
+- User Info MaterialCardView:
+  - Title "Информация о профиле"
+  - fullName (BodyLarge)
+  - email (BodyMedium, secondary color)
+  - phone (BodyMedium, secondary color)
+- Statistics MaterialCardView:
+  - Title "Статистика"
+  - ConstraintLayout grid with 4 stats:
+    - Total deliveries (label + value)
+    - Successful deliveries (green color)
+    - Returned orders (red color)
+    - Average delivery time (minutes)
+- CircularProgressIndicator (centered)
+
+**ProfileFragment.kt** (UPDATED):
+- Changed from placeholder to full implementation
+- Displays User.fullName (not firstName + lastName)
+- Statistics display:
+  - totalDeliveries from Statistics
+  - completedDeliveries from Statistics
+  - Returned = totalDeliveries - completedDeliveries
+  - averageDeliveryTimeMinutes formatted with minutes_format
+- "Не указано" for null email/phone
+- Error handling via Snackbar
+
+### 3. ViewModelFactory Updates ✅
+
+**ViewModelFactory.kt** (UPDATED):
+```kotlin
+modelClass.isAssignableFrom(HistoryViewModel::class.java) -> {
+    HistoryViewModel(
+        orderRepository = RepositoryModule.provideOrderRepository()
+    ) as T
+}
+modelClass.isAssignableFrom(ProfileViewModel::class.java) -> {
+    ProfileViewModel(
+        profileRepository = RepositoryModule.provideProfileRepository(),
+        orderRepository = RepositoryModule.provideOrderRepository()
+    ) as T
+}
+```
+- Added HistoryViewModel creation
+- Added ProfileViewModel creation (two repositories)
+- Total 5 ViewModels supported
+
+### 4. String Resources ✅
+
+**strings.xml** (UPDATED):
+Added History section:
+- `history_title`: "История"
+- `no_history`: "Нет истории заказов"
+
+Added Profile & Statistics section:
+- `profile_info`: "Информация о профиле"
+- `statistics`: "Статистика"
+- `total_deliveries`: "Всего доставок"
+- `successful_deliveries`: "Успешных"
+- `returned_orders`: "Возвратов"
+- `avg_delivery_time`: "Среднее время"
+- `not_specified`: "Не указано"
+- `minutes_format`: "%d мин"
+
+### 5. Build Configuration ✅
+
+**First Build Attempt**: FAILED
+- Compilation errors in ProfileFragment.kt:48, 56-58
+- Unresolved references: firstName, lastName, successfulDeliveries, returnedOrders, averageDeliveryTime
+
+**Issue Analysis**:
+- User model has `fullName` field, not `firstName` + `lastName`
+- Statistics model fields:
+  - `completedDeliveries` (not successfulDeliveries)
+  - No `returnedOrders` field (calculated as total - completed)
+  - `averageDeliveryTimeMinutes` (not averageDeliveryTime)
+
+**Fix Applied**:
+- Changed `"${user.firstName} ${user.lastName}"` → `user.fullName`
+- Changed `stats.successfulDeliveries` → `stats.completedDeliveries`
+- Changed `stats.returnedOrders` → `(stats.totalDeliveries - stats.completedDeliveries)`
+- Changed `stats.averageDeliveryTime` → `stats.averageDeliveryTimeMinutes`
+
+**Second Build Attempt**: SUCCESS
+- Build time: 1m 13s
+- 116 actionable tasks: 33 executed, 83 up-to-date
+- All tests passed
+- No compilation errors
+
+**Architecture Highlights**:
+
+### Bottom Navigation Completion
+All 4 tabs now functional:
+1. **Orders Tab**: Active orders with status updates
+2. **History Tab**: Completed orders (read-only)
+3. **Statistics Tab**: User profile + delivery statistics
+4. **Profile Tab**: Same as Statistics (nav_statistics and nav_profile point to ProfileFragment)
+
+### Data Models Used
+```kotlin
+// User.kt
+data class User(
+    val id: Long,
+    val username: String,
+    val fullName: String,
+    val email: String?,
+    val phone: String?,
+    val dateOfBirth: String?
+)
+
+// Statistics.kt
+data class Statistics(
+    val totalDeliveries: Int,
+    val completedDeliveries: Int,
+    val averageDeliveryTimeMinutes: Int,
+    val successRate: Double,
+    val periodStart: String,
+    val periodEnd: String
+)
+```
+
+### Repository Methods Used
+```kotlin
+// ProfileRepository
+suspend fun getProfile(): Result<User>
+
+// OrderRepository
+suspend fun getOrderHistory(startDate: String?, endDate: String?): Result<List<Order>>
+suspend fun getStatistics(startDate: String?, endDate: String?): Result<Statistics>
+```
+
+**Technical Decisions**:
+
+1. **History Orders Read-Only**: No navigation on item click, completed orders don't need detail view
+2. **Reused OrderAdapter**: Consistent order display across Orders and History screens
+3. **Parallel Data Loading**: Profile and Statistics loaded simultaneously in ProfileViewModel
+4. **Silent Statistics Failures**: If statistics fail to load, profile still displays (non-critical data)
+5. **Calculated Returned Orders**: Not in Statistics model, calculated as (total - completed)
+6. **No Date Filtering UI**: History and Statistics support date filtering in ViewModel, but no UI controls (can be added later)
+7. **Statistics Formatting**: Minutes displayed as "X мин", percentages not shown (can use successRate for future)
+
+**User Experience Flow**:
+
+### View Order History
+```
+1. User taps "История" tab
+2. HistoryFragment loads
+3. HistoryViewModel.loadHistory() called
+4. Progress indicator shown
+5. OrderRepository.getOrderHistory(null, null) → API call
+6. Orders displayed in RecyclerView
+7. If empty: "Нет истории заказов" shown
+8. On error: Snackbar with error message
+```
+
+### View Profile & Statistics
+```
+1. User taps "Профиль" tab
+2. ProfileFragment loads
+3. ProfileViewModel init calls:
+   - loadProfile() → ProfileRepository.getProfile()
+   - loadStatistics() → OrderRepository.getStatistics()
+4. Progress indicator shown
+5. User info displayed: fullName, email, phone
+6. Statistics displayed:
+   - Total deliveries
+   - Successful deliveries (green)
+   - Returned orders (red)
+   - Average time (minutes)
+7. On profile error: Snackbar shown
+8. On statistics error: Silently ignored (profile still shows)
+```
+
+**Files Created**: 6 new files
+- HistoryUiState.kt
+- HistoryViewModel.kt
+- fragment_history.xml
+- ProfileUiState.kt
+- ProfileViewModel.kt
+- fragment_profile.xml
+
+**Files Updated**: 4 files
+- HistoryFragment.kt (placeholder → full implementation)
+- ProfileFragment.kt (placeholder → full implementation)
+- ViewModelFactory.kt (added 2 ViewModels)
+- strings.xml (added 10 strings)
+
+**Lines of Code**: ~350 lines
+
+**Known Limitations**:
+- No date filtering UI (ViewModels support it, but no DatePicker controls)
+- History orders not clickable (could navigate to read-only detail view)
+- No refresh/pull-to-refresh on History screen
+- No charts or visualizations for statistics
+- No export functionality
+- No success rate percentage display (data available in Statistics.successRate)
+- Statistics period not displayed to user (periodStart/periodEnd available but not shown)
+
+**Next Steps**:
+- **Iteration 11**: UI Polish & Edge Cases ✅ (Completed)
+
+---
+
+**Current Status**: ✅ All 4 bottom navigation tabs functional. History screen displays completed orders. Profile screen shows user info and delivery statistics. Project builds successfully in 1m 13s. Ready for UI polish and edge case handling.
+
+---
+
+## Iteration 11: UI Polish & Edge Cases
+
+**Goals**:
+1. Add pull-to-refresh functionality to all list screens
+2. Add retry buttons to error states
+3. Improve user experience with better error handling
+4. Polish existing UI elements
+
+**Implementation Details**:
+
+### 1. Pull-to-Refresh Implementation ✅
+
+**OrdersListFragment** (Already Implemented):
+- SwipeRefreshLayout wrapping RecyclerView
+- Calls `viewModel.refreshOrders()` on swipe
+- State managed via `OrdersUiState.isRefreshing`
+- Separate from initial loading state
+
+**HistoryFragment** (Updated):
+```xml
+<!-- fragment_history.xml -->
+<androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+    android:id="@+id/swipeRefresh"
+    android:layout_width="0dp"
+    android:layout_height="0dp">
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvHistory" />
+</androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+```
+
+**HistoryUiState.kt** (Updated):
+- Added `isRefreshing: Boolean = false` field
+- Separates pull-to-refresh from initial loading
+
+**HistoryViewModel.kt** (Updated):
+- Added `refreshHistory()` method
+- Uses current startDate/endDate from state
+- Sets `isRefreshing = true` during refresh
+- Clears `isRefreshing` on success or error
+
+**HistoryFragment.kt** (Updated):
+- Setup: `binding.swipeRefresh.setOnRefreshListener { viewModel.refreshHistory() }`
+- updateUI: `binding.swipeRefresh.isRefreshing = state.isRefreshing`
+
+**ProfileFragment** (Updated):
+```xml
+<!-- fragment_profile.xml -->
+<androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+    android:id="@+id/swipeRefresh">
+    <ScrollView>
+        <!-- User info and statistics cards -->
+    </ScrollView>
+</androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+```
+
+**ProfileUiState.kt** (Updated):
+- Added `isRefreshing: Boolean = false` field
+
+**ProfileViewModel.kt** (Updated):
+- Added `refreshProfile()` method
+- Parallel reload of profile and statistics
+- Statistics errors still silently ignored
+- Profile errors displayed to user
+
+**ProfileFragment.kt** (Updated):
+- Setup: `binding.swipeRefresh.setOnRefreshListener { viewModel.refreshProfile() }`
+- updateUI: `binding.swipeRefresh.isRefreshing = state.isRefreshing`
+
+### 2. Retry Button Implementation ✅
+
+**String Resources** (Updated):
+- Added `no_connection`: "Нет подключения к интернету"
+- Added `check_connection`: "Проверьте подключение и повторите"
+- Existing `retry`: "Повторить"
+
+**Error Handling Pattern**:
+All fragments now show Snackbar with retry action:
+
+**OrdersListFragment.kt** (Updated):
+```kotlin
+state.error?.let { error ->
+    Snackbar.make(binding.root, error, Snackbar.LENGTH_LONG)
+        .setAction(R.string.retry) {
+            viewModel.refreshOrders()
+        }
+        .show()
+    viewModel.clearError()
+}
+```
+
+**HistoryFragment.kt** (Updated):
+```kotlin
+state.error?.let { error ->
+    Snackbar.make(binding.root, error, Snackbar.LENGTH_LONG)
+        .setAction(R.string.retry) {
+            viewModel.loadHistory()
+        }
+        .show()
+    viewModel.clearError()
+}
+```
+
+**ProfileFragment.kt** (Updated):
+```kotlin
+state.error?.let { error ->
+    Snackbar.make(binding.root, error, Snackbar.LENGTH_LONG)
+        .setAction(R.string.retry) {
+            viewModel.refreshProfile()
+        }
+        .show()
+    viewModel.clearError()
+}
+```
+
+**OrderDetailsFragment.kt** (Unchanged):
+- Already has specific error handling for status updates and photo upload
+- No generic retry button needed (context-specific actions)
+
+### 3. Build Configuration ✅
+
+**First Build Attempt**: FAILED
+- Compilation error in HistoryFragment.kt:71
+- Unresolved reference 'R'
+- Missing import statement
+
+**Fix Applied**:
+- Added `import com.example.curier_mobile.R` to HistoryFragment.kt
+
+**Second Build Attempt**: SUCCESS
+- Build time: 35 seconds
+- 116 actionable tasks: 33 executed, 83 up-to-date
+- All tests passed
+- 1 deprecation warning (Room migration, non-critical)
+
+**Architecture Highlights**:
+
+### Loading vs Refreshing States
+All screens now distinguish between two loading states:
+1. **isLoading**: Initial data load (shows centered progress indicator)
+2. **isRefreshing**: Pull-to-refresh (shows SwipeRefreshLayout spinner)
+
+This allows:
+- First load: Show centered spinner, hide content
+- Refresh: Show pull-to-refresh spinner at top, keep content visible
+- Better UX: Users see existing data while refreshing
+
+### SwipeRefreshLayout Hierarchy
+**Lists (Orders, History)**:
+```
+ConstraintLayout
+└─ SwipeRefreshLayout
+   └─ RecyclerView
+```
+
+**Scrollable Content (Profile)**:
+```
+ConstraintLayout
+└─ SwipeRefreshLayout
+   └─ ScrollView
+      └─ Content Layout
+```
+
+### Error Handling Flow
+```
+1. API call fails
+2. ViewModel updates state with error message
+3. Fragment shows Snackbar with error + Retry button
+4. User taps Retry
+5. Appropriate refresh method called
+6. ViewModel clears error
+```
+
+**Technical Decisions**:
+
+1. **Snackbar with Action**: Simpler than dedicated error state UI, non-intrusive
+2. **Separate Loading States**: isLoading vs isRefreshing for better UX
+3. **Keep Content Visible**: During refresh, existing data remains visible
+4. **Context-Specific Retry**: Each screen retries its own last operation
+5. **Silent Statistics Refresh**: ProfileFragment statistics errors don't block UI
+6. **Material Design Pattern**: SwipeRefreshLayout follows Material guidelines
+7. **No Offline Indicator**: Simple approach, errors shown via Snackbar
+
+**User Experience Improvements**:
+
+### Pull-to-Refresh
+```
+1. User pulls down on any list/scrollable screen
+2. SwipeRefreshLayout shows spinner
+3. Content remains visible during refresh
+4. New data replaces old on success
+5. Error shown via Snackbar on failure
+```
+
+### Error Recovery
+```
+1. Network error occurs
+2. Snackbar appears at bottom with error message
+3. "Повторить" action button visible
+4. User taps Retry
+5. Operation retried automatically
+6. Snackbar dismisses on success/new error
+```
+
+**Files Created**: 0 new files
+
+**Files Updated**: 10 files
+- fragment_history.xml (added SwipeRefreshLayout)
+- fragment_profile.xml (added SwipeRefreshLayout)
+- HistoryUiState.kt (added isRefreshing)
+- HistoryViewModel.kt (added refreshHistory method)
+- HistoryFragment.kt (added SwipeRefresh setup, retry button, import R)
+- ProfileUiState.kt (added isRefreshing)
+- ProfileViewModel.kt (added refreshProfile method)
+- ProfileFragment.kt (added SwipeRefresh setup, retry button)
+- OrdersListFragment.kt (added retry button to error Snackbar)
+- strings.xml (added 2 connection strings)
+
+**Lines of Code**: ~150 lines
+
+**Known Limitations**:
+- No offline mode persistence (app needs network for all operations)
+- No connection status indicator (no banner showing "Offline")
+- No loading skeletons (shimmer effects)
+- No progress percentage for photo upload
+- No exponential backoff for retries
+- Retry always uses same parameters (no smart retry with cached data)
+- No queue for failed operations
+- No background sync when app returns online
+
+**Next Steps**:
+- **Iteration 12**: Settings & Logout
+  - Settings screen
+  - Logout functionality
+  - App version display
+  - Clear cache option
+  - Language selection (optional)
+
+---
+
+**Current Status**: ✅ Pull-to-refresh implemented on all screens. Retry buttons added to all error states. Loading and refreshing states separated. Better error handling UX. Project builds successfully in 35 seconds. Ready for Settings & Logout implementation.

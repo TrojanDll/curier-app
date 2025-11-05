@@ -49,6 +49,35 @@ class HistoryViewModel(
         }
     }
 
+    fun refreshHistory() {
+        viewModelScope.launch {
+            val currentState = _uiState.value
+            _uiState.update { it.copy(isRefreshing = true, error = null) }
+
+            when (val result = orderRepository.getOrderHistory(currentState.startDate, currentState.endDate)) {
+                is Result.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            orders = result.data,
+                            isRefreshing = false
+                        )
+                    }
+                }
+                is Result.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isRefreshing = false,
+                            error = result.exception.message ?: "Ошибка обновления истории"
+                        )
+                    }
+                }
+                is Result.Loading -> {
+                    // Already handled
+                }
+            }
+        }
+    }
+
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }

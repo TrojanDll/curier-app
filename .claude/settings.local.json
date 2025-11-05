@@ -12,7 +12,8 @@
       "Bash(if not exist \"C:\\Users\\user\\AndroidStudioProjects\\curier_mobile\\app\\src\\main\\res\\layout\" mkdir \"C:\\Users\\user\\AndroidStudioProjects\\curier_mobile\\app\\src\\main\\res\\layout\")",
       "Bash(cmd /c gradlew.bat build)",
       "Bash(\"C:\\Users\\user\\AndroidStudioProjects\\curier_mobile\\gradlew\" build)",
-      "Bash(./gradlew.bat build)"
+      "Bash(./gradlew.bat build)",
+      "Bash(\"C:\\Users\\user\\AndroidStudioProjects\\curier_mobile\\gradlew.bat\" build)"
     ],
     "deny": [],
     "ask": []

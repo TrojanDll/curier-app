@@ -68,6 +68,42 @@ class ProfileViewModel(
         }
     }
 
+    fun refreshProfile() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRefreshing = true, error = null) }
+
+            // Reload profile
+            when (val result = profileRepository.getProfile()) {
+                is Result.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            user = result.data,
+                            isRefreshing = false
+                        )
+                    }
+                }
+                is Result.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isRefreshing = false,
+                            error = result.exception.message ?: "Ошибка обновления профиля"
+                        )
+                    }
+                }
+                is Result.Loading -> { }
+            }
+
+            // Reload statistics (silently)
+            when (val result = orderRepository.getStatistics()) {
+                is Result.Success -> {
+                    _uiState.update { it.copy(statistics = result.data) }
+                }
+                is Result.Error -> { /* Silently ignore */ }
+                is Result.Loading -> { }
+            }
+        }
+    }
+
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }

@@ -26,7 +26,10 @@ class ProfileFragment : BaseFragment<FragmentProfileBinding>() {
     }
 
     override fun setupUI() {
-        // No interaction needed for read-only profile
+        // Setup SwipeRefreshLayout
+        binding.swipeRefresh.setOnRefreshListener {
+            viewModel.refreshProfile()
+        }
     }
 
     override fun observeViewModel() {
@@ -43,9 +46,12 @@ class ProfileFragment : BaseFragment<FragmentProfileBinding>() {
         // Loading state
         binding.progressIndicator.visibility = if (state.isLoading) View.VISIBLE else View.GONE
 
+        // Refreshing state
+        binding.swipeRefresh.isRefreshing = state.isRefreshing
+
         // User info
         state.user?.let { user ->
-            binding.tvFullName.text = "${user.firstName} ${user.lastName}"
+            binding.tvFullName.text = user.fullName
             binding.tvEmail.text = user.email ?: getString(R.string.not_specified)
             binding.tvPhone.text = user.phone ?: getString(R.string.not_specified)
         }
@@ -53,14 +59,18 @@ class ProfileFragment : BaseFragment<FragmentProfileBinding>() {
         // Statistics
         state.statistics?.let { stats ->
             binding.tvTotalDeliveries.text = stats.totalDeliveries.toString()
-            binding.tvSuccessful.text = stats.successfulDeliveries.toString()
-            binding.tvReturned.text = stats.returnedOrders.toString()
-            binding.tvAvgTime.text = getString(R.string.minutes_format, stats.averageDeliveryTime)
+            binding.tvSuccessful.text = stats.completedDeliveries.toString()
+            binding.tvReturned.text = (stats.totalDeliveries - stats.completedDeliveries).toString()
+            binding.tvAvgTime.text = getString(R.string.minutes_format, stats.averageDeliveryTimeMinutes)
         }
 
-        // Error
+        // Error with retry action
         state.error?.let { error ->
-            Snackbar.make(binding.root, error, Snackbar.LENGTH_LONG).show()
+            Snackbar.make(binding.root, error, Snackbar.LENGTH_LONG)
+                .setAction(R.string.retry) {
+                    viewModel.refreshProfile()
+                }
+                .show()
             viewModel.clearError()
         }
     }

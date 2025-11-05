@@ -78,9 +78,13 @@ class OrdersListFragment : BaseFragment<FragmentOrdersListBinding>() {
             View.VISIBLE
         }
 
-        // Show error if present
+        // Show error with retry action
         state.error?.let { error ->
-            Snackbar.make(binding.root, error, Snackbar.LENGTH_LONG).show()
+            Snackbar.make(binding.root, error, Snackbar.LENGTH_LONG)
+                .setAction(R.string.retry) {
+                    viewModel.refreshOrders()
+                }
+                .show()
             viewModel.clearError()
         }
     }

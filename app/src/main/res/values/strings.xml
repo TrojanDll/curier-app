@@ -58,4 +58,6 @@
     <string name="retry">Повторить</string>
     <string name="ok">OK</string>
     <string name="cancel">Отмена</string>
+    <string name="no_connection">Нет подключения к интернету</string>
+    <string name="check_connection">Проверьте подключение и повторите</string>
 </resources>

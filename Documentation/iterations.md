@@ -1368,4 +1368,161 @@ RecyclerView items
 
 ---
 
-**Current Status**: ✅ Main screen complete. Orders list functional with offline support. Bottom navigation working. Project builds in 21 seconds. Ready for Iteration 7: Order Details.
+## Iteration 7: Order Details Screen
+
+**Date**: 2025-11-05
+**Status**: ✅ Completed
+**Duration**: ~2 hours
+
+**Goals**:
+- Implement OrderDetailsViewModel with status management
+- Create detailed order information UI
+- Add customer contact integration (call, SMS, maps)
+- Implement status update workflow
+- Configure Safe Args for navigation
+
+**Tasks Completed**:
+
+### 1. ViewModel & State ✅
+**Files**:
+- `presentation/orders/OrderDetailsUiState.kt` (12 lines)
+- `presentation/orders/OrderDetailsViewModel.kt` (102 lines)
+
+**Key Features**:
+- StateFlow-based reactive state management
+- Dynamic status transitions based on current status
+- Separate loading states for initial load and status updates
+- Error handling with user-friendly messages
+
+**Status Transition Logic**:
+```kotlin
+PICKED_UP → [NEAR_CUSTOMER]
+NEAR_CUSTOMER → [DELIVERED, RETURNED]
+DELIVERED → [RETURNED]
+RETURNED → []
+```
+
+### 2. UI Layout ✅
+**File**: `res/layout/fragment_order_details.xml` (273 lines)
+
+**Sections**:
+- Order header with number, status chip, assigned date
+- Customer info card with call/SMS buttons
+- Delivery address card with map integration
+- Optional notes card (conditionally visible)
+- Dynamic status update buttons (bottom container)
+
+**Material Design 3 Components**:
+- MaterialCardView with elevation
+- Chip for status display
+- Outlined icon buttons for actions
+- ScrollView for content overflow
+
+### 3. Fragment Implementation ✅
+**File**: `presentation/orders/OrderDetailsFragment.kt` (195 lines)
+
+**Key Features**:
+- Safe Args navigation parameter (orderId)
+- Customer contact actions (ACTION_DIAL, ACTION_SENDTO, ACTION_VIEW)
+- Dynamic button visibility based on available status transitions
+- Status update with success/error feedback
+- SimpleDateFormat for date display
+
+**Contact Integration**:
+- `makePhoneCall()`: Opens dialer with customer phone
+- `sendSms()`: Opens SMS app with customer number
+- `openInMaps()`: Launches maps app with delivery address
+
+### 4. Configuration Updates ✅
+
+**Safe Args Plugin Added**:
+- `gradle/libs.versions.toml`: Added navigation-safeargs plugin
+- `app/build.gradle.kts`: Applied Safe Args plugin
+- Generates `OrderDetailsFragmentArgs` for type-safe navigation
+
+**ViewModelFactory Enhanced**:
+- Added optional `orderId` parameter
+- Handles OrderDetailsViewModel creation with required ID
+- Maintains singleton pattern for other ViewModels
+
+**String Resources**:
+- Added 9 new strings for order details UI
+- Format strings for order number and assigned date
+- Action button labels (call, SMS, maps)
+
+### 5. Build Configuration ✅
+- Build SUCCESS in 2 minutes 9 seconds
+- Safe Args code generation working correctly
+- 1 minor deprecation warning (Room migration)
+
+**Issues Encountered**:
+
+**Issue 1**: Missing Safe Args plugin
+- Error: OrderDetailsFragmentArgs not generated
+- Fix: Added `androidx.navigation.safeargs.kotlin` plugin
+
+**Issue 2**: Non-exhaustive when expressions
+- Error: Result sealed class requires all branches
+- Fix: Added `Result.Loading` branch handlers
+
+**Issue 3**: Field name mismatch
+- Error: Referenced `order.notes` instead of `order.comments`
+- Fix: Corrected to use `comments` field from Order model
+
+**Issue 4**: Date type mismatch
+- Error: Tried to format String as Date
+- Fix: Display `assignedAt` directly (already formatted from API)
+
+**Architecture Highlights**:
+
+### Reactive Data Flow
+```
+Navigation Args (orderId)
+    ↓
+OrderDetailsViewModel.init()
+    ↓
+orderRepository.getOrderById()
+    ↓ Result → StateFlow
+OrderDetailsUiState
+    ↓ collected by
+OrderDetailsFragment
+    ↓ renders UI
+ScrollView + Status Buttons
+```
+
+### Status Update Flow
+```
+User clicks status button
+    ↓
+viewModel.updateOrderStatus()
+    ↓ sets isUpdatingStatus=true
+orderRepository.updateOrderStatus()
+    ↓ validates transition
+API call + Room update
+    ↓ Result.Success
+Update UI state + show Snackbar
+    ↓
+Update available transitions
+```
+
+**Files Created**: 3 new files
+**Files Updated**: 4 files
+**Lines of Code**: ~582 lines (production code only)
+
+**Technical Decisions**:
+
+1. **Safe Args over Manual Parsing**: Type-safe navigation parameters
+2. **Android Intents for Contacts**: Native app integration (dialer, SMS, maps)
+3. **Dynamic Button Visibility**: Show only valid status transitions
+4. **Comments vs Notes**: Used existing Order.comments field
+
+**Next Steps**:
+- **Iteration 8**: Photo Capture & Upload
+  - CameraX integration
+  - Photo preview
+  - Upload to server with status update
+  - Local photo caching
+
+---
+
+**Current Status**: ✅ Order details screen complete. Status updates working. Customer contact integration functional. Safe Args configured. Project builds in 2m 9s. Ready for Iteration 8: Photo Capture.

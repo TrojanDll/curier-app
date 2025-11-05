@@ -19,6 +19,17 @@
     <string name="status_delivered">Передал заказ</string>
     <string name="status_returned">Вернулся на предприятие</string>
 
+    <!-- Order Details -->
+    <string name="customer_info">Информация о клиенте</string>
+    <string name="delivery_address">Адрес доставки</string>
+    <string name="notes">Примечания</string>
+    <string name="call">Позвонить</string>
+    <string name="sms">SMS</string>
+    <string name="open_in_maps">Открыть на карте</string>
+    <string name="order_number_format">Заказ #%s</string>
+    <string name="assigned_at_format">Назначен: %s</string>
+    <string name="status_updated_successfully">Статус успешно обновлен</string>
+
     <!-- Common -->
     <string name="error_network">Ошибка сети</string>
     <string name="error_unknown">Неизвестная ошибка</string>

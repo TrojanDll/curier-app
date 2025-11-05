@@ -4,12 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.curier_mobile.core.di.RepositoryModule
 import com.example.curier_mobile.presentation.auth.LoginViewModel
+import com.example.curier_mobile.presentation.orders.OrderDetailsViewModel
 import com.example.curier_mobile.presentation.orders.OrdersViewModel
 
 /**
  * Factory for creating ViewModels with dependencies
  */
-class ViewModelFactory : ViewModelProvider.Factory {
+class ViewModelFactory(
+    private val orderId: String? = null
+) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -22,6 +25,13 @@ class ViewModelFactory : ViewModelProvider.Factory {
             modelClass.isAssignableFrom(OrdersViewModel::class.java) -> {
                 OrdersViewModel(
                     orderRepository = RepositoryModule.provideOrderRepository()
+                ) as T
+            }
+            modelClass.isAssignableFrom(OrderDetailsViewModel::class.java) -> {
+                require(orderId != null) { "orderId is required for OrderDetailsViewModel" }
+                OrderDetailsViewModel(
+                    orderRepository = RepositoryModule.provideOrderRepository(),
+                    orderId = orderId
                 ) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")

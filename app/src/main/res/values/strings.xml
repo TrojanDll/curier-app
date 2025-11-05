@@ -30,6 +30,28 @@
     <string name="assigned_at_format">Назначен: %s</string>
     <string name="status_updated_successfully">Статус успешно обновлен</string>
 
+    <!-- Photo Capture -->
+    <string name="take_photo">Сделать фото</string>
+    <string name="camera_permission_required">Требуется разрешение на использование камеры</string>
+    <string name="camera_initialization_failed">Не удалось инициализировать камеру</string>
+    <string name="photo_capture_failed">Ошибка при съёмке фото</string>
+    <string name="photo_captured_successfully">Фото успешно сделано</string>
+    <string name="photo_uploaded_successfully">Фото успешно загружено</string>
+
+    <!-- History -->
+    <string name="history_title">История</string>
+    <string name="no_history">Нет истории заказов</string>
+
+    <!-- Profile & Statistics -->
+    <string name="profile_info">Информация о профиле</string>
+    <string name="statistics">Статистика</string>
+    <string name="total_deliveries">Всего доставок</string>
+    <string name="successful_deliveries">Успешных</string>
+    <string name="returned_orders">Возвратов</string>
+    <string name="avg_delivery_time">Среднее время</string>
+    <string name="not_specified">Не указано</string>
+    <string name="minutes_format">%d мин</string>
+
     <!-- Common -->
     <string name="error_network">Ошибка сети</string>
     <string name="error_unknown">Неизвестная ошибка</string>

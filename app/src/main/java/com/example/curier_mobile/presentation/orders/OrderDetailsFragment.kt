@@ -9,6 +9,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.example.curier_mobile.R
 import com.example.curier_mobile.databinding.FragmentOrderDetailsBinding
@@ -74,6 +75,16 @@ class OrderDetailsFragment : BaseFragment<FragmentOrderDetailsBinding>() {
         binding.btnStatusReturned.setOnClickListener {
             viewModel.updateOrderStatus(OrderStatus.RETURNED)
         }
+
+        // Photo capture button
+        binding.btnTakePhoto.setOnClickListener {
+            navigateToPhotoCapture()
+        }
+
+        // Check if photo was captured
+        args.photoPath?.let { photoPath ->
+            handleCapturedPhoto(photoPath)
+        }
     }
 
     override fun observeViewModel() {
@@ -115,12 +126,24 @@ class OrderDetailsFragment : BaseFragment<FragmentOrderDetailsBinding>() {
         }
 
         // Update status buttons visibility based on available transitions
-        updateStatusButtons(state.availableStatusTransitions, state.isUpdatingStatus)
+        updateStatusButtons(state.availableStatusTransitions, state.isUpdatingStatus || state.isUploadingPhoto)
 
-        // Show success message
+        // Show uploading indicator
+        if (state.isUploadingPhoto) {
+            binding.progressIndicator.visibility = View.VISIBLE
+        } else if (!state.isLoading) {
+            binding.progressIndicator.visibility = View.GONE
+        }
+
+        // Show success messages
         if (state.statusUpdateSuccess) {
             Snackbar.make(binding.root, R.string.status_updated_successfully, Snackbar.LENGTH_SHORT).show()
             viewModel.clearStatusUpdateSuccess()
+        }
+
+        if (state.photoUploadSuccess) {
+            Snackbar.make(binding.root, R.string.photo_uploaded_successfully, Snackbar.LENGTH_SHORT).show()
+            viewModel.clearPhotoUploadSuccess()
         }
 
         // Show error
@@ -136,6 +159,7 @@ class OrderDetailsFragment : BaseFragment<FragmentOrderDetailsBinding>() {
         binding.btnStatusNearCustomer.visibility = View.GONE
         binding.btnStatusDelivered.visibility = View.GONE
         binding.btnStatusReturned.visibility = View.GONE
+        binding.btnTakePhoto.visibility = View.GONE
 
         // Show only available transitions
         availableTransitions.forEach { status ->
@@ -157,6 +181,13 @@ class OrderDetailsFragment : BaseFragment<FragmentOrderDetailsBinding>() {
                     binding.btnStatusReturned.isEnabled = !isUpdating
                 }
             }
+        }
+
+        // Show photo button when order is delivered
+        val currentOrder = viewModel.uiState.value.order
+        if (currentOrder?.status == OrderStatus.DELIVERED) {
+            binding.btnTakePhoto.visibility = View.VISIBLE
+            binding.btnTakePhoto.isEnabled = !isUpdating
         }
     }
 
@@ -188,5 +219,16 @@ class OrderDetailsFragment : BaseFragment<FragmentOrderDetailsBinding>() {
             data = Uri.parse("geo:0,0?q=${Uri.encode(address)}")
         }
         startActivity(intent)
+    }
+
+    private fun navigateToPhotoCapture() {
+        val action = OrderDetailsFragmentDirections
+            .actionOrderDetailsFragmentToPhotoCaptureFragment(orderId = args.orderId)
+        findNavController().navigate(action)
+    }
+
+    private fun handleCapturedPhoto(photoPath: String) {
+        // Upload photo to server
+        viewModel.uploadPhoto(photoPath)
     }
 }

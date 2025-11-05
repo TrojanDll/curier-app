@@ -22,6 +22,29 @@
         <argument
             android:name="orderId"
             app:argType="string" />
+        <argument
+            android:name="photoPath"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+        <action
+            android:id="@+id/action_orderDetailsFragment_to_photoCaptureFragment"
+            app:destination="@id/photoCaptureFragment" />
+    </fragment>
+
+    <!-- Photo Capture -->
+    <fragment
+        android:id="@+id/photoCaptureFragment"
+        android:name="com.example.curier_mobile.presentation.photo.PhotoCaptureFragment"
+        android:label="Сделать фото">
+        <argument
+            android:name="orderId"
+            app:argType="string" />
+        <action
+            android:id="@+id/action_photoCaptureFragment_to_orderDetailsFragment"
+            app:destination="@id/orderDetailsFragment"
+            app:popUpTo="@id/orderDetailsFragment"
+            app:popUpToInclusive="true" />
     </fragment>
 
     <!-- History Tab (placeholder for now) -->

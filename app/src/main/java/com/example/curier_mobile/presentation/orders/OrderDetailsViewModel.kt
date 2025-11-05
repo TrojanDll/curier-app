@@ -86,8 +86,42 @@ class OrderDetailsViewModel(
         }
     }
 
+    fun uploadPhoto(photoPath: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUploadingPhoto = true, error = null) }
+
+            val photoFile = java.io.File(photoPath)
+            when (val result = orderRepository.uploadPhoto(orderId.toLong(), photoFile)) {
+                is Result.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isUploadingPhoto = false,
+                            photoUploadSuccess = true,
+                            photoUrl = result.data
+                        )
+                    }
+                }
+                is Result.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isUploadingPhoto = false,
+                            error = result.exception.message ?: "Ошибка загрузки фото"
+                        )
+                    }
+                }
+                is Result.Loading -> {
+                    // Already handled by initial state update
+                }
+            }
+        }
+    }
+
     fun clearStatusUpdateSuccess() {
         _uiState.update { it.copy(statusUpdateSuccess = false) }
+    }
+
+    fun clearPhotoUploadSuccess() {
+        _uiState.update { it.copy(photoUploadSuccess = false) }
     }
 
     fun clearError() {

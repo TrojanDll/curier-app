@@ -251,8 +251,20 @@
             android:id="@+id/btnStatusReturned"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
             android:text="@string/status_returned"
             android:visibility="gone"
+            tools:visibility="visible" />
+
+        <!-- Photo Capture Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnTakePhoto"
+            style="@style/Widget.Material3.Button.OutlinedButton.Icon"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/take_photo"
+            android:visibility="gone"
+            app:icon="@android:drawable/ic_menu_camera"
             tools:visibility="visible" />
     </LinearLayout>
 

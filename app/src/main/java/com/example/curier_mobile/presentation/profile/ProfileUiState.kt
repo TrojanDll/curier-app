@@ -8,5 +8,7 @@ data class ProfileUiState(
     val statistics: Statistics? = null,
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
+    val isLoggingOut: Boolean = false,
+    val logoutSuccess: Boolean = false,
     val error: String? = null
 )

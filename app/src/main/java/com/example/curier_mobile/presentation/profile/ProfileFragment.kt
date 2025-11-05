@@ -7,10 +7,13 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.findNavController
+import com.example.curier_mobile.BuildConfig
 import com.example.curier_mobile.R
 import com.example.curier_mobile.databinding.FragmentProfileBinding
 import com.example.curier_mobile.presentation.ViewModelFactory
 import com.example.curier_mobile.presentation.common.BaseFragment
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
 
@@ -30,6 +33,25 @@ class ProfileFragment : BaseFragment<FragmentProfileBinding>() {
         binding.swipeRefresh.setOnRefreshListener {
             viewModel.refreshProfile()
         }
+
+        // Setup logout button
+        binding.btnLogout.setOnClickListener {
+            showLogoutConfirmation()
+        }
+
+        // Display app version
+        binding.tvAppVersion.text = getString(R.string.app_version, BuildConfig.VERSION_NAME)
+    }
+
+    private fun showLogoutConfirmation() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.logout)
+            .setMessage(R.string.logout_confirmation)
+            .setPositiveButton(R.string.ok) { _, _ ->
+                viewModel.logout()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     override fun observeViewModel() {
@@ -48,6 +70,14 @@ class ProfileFragment : BaseFragment<FragmentProfileBinding>() {
 
         // Refreshing state
         binding.swipeRefresh.isRefreshing = state.isRefreshing
+
+        // Logout in progress - disable button
+        binding.btnLogout.isEnabled = !state.isLoggingOut
+
+        // Logout success - navigate to login
+        if (state.logoutSuccess) {
+            navigateToLogin()
+        }
 
         // User info
         state.user?.let { user ->
@@ -73,5 +103,18 @@ class ProfileFragment : BaseFragment<FragmentProfileBinding>() {
                 .show()
             viewModel.clearError()
         }
+    }
+
+    private fun navigateToLogin() {
+        // Find the parent MainFragment and navigate from there
+        val parentNavController = requireActivity()
+            .supportFragmentManager
+            .findFragmentById(R.id.nav_host_fragment)
+            ?.childFragmentManager
+            ?.fragments
+            ?.firstOrNull()
+            ?.findNavController()
+
+        parentNavController?.navigate(R.id.action_main_to_login)
     }
 }

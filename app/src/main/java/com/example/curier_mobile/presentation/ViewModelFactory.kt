@@ -44,7 +44,8 @@ class ViewModelFactory(
             modelClass.isAssignableFrom(ProfileViewModel::class.java) -> {
                 ProfileViewModel(
                     profileRepository = RepositoryModule.provideProfileRepository(),
-                    orderRepository = RepositoryModule.provideOrderRepository()
+                    orderRepository = RepositoryModule.provideOrderRepository(),
+                    authRepository = RepositoryModule.provideAuthRepository()
                 ) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")

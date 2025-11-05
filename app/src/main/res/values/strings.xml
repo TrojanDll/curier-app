@@ -51,6 +51,10 @@
     <string name="avg_delivery_time">Среднее время</string>
     <string name="not_specified">Не указано</string>
     <string name="minutes_format">%d мин</string>
+    <string name="logout">Выйти</string>
+    <string name="logout_confirmation">Вы уверены, что хотите выйти?</string>
+    <string name="app_version">Версия приложения: %s</string>
+    <string name="logout_success">Вы успешно вышли из системы</string>
 
     <!-- Common -->
     <string name="error_network">Ошибка сети</string>

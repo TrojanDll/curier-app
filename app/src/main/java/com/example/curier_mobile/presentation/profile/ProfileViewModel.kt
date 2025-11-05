@@ -3,6 +3,7 @@ package com.example.curier_mobile.presentation.profile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.curier_mobile.core.result.Result
+import com.example.curier_mobile.domain.repository.AuthRepository
 import com.example.curier_mobile.domain.repository.OrderRepository
 import com.example.curier_mobile.domain.repository.ProfileRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,7 +14,8 @@ import kotlinx.coroutines.launch
 
 class ProfileViewModel(
     private val profileRepository: ProfileRepository,
-    private val orderRepository: OrderRepository
+    private val orderRepository: OrderRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
@@ -99,6 +101,34 @@ class ProfileViewModel(
                     _uiState.update { it.copy(statistics = result.data) }
                 }
                 is Result.Error -> { /* Silently ignore */ }
+                is Result.Loading -> { }
+            }
+        }
+    }
+
+    fun logout() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoggingOut = true, error = null) }
+
+            when (val result = authRepository.logout()) {
+                is Result.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isLoggingOut = false,
+                            logoutSuccess = true
+                        )
+                    }
+                }
+                is Result.Error -> {
+                    // Even if network fails, we cleared tokens locally
+                    // So still mark as success for UI
+                    _uiState.update {
+                        it.copy(
+                            isLoggingOut = false,
+                            logoutSuccess = true
+                        )
+                    }
+                }
                 is Result.Loading -> { }
             }
         }

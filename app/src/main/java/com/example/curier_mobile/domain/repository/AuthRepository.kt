@@ -10,6 +10,17 @@ import com.example.curier_mobile.domain.model.User
 interface AuthRepository {
 
     /**
+     * Register new courier account
+     * @return Result with User data on success
+     */
+    suspend fun register(
+        username: String,
+        password: String,
+        fullName: String,
+        phone: String
+    ): Result<User>
+
+    /**
      * Login with username and password
      * @return Result with User data on success
      */

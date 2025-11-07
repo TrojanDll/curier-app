@@ -13,11 +13,11 @@ data class OrderEntity(
     val id: Long,
     val orderNumber: String,
     val customerName: String,
-    val customerPhone: String,
+    val customerPhone: String?,
     val deliveryAddress: String,
     val productDescription: String,
     val comments: String?,
-    val status: String, // "picked_up", "near_customer", "delivered", "returned"
+    val status: String, // "assigned", "picked_up", "near_customer", "delivered", "returned"
     val statusUpdatedAt: String?, // ISO 8601 timestamp
     val assignedAt: String, // ISO 8601 timestamp
     val completedAt: String? // ISO 8601 timestamp

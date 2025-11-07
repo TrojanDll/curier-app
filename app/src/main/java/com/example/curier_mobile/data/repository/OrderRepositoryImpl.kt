@@ -43,7 +43,7 @@ class OrderRepositoryImpl(
             val response = apiService.getActiveOrders()
 
             if (response.isSuccessful && response.body()?.success == true) {
-                val orders = response.body()?.data ?: emptyList()
+                val orders = response.body()?.data?.orders ?: emptyList()
                 val domainOrders = orders.toDomainModels()
 
                 // Cache orders in database
@@ -68,7 +68,7 @@ class OrderRepositoryImpl(
             val response = apiService.getOrderHistory(startDate, endDate)
 
             if (response.isSuccessful && response.body()?.success == true) {
-                val orders = response.body()?.data ?: emptyList()
+                val orders = response.body()?.data?.orders ?: emptyList()
                 val domainOrders = orders.toDomainModels()
 
                 // Cache history orders in database
@@ -90,7 +90,7 @@ class OrderRepositoryImpl(
             val response = apiService.getOrderById(orderId)
 
             if (response.isSuccessful && response.body()?.success == true) {
-                val data = response.body()?.data
+                val data = response.body()?.data?.order
                 if (data != null) {
                     val order = data.toDomainModel()
                     // Cache order in database
@@ -131,7 +131,7 @@ class OrderRepositoryImpl(
             val response = apiService.updateOrderStatus(orderId, request)
 
             if (response.isSuccessful && response.body()?.success == true) {
-                val data = response.body()?.data
+                val data = response.body()?.data?.order
                 if (data != null) {
                     val order = data.toDomainModel()
                     // Update order in database
@@ -191,7 +191,7 @@ class OrderRepositoryImpl(
             val response = apiService.getStatistics(startDate, endDate)
 
             if (response.isSuccessful && response.body()?.success == true) {
-                val data = response.body()?.data
+                val data = response.body()?.data?.statistics
                 if (data != null) {
                     val statistics = data.toDomainModel()
                     Result.Success(statistics)

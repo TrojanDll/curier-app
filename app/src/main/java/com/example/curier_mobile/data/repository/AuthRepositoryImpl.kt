@@ -6,6 +6,7 @@ import com.example.curier_mobile.data.mapper.toDomainModel
 import com.example.curier_mobile.data.remote.api.ApiService
 import com.example.curier_mobile.data.remote.dto.LoginRequest
 import com.example.curier_mobile.data.remote.dto.RefreshTokenRequest
+import com.example.curier_mobile.data.remote.dto.RegisterRequest
 import com.example.curier_mobile.domain.model.User
 import com.example.curier_mobile.domain.repository.AuthRepository
 
@@ -17,6 +18,44 @@ class AuthRepositoryImpl(
     private val apiService: ApiService,
     private val tokenManager: TokenManager
 ) : AuthRepository {
+
+    override suspend fun register(
+        username: String,
+        password: String,
+        fullName: String,
+        phone: String
+    ): Result<User> {
+        return try {
+            val response = apiService.register(
+                RegisterRequest(
+                    username = username,
+                    password = password,
+                    fullName = fullName,
+                    phone = phone
+                )
+            )
+
+            if (response.isSuccessful && response.body()?.success == true) {
+                val data = response.body()?.data
+                if (data != null) {
+                    // Save tokens
+                    tokenManager.saveTokens(
+                        accessToken = data.accessToken,
+                        refreshToken = data.refreshToken,
+                        expiresIn = data.expiresIn
+                    )
+                    Result.Success(data.courier.toDomainModel())
+                } else {
+                    Result.Error(Exception("Registration failed: No data received"))
+                }
+            } else {
+                val message = response.body()?.message ?: "Registration failed"
+                Result.Error(Exception(message))
+            }
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
 
     override suspend fun login(username: String, password: String): Result<User> {
         return try {

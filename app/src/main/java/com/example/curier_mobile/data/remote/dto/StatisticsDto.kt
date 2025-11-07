@@ -16,7 +16,13 @@ data class StatisticsResponse(
     val message: String,
 
     @Json(name = "data")
-    val data: StatisticsData?
+    val data: StatisticsWrapper?
+)
+
+@JsonClass(generateAdapter = true)
+data class StatisticsWrapper(
+    @Json(name = "statistics")
+    val statistics: StatisticsData
 )
 
 @JsonClass(generateAdapter = true)
@@ -24,18 +30,12 @@ data class StatisticsData(
     @Json(name = "total_deliveries")
     val totalDeliveries: Int,
 
-    @Json(name = "completed_deliveries")
-    val completedDeliveries: Int,
+    @Json(name = "successful_deliveries")
+    val successfulDeliveries: Int,
 
-    @Json(name = "average_delivery_time_minutes")
-    val averageDeliveryTimeMinutes: Int,
+    @Json(name = "returned_orders")
+    val returnedOrders: Int,
 
-    @Json(name = "success_rate")
-    val successRate: Double, // 0.0 to 1.0
-
-    @Json(name = "period_start")
-    val periodStart: String, // ISO 8601 timestamp
-
-    @Json(name = "period_end")
-    val periodEnd: String // ISO 8601 timestamp
+    @Json(name = "avg_delivery_time")
+    val avgDeliveryTime: Int // minutes
 )

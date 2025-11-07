@@ -42,7 +42,7 @@ class OrderAdapter(
                 tvOrderNumber.text = "Заказ #${order.orderNumber}"
                 tvCustomerName.text = order.customerName
                 tvDeliveryAddress.text = order.deliveryAddress
-                tvPhone.text = order.customerPhone
+                tvPhone.text = order.customerPhone ?: "Не указан"
                 tvAssignedAt.text = "Назначен: ${formatTime(order.assignedAt)}"
 
                 // Status chip
@@ -69,6 +69,7 @@ class OrderAdapter(
 
         private fun getStatusColor(status: OrderStatus): Int {
             return when (status) {
+                OrderStatus.ASSIGNED -> android.R.color.holo_purple
                 OrderStatus.PICKED_UP -> android.R.color.holo_blue_light
                 OrderStatus.NEAR_CUSTOMER -> android.R.color.holo_orange_light
                 OrderStatus.DELIVERED -> android.R.color.holo_green_light

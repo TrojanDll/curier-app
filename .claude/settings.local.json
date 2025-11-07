@@ -13,7 +13,14 @@
       "Bash(cmd /c gradlew.bat build)",
       "Bash(\"C:\\Users\\user\\AndroidStudioProjects\\curier_mobile\\gradlew\" build)",
       "Bash(./gradlew.bat build)",
-      "Bash(\"C:\\Users\\user\\AndroidStudioProjects\\curier_mobile\\gradlew.bat\" build)"
+      "Bash(\"C:\\Users\\user\\AndroidStudioProjects\\curier_mobile\\gradlew.bat\" build)",
+      "Bash(./gradlew.bat assembleDebug)",
+      "Bash(echo:*)",
+      "Bash(/c/Users/user/AndroidStudioProjects/curier_mobile/Documentation/iterations.md)",
+      "Bash(npm install)",
+      "Bash(node server.js:*)",
+      "Bash(node -e:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJjb3VyaWVyMSIsImlhdCI6MTc2MjQwMzIwNSwiZXhwIjoxNzYyNDg5NjA1fQ.SBpCjYN5-mdseVAMKL8wuo_HiGDbXg3vAONMMpY3_UU\")"
     ],
     "deny": [],
     "ask": []

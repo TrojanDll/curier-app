@@ -1,6 +1,7 @@
 package com.example.curier_mobile.core.di
 
 import android.content.Context
+import com.example.curier_mobile.BuildConfig
 import com.example.curier_mobile.data.local.preferences.TokenManager
 import com.example.curier_mobile.data.remote.api.ApiService
 import com.example.curier_mobile.data.remote.interceptor.AuthInterceptor
@@ -18,7 +19,6 @@ import java.util.concurrent.TimeUnit
  */
 object NetworkModule {
 
-    private const val BASE_URL = "https://api.example.com/" // TODO: Replace with actual API URL
     private const val TIMEOUT_SECONDS = 30L
 
     private var tokenManager: TokenManager? = null
@@ -83,7 +83,7 @@ object NetworkModule {
     private fun provideRetrofit(): Retrofit {
         return retrofit ?: synchronized(this) {
             retrofit ?: Retrofit.Builder()
-                .baseUrl(BASE_URL)
+                .baseUrl(BuildConfig.BASE_URL)
                 .client(provideOkHttpClient())
                 .addConverterFactory(MoshiConverterFactory.create(provideMoshi()))
                 .build()

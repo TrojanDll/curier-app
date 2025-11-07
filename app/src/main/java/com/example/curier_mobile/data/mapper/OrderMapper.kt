@@ -14,16 +14,20 @@ import com.example.curier_mobile.domain.model.OrderStatus
 // ==================== DTO → Domain ====================
 
 fun OrderDto.toDomainModel(): Order {
+    // Backend uses "notes" field, but we map it to comments
+    val finalComments = notes ?: comments
+    val finalProductDescription = productDescription ?: "Товар"
+
     return Order(
         id = id,
         orderNumber = orderNumber,
         customerName = customerName,
         customerPhone = customerPhone,
         deliveryAddress = deliveryAddress,
-        productDescription = productDescription,
-        comments = comments,
+        productDescription = finalProductDescription,
+        comments = finalComments,
         status = OrderStatus.fromValue(status),
-        statusUpdatedAt = statusUpdatedAt,
+        statusUpdatedAt = statusUpdatedAt ?: updatedAt,
         assignedAt = assignedAt,
         completedAt = completedAt,
         photoUrl = photoUrl

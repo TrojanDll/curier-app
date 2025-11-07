@@ -41,14 +41,22 @@ class OrderDetailsFragment : BaseFragment<FragmentOrderDetailsBinding>() {
         // Call button
         binding.btnCall.setOnClickListener {
             viewModel.uiState.value.order?.let { order ->
-                makePhoneCall(order.customerPhone)
+                order.customerPhone?.let { phone ->
+                    makePhoneCall(phone)
+                } ?: run {
+                    Snackbar.make(binding.root, "Номер телефона не указан", Snackbar.LENGTH_SHORT).show()
+                }
             }
         }
 
         // SMS button
         binding.btnSms.setOnClickListener {
             viewModel.uiState.value.order?.let { order ->
-                sendSms(order.customerPhone)
+                order.customerPhone?.let { phone ->
+                    sendSms(phone)
+                } ?: run {
+                    Snackbar.make(binding.root, "Номер телефона не указан", Snackbar.LENGTH_SHORT).show()
+                }
             }
         }
 
@@ -80,11 +88,6 @@ class OrderDetailsFragment : BaseFragment<FragmentOrderDetailsBinding>() {
         binding.btnTakePhoto.setOnClickListener {
             navigateToPhotoCapture()
         }
-
-        // Check if photo was captured
-        args.photoPath?.let { photoPath ->
-            handleCapturedPhoto(photoPath)
-        }
     }
 
     override fun observeViewModel() {
@@ -110,7 +113,7 @@ class OrderDetailsFragment : BaseFragment<FragmentOrderDetailsBinding>() {
             binding.chipStatus.setChipBackgroundColorResource(getStatusColor(order.status))
 
             binding.tvCustomerName.text = order.customerName
-            binding.tvPhone.text = order.customerPhone
+            binding.tvPhone.text = order.customerPhone ?: "Не указан"
             binding.tvDeliveryAddress.text = order.deliveryAddress
 
             // Format assigned date
@@ -164,6 +167,9 @@ class OrderDetailsFragment : BaseFragment<FragmentOrderDetailsBinding>() {
         // Show only available transitions
         availableTransitions.forEach { status ->
             when (status) {
+                OrderStatus.ASSIGNED -> {
+                    // ASSIGNED is initial status, no button needed
+                }
                 OrderStatus.PICKED_UP -> {
                     binding.btnStatusPickedUp.visibility = View.VISIBLE
                     binding.btnStatusPickedUp.isEnabled = !isUpdating
@@ -193,6 +199,7 @@ class OrderDetailsFragment : BaseFragment<FragmentOrderDetailsBinding>() {
 
     private fun getStatusColor(status: OrderStatus): Int {
         return when (status) {
+            OrderStatus.ASSIGNED -> android.R.color.holo_purple
             OrderStatus.PICKED_UP -> android.R.color.holo_blue_light
             OrderStatus.NEAR_CUSTOMER -> android.R.color.holo_orange_light
             OrderStatus.DELIVERED -> android.R.color.holo_green_light
@@ -215,10 +222,51 @@ class OrderDetailsFragment : BaseFragment<FragmentOrderDetailsBinding>() {
     }
 
     private fun openInMaps(address: String) {
-        val intent = Intent(Intent.ACTION_VIEW).apply {
+        // Try to open Yandex Maps app first
+        val yandexMapsIntent = Intent(Intent.ACTION_VIEW).apply {
+            data = Uri.parse("yandexmaps://maps.yandex.ru/?text=${Uri.encode(address)}")
+            setPackage("ru.yandex.yandexmaps")
+        }
+
+        // Check if Yandex Maps is installed
+        val packageManager = requireActivity().packageManager
+        if (yandexMapsIntent.resolveActivity(packageManager) != null) {
+            // Yandex Maps is installed, open it
+            startActivity(yandexMapsIntent)
+        } else {
+            // Yandex Maps not installed, try web version
+            openYandexMapsWeb(address)
+        }
+    }
+
+    private fun openYandexMapsWeb(address: String) {
+        // Open Yandex Maps web version in browser
+        val webIntent = Intent(Intent.ACTION_VIEW).apply {
+            data = Uri.parse("https://yandex.ru/maps/?text=${Uri.encode(address)}")
+        }
+
+        try {
+            startActivity(webIntent)
+        } catch (e: Exception) {
+            // Fallback to generic geo intent as last resort
+            openGenericMaps(address)
+        }
+    }
+
+    private fun openGenericMaps(address: String) {
+        val genericIntent = Intent(Intent.ACTION_VIEW).apply {
             data = Uri.parse("geo:0,0?q=${Uri.encode(address)}")
         }
-        startActivity(intent)
+
+        try {
+            startActivity(genericIntent)
+        } catch (e: Exception) {
+            Snackbar.make(
+                binding.root,
+                getString(R.string.no_maps_app_available),
+                Snackbar.LENGTH_LONG
+            ).show()
+        }
     }
 
     private fun navigateToPhotoCapture() {

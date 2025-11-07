@@ -6,6 +6,17 @@
     <string name="login_username_hint">Логин</string>
     <string name="login_password_hint">Пароль</string>
     <string name="login_button">Войти</string>
+    <string name="login_register_link">Нет аккаунта? Зарегистрироваться</string>
+
+    <!-- Registration Screen -->
+    <string name="register_title">Регистрация</string>
+    <string name="register_full_name_hint">ФИО</string>
+    <string name="register_phone_hint">Телефон</string>
+    <string name="register_username_hint">Логин</string>
+    <string name="register_password_hint">Пароль</string>
+    <string name="register_confirm_password_hint">Подтвердите пароль</string>
+    <string name="register_button">Зарегистрироваться</string>
+    <string name="register_login_link">Уже есть аккаунт? Войти</string>
 
     <!-- Navigation -->
     <string name="nav_orders">Заказы</string>
@@ -64,4 +75,5 @@
     <string name="cancel">Отмена</string>
     <string name="no_connection">Нет подключения к интернету</string>
     <string name="check_connection">Проверьте подключение и повторите</string>
+    <string name="no_maps_app_available">Не найдено приложение для отображения карт</string>
 </resources>

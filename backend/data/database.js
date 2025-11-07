@@ -1,0 +1,126 @@
+// Simple in-memory database for development
+// In production, use a real database like PostgreSQL, MongoDB, etc.
+
+export const database = {
+  users: [
+    {
+      id: 1,
+      username: 'courier1',
+      password: '$2a$10$4rOoWlyWp4cmbmfpnz.3DuY/9xJv53RJ9ZKw5eMZSlsY4E1T.YSeq', // password: 123456
+      full_name: 'Иван Иванов',
+      phone: '+79991234567'
+    }
+  ],
+
+  orders: [
+    {
+      id: 1,
+      order_number: 'ORD-001',
+      courier_id: 1,
+      customer_name: 'Петр Петров',
+      customer_phone: '+79997654321',
+      delivery_address: 'ул. Ленина, д. 10, кв. 5',
+      notes: 'Код домофона: 123',
+      status: 'assigned',
+      assigned_at: new Date().toISOString(),
+      created_at: new Date().toISOString()
+    },
+    {
+      id: 2,
+      order_number: 'ORD-002',
+      courier_id: 1,
+      customer_name: 'Мария Сидорова',
+      customer_phone: '+79995555555',
+      delivery_address: 'пр. Победы, д. 25, кв. 12',
+      notes: 'Оставить у двери',
+      status: 'picked_up',
+      assigned_at: new Date(Date.now() - 3600000).toISOString(),
+      created_at: new Date(Date.now() - 7200000).toISOString()
+    }
+  ],
+
+  completedOrders: [
+    {
+      id: 100,
+      order_number: 'ORD-100',
+      courier_id: 1,
+      customer_name: 'Анна Смирнова',
+      customer_phone: '+79993333333',
+      delivery_address: 'ул. Гагарина, д. 5',
+      status: 'delivered',
+      assigned_at: new Date(Date.now() - 86400000).toISOString(),
+      completed_at: new Date(Date.now() - 82800000).toISOString()
+    }
+  ],
+
+  // Statistics data
+  statistics: {
+    1: { // courier_id
+      total_deliveries: 45,
+      successful_deliveries: 42,
+      returned_orders: 3,
+      avg_delivery_time: 35 // minutes
+    }
+  },
+
+  // Tokens storage (in production use Redis or similar)
+  tokens: new Map()
+};
+
+// Helper functions
+export const findUserByUsername = (username) => {
+  return database.users.find(u => u.username === username);
+};
+
+export const findUserById = (id) => {
+  return database.users.find(u => u.id === id);
+};
+
+export const createUser = (userData) => {
+  const newUser = {
+    id: database.users.length + 1,
+    ...userData,
+    created_at: new Date().toISOString()
+  };
+  database.users.push(newUser);
+  return newUser;
+};
+
+export const getActiveOrdersByCourier = (courierId) => {
+  return database.orders.filter(o => o.courier_id === courierId);
+};
+
+export const getOrderById = (orderId) => {
+  return database.orders.find(o => o.id === orderId) ||
+         database.completedOrders.find(o => o.id === orderId);
+};
+
+export const updateOrderStatus = (orderId, newStatus) => {
+  const order = database.orders.find(o => o.id === orderId);
+  if (order) {
+    order.status = newStatus;
+    order.updated_at = new Date().toISOString();
+
+    // Move to completed if delivered or returned
+    if (newStatus === 'delivered' || newStatus === 'returned') {
+      order.completed_at = new Date().toISOString();
+      database.completedOrders.push(order);
+      database.orders = database.orders.filter(o => o.id !== orderId);
+    }
+    return order;
+  }
+  return null;
+};
+
+export const getOrderHistory = (courierId) => {
+  return database.completedOrders.filter(o => o.courier_id === courierId);
+};
+
+export const getStatistics = (courierId) => {
+  return database.statistics[courierId] || {
+    total_deliveries: 0,
+    successful_deliveries: 0,
+    returned_orders: 0,
+    avg_delivery_time: 0
+  };
+};

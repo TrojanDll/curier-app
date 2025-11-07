@@ -14,6 +14,15 @@ interface ApiService {
     // ==================== Authentication ====================
 
     /**
+     * Register new courier account
+     * POST /api/auth/register
+     */
+    @POST("api/auth/register")
+    suspend fun register(
+        @Body request: RegisterRequest
+    ): Response<RegisterResponse>
+
+    /**
      * Login courier and receive access token
      * POST /api/auth/login
      */

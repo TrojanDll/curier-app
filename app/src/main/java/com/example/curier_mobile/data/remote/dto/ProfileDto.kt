@@ -16,7 +16,13 @@ data class ProfileResponse(
     val message: String,
 
     @Json(name = "data")
-    val data: ProfileData?
+    val data: ProfileWrapper?
+)
+
+@JsonClass(generateAdapter = true)
+data class ProfileWrapper(
+    @Json(name = "profile")
+    val profile: ProfileData
 )
 
 @JsonClass(generateAdapter = true)
@@ -61,5 +67,5 @@ data class UpdateProfileResponse(
     val message: String,
 
     @Json(name = "data")
-    val data: ProfileData?
+    val data: ProfileWrapper?
 )

@@ -9,29 +9,37 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.example.curier_mobile.R
-import com.example.curier_mobile.databinding.FragmentLoginBinding
+import com.example.curier_mobile.databinding.FragmentRegisterBinding
 import com.example.curier_mobile.presentation.ViewModelFactory
 import com.example.curier_mobile.presentation.common.BaseFragment
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
 
 /**
- * Login screen fragment
- * Handles user authentication with form validation
+ * Registration screen fragment
+ * Handles user registration with form validation
  */
-class LoginFragment : BaseFragment<FragmentLoginBinding>() {
+class RegisterFragment : BaseFragment<FragmentRegisterBinding>() {
 
-    private val viewModel: LoginViewModel by viewModels { ViewModelFactory() }
+    private val viewModel: RegisterViewModel by viewModels { ViewModelFactory() }
 
     override fun getViewBinding(
         inflater: LayoutInflater,
         container: ViewGroup?
-    ): FragmentLoginBinding {
-        return FragmentLoginBinding.inflate(inflater, container, false)
+    ): FragmentRegisterBinding {
+        return FragmentRegisterBinding.inflate(inflater, container, false)
     }
 
     override fun setupUI() {
         // Text change listeners
+        binding.etFullName.doAfterTextChanged { text ->
+            viewModel.onFullNameChanged(text?.toString() ?: "")
+        }
+
+        binding.etPhone.doAfterTextChanged { text ->
+            viewModel.onPhoneChanged(text?.toString() ?: "")
+        }
+
         binding.etUsername.doAfterTextChanged { text ->
             viewModel.onUsernameChanged(text?.toString() ?: "")
         }
@@ -40,14 +48,18 @@ class LoginFragment : BaseFragment<FragmentLoginBinding>() {
             viewModel.onPasswordChanged(text?.toString() ?: "")
         }
 
-        // Login button click
-        binding.btnLogin.setOnClickListener {
-            viewModel.onLoginClicked()
+        binding.etConfirmPassword.doAfterTextChanged { text ->
+            viewModel.onConfirmPasswordChanged(text?.toString() ?: "")
         }
 
-        // Register link click
-        binding.tvRegisterLink.setOnClickListener {
-            findNavController().navigate(R.id.action_login_to_register)
+        // Register button click
+        binding.btnRegister.setOnClickListener {
+            viewModel.onRegisterClicked()
+        }
+
+        // Login link click
+        binding.tvLoginLink.setOnClickListener {
+            findNavController().navigateUp()
         }
     }
 
@@ -61,9 +73,9 @@ class LoginFragment : BaseFragment<FragmentLoginBinding>() {
         }
     }
 
-    private fun updateUI(state: LoginUiState) {
+    private fun updateUI(state: RegisterUiState) {
         // Loading state
-        binding.btnLogin.isEnabled = !state.isLoading
+        binding.btnRegister.isEnabled = !state.isLoading
         binding.progressIndicator.visibility = if (state.isLoading) {
             android.view.View.VISIBLE
         } else {
@@ -71,8 +83,11 @@ class LoginFragment : BaseFragment<FragmentLoginBinding>() {
         }
 
         // Field errors
+        binding.tilFullName.error = state.fullNameError
+        binding.tilPhone.error = state.phoneError
         binding.tilUsername.error = state.usernameError
         binding.tilPassword.error = state.passwordError
+        binding.tilConfirmPassword.error = state.confirmPasswordError
 
         // General error
         if (state.generalError != null) {
@@ -83,15 +98,15 @@ class LoginFragment : BaseFragment<FragmentLoginBinding>() {
         }
 
         // Success navigation
-        if (state.isLoginSuccessful) {
+        if (state.isRegisterSuccessful) {
             Snackbar.make(
                 binding.root,
-                "Добро пожаловать, ${state.user?.fullName}!",
+                "Регистрация успешна! Добро пожаловать, ${state.user?.fullName}!",
                 Snackbar.LENGTH_SHORT
             ).show()
 
             // Navigate to main screen
-            findNavController().navigate(R.id.action_login_to_main)
+            findNavController().navigate(R.id.action_register_to_main)
         }
     }
 }

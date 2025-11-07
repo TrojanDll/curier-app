@@ -8,7 +8,7 @@ data class Order(
     val id: Long,
     val orderNumber: String,
     val customerName: String,
-    val customerPhone: String,
+    val customerPhone: String?,
     val deliveryAddress: String,
     val productDescription: String,
     val comments: String?,
@@ -23,6 +23,7 @@ data class Order(
  * Order status enum
  */
 enum class OrderStatus(val value: String, val displayName: String) {
+    ASSIGNED("assigned", "Назначен"),
     PICKED_UP("picked_up", "Забрал заказ"),
     NEAR_CUSTOMER("near_customer", "Возле дома клиента"),
     DELIVERED("delivered", "Передал заказ"),
@@ -40,6 +41,7 @@ enum class OrderStatus(val value: String, val displayName: String) {
          */
         fun getNextStatus(current: OrderStatus): OrderStatus? {
             return when (current) {
+                ASSIGNED -> PICKED_UP
                 PICKED_UP -> NEAR_CUSTOMER
                 NEAR_CUSTOMER -> DELIVERED
                 DELIVERED -> RETURNED

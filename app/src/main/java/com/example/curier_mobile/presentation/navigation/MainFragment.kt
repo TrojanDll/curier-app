@@ -1,8 +1,10 @@
 package com.example.curier_mobile.presentation.navigation
 
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.fragment.findNavController
 import androidx.navigation.ui.setupWithNavController
 import com.example.curier_mobile.R
 import com.example.curier_mobile.databinding.FragmentMainBinding
@@ -22,16 +24,22 @@ class MainFragment : BaseFragment<FragmentMainBinding>() {
     }
 
     override fun setupUI() {
-        // Setup nested navigation
-        val navHostFragment = childFragmentManager
-            .findFragmentById(R.id.nav_host_fragment_main) as NavHostFragment
-        val navController = navHostFragment.navController
+        // Delay navigation setup to ensure FragmentContainerView has created its NavHostFragment
+        Handler(Looper.getMainLooper()).post {
+            setupNavigation()
+        }
+    }
 
-        // Set navigation graph programmatically
-        navController.setGraph(R.navigation.nav_graph_main)
-
-        // Setup BottomNavigationView with NavController
-        binding.bottomNavigation.setupWithNavController(navController)
+    private fun setupNavigation() {
+        try {
+            val navHostFragment = childFragmentManager.findFragmentById(R.id.nav_host_fragment_main)
+            if (navHostFragment != null) {
+                val navController = navHostFragment.findNavController()
+                binding.bottomNavigation.setupWithNavController(navController)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     override fun observeViewModel() {

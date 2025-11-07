@@ -130,6 +130,7 @@ class OrderDetailsViewModel(
 
     private fun getAvailableStatusTransitions(currentStatus: OrderStatus): List<OrderStatus> {
         return when (currentStatus) {
+            OrderStatus.ASSIGNED -> listOf(OrderStatus.PICKED_UP)
             OrderStatus.PICKED_UP -> listOf(OrderStatus.NEAR_CUSTOMER)
             OrderStatus.NEAR_CUSTOMER -> listOf(OrderStatus.DELIVERED, OrderStatus.RETURNED)
             OrderStatus.DELIVERED -> listOf(OrderStatus.RETURNED)

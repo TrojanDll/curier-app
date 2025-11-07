@@ -8,12 +8,18 @@ import com.example.curier_mobile.domain.model.Statistics
  */
 
 fun StatisticsData.toDomainModel(): Statistics {
+    val successRate = if (totalDeliveries > 0) {
+        successfulDeliveries.toDouble() / totalDeliveries.toDouble()
+    } else {
+        0.0
+    }
+
     return Statistics(
         totalDeliveries = totalDeliveries,
-        completedDeliveries = completedDeliveries,
-        averageDeliveryTimeMinutes = averageDeliveryTimeMinutes,
+        completedDeliveries = successfulDeliveries,
+        averageDeliveryTimeMinutes = avgDeliveryTime,
         successRate = successRate,
-        periodStart = periodStart,
-        periodEnd = periodEnd
+        periodStart = "",
+        periodEnd = ""
     )
 }

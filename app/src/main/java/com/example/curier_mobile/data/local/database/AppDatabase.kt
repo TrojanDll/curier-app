@@ -16,7 +16,7 @@ import com.example.curier_mobile.data.local.entity.UserEntity
         OrderEntity::class,
         UserEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 // @TypeConverters(Converters::class) - будет добавлено при необходимости конвертации сложных типов

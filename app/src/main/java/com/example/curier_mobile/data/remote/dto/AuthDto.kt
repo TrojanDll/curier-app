@@ -29,6 +29,33 @@ data class LoginResponse(
 )
 
 @JsonClass(generateAdapter = true)
+data class RegisterRequest(
+    @Json(name = "username")
+    val username: String,
+
+    @Json(name = "password")
+    val password: String,
+
+    @Json(name = "full_name")
+    val fullName: String,
+
+    @Json(name = "phone")
+    val phone: String
+)
+
+@JsonClass(generateAdapter = true)
+data class RegisterResponse(
+    @Json(name = "success")
+    val success: Boolean,
+
+    @Json(name = "message")
+    val message: String,
+
+    @Json(name = "data")
+    val data: TokenData?
+)
+
+@JsonClass(generateAdapter = true)
 data class TokenData(
     @Json(name = "access_token")
     val accessToken: String,

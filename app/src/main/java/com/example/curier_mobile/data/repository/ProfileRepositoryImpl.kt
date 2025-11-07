@@ -23,7 +23,7 @@ class ProfileRepositoryImpl(
             val response = apiService.getProfile()
 
             if (response.isSuccessful && response.body()?.success == true) {
-                val data = response.body()?.data
+                val data = response.body()?.data?.profile
                 if (data != null) {
                     val user = data.toDomainModel()
                     // Cache profile in database
@@ -55,7 +55,7 @@ class ProfileRepositoryImpl(
             val response = apiService.updateProfile(request)
 
             if (response.isSuccessful && response.body()?.success == true) {
-                val data = response.body()?.data
+                val data = response.body()?.data?.profile
                 if (data != null) {
                     val user = data.toDomainModel()
                     // Update cached profile in database

@@ -16,7 +16,13 @@ data class OrdersResponse(
     val message: String,
 
     @Json(name = "data")
-    val data: List<OrderDto>
+    val data: OrdersData
+)
+
+@JsonClass(generateAdapter = true)
+data class OrdersData(
+    @Json(name = "orders")
+    val orders: List<OrderDto>
 )
 
 @JsonClass(generateAdapter = true)
@@ -28,7 +34,13 @@ data class OrderResponse(
     val message: String,
 
     @Json(name = "data")
-    val data: OrderDto?
+    val data: OrderDataWrapper?
+)
+
+@JsonClass(generateAdapter = true)
+data class OrderDataWrapper(
+    @Json(name = "order")
+    val order: OrderDto
 )
 
 @JsonClass(generateAdapter = true)
@@ -43,31 +55,37 @@ data class OrderDto(
     val customerName: String,
 
     @Json(name = "customer_phone")
-    val customerPhone: String,
+    val customerPhone: String? = null,
 
     @Json(name = "delivery_address")
     val deliveryAddress: String,
 
+    @Json(name = "notes")
+    val notes: String? = null,
+
     @Json(name = "product_description")
-    val productDescription: String,
+    val productDescription: String? = null,
 
     @Json(name = "comments")
-    val comments: String?,
+    val comments: String? = null,
 
     @Json(name = "status")
-    val status: String, // "picked_up", "near_customer", "delivered", "returned"
+    val status: String, // "assigned", "picked_up", "near_customer", "delivered", "returned"
 
     @Json(name = "status_updated_at")
-    val statusUpdatedAt: String?, // ISO 8601 timestamp
+    val statusUpdatedAt: String? = null, // ISO 8601 timestamp
 
     @Json(name = "assigned_at")
     val assignedAt: String, // ISO 8601 timestamp
 
+    @Json(name = "updated_at")
+    val updatedAt: String? = null,
+
     @Json(name = "completed_at")
-    val completedAt: String?, // ISO 8601 timestamp
+    val completedAt: String? = null, // ISO 8601 timestamp
 
     @Json(name = "photo_url")
-    val photoUrl: String?
+    val photoUrl: String? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -88,5 +106,5 @@ data class UpdateStatusResponse(
     val message: String,
 
     @Json(name = "data")
-    val data: OrderDto?
+    val data: OrderDataWrapper?
 )

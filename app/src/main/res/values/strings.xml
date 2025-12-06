@@ -24,6 +24,10 @@
     <string name="nav_statistics">Статистика</string>
     <string name="nav_profile">Профиль</string>
 
+    <!-- Orders -->
+    <string name="get_new_order">Получить заказ</string>
+    <string name="new_order_received">Новый заказ получен</string>
+
     <!-- Order Statuses -->
     <string name="status_picked_up">Забрал заказ</string>
     <string name="status_near_customer">Возле дома клиента</string>
@@ -66,6 +70,13 @@
     <string name="logout_confirmation">Вы уверены, что хотите выйти?</string>
     <string name="app_version">Версия приложения: %s</string>
     <string name="logout_success">Вы успешно вышли из системы</string>
+    <string name="edit">Изменить</string>
+    <string name="save">Сохранить</string>
+    <string name="full_name">ФИО</string>
+    <string name="email">Email</string>
+    <string name="phone">Телефон</string>
+    <string name="profile_updated_successfully">Профиль успешно обновлен</string>
+    <string name="profile_update_failed">Не удалось обновить профиль</string>
 
     <!-- Common -->
     <string name="error_network">Ошибка сети</string>

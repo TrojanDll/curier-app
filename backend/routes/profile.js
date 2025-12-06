@@ -24,7 +24,9 @@ router.get('/profile', authenticateToken, (req, res) => {
           id: user.id,
           username: user.username,
           full_name: user.full_name,
-          phone: user.phone
+          email: user.email || null,
+          phone: user.phone || null,
+          date_of_birth: user.date_of_birth || null
         }
       }
     });
@@ -49,11 +51,12 @@ router.put('/profile', authenticateToken, (req, res) => {
       });
     }
 
-    const { full_name, phone } = req.body;
+    const { email, phone, date_of_birth } = req.body;
 
-    // Update user data
-    if (full_name) user.full_name = full_name;
-    if (phone) user.phone = phone;
+    // Update user data (only provided fields)
+    if (email !== undefined) user.email = email;
+    if (phone !== undefined) user.phone = phone;
+    if (date_of_birth !== undefined) user.date_of_birth = date_of_birth;
     user.updated_at = new Date().toISOString();
 
     res.json({
@@ -64,7 +67,9 @@ router.put('/profile', authenticateToken, (req, res) => {
           id: user.id,
           username: user.username,
           full_name: user.full_name,
-          phone: user.phone
+          email: user.email || null,
+          phone: user.phone || null,
+          date_of_birth: user.date_of_birth || null
         }
       }
     });

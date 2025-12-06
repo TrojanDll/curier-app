@@ -39,8 +39,29 @@ class ProfileFragment : BaseFragment<FragmentProfileBinding>() {
             showLogoutConfirmation()
         }
 
+        // Setup edit button
+        binding.btnEdit.setOnClickListener {
+            viewModel.enterEditMode()
+        }
+
+        // Setup cancel button
+        binding.btnCancel.setOnClickListener {
+            viewModel.exitEditMode()
+        }
+
+        // Setup save button
+        binding.btnSave.setOnClickListener {
+            saveProfile()
+        }
+
         // Display app version
         binding.tvAppVersion.text = getString(R.string.app_version, BuildConfig.VERSION_NAME)
+    }
+
+    private fun saveProfile() {
+        val email = binding.etEmail.text?.toString()
+        val phone = binding.etPhone.text?.toString()
+        viewModel.updateProfile(email, phone)
     }
 
     private fun showLogoutConfirmation() {
@@ -71,19 +92,50 @@ class ProfileFragment : BaseFragment<FragmentProfileBinding>() {
         // Refreshing state
         binding.swipeRefresh.isRefreshing = state.isRefreshing
 
+        // Edit mode visibility
+        if (state.isEditMode) {
+            binding.layoutViewMode.visibility = View.GONE
+            binding.layoutEditMode.visibility = View.VISIBLE
+            binding.btnEdit.visibility = View.GONE
+        } else {
+            binding.layoutViewMode.visibility = View.VISIBLE
+            binding.layoutEditMode.visibility = View.GONE
+            binding.btnEdit.visibility = View.VISIBLE
+        }
+
+        // Disable buttons while saving
+        binding.btnSave.isEnabled = !state.isSaving
+        binding.btnCancel.isEnabled = !state.isSaving
+        binding.btnEdit.isEnabled = !state.isSaving
+
         // Logout in progress - disable button
-        binding.btnLogout.isEnabled = !state.isLoggingOut
+        binding.btnLogout.isEnabled = !state.isLoggingOut && !state.isSaving
 
         // Logout success - navigate to login
         if (state.logoutSuccess) {
             navigateToLogin()
         }
 
+        // Update success message
+        if (state.updateSuccess) {
+            Snackbar.make(binding.root, R.string.profile_updated_successfully, Snackbar.LENGTH_SHORT)
+                .show()
+            viewModel.clearUpdateSuccess()
+        }
+
         // User info
         state.user?.let { user ->
+            // View mode
             binding.tvFullName.text = user.fullName
             binding.tvEmail.text = user.email ?: getString(R.string.not_specified)
             binding.tvPhone.text = user.phone ?: getString(R.string.not_specified)
+
+            // Edit mode
+            binding.tvFullNameReadonly.text = user.fullName
+            if (state.isEditMode && binding.etEmail.text.isNullOrEmpty()) {
+                binding.etEmail.setText(user.email ?: "")
+                binding.etPhone.setText(user.phone ?: "")
+            }
         }
 
         // Statistics
@@ -98,7 +150,11 @@ class ProfileFragment : BaseFragment<FragmentProfileBinding>() {
         state.error?.let { error ->
             Snackbar.make(binding.root, error, Snackbar.LENGTH_LONG)
                 .setAction(R.string.retry) {
-                    viewModel.refreshProfile()
+                    if (state.isEditMode) {
+                        saveProfile()
+                    } else {
+                        viewModel.refreshProfile()
+                    }
                 }
                 .show()
             viewModel.clearError()

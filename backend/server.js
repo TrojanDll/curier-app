@@ -47,7 +47,9 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Curier Mobile Backend Server running on http://localhost:${PORT}`);
   console.log(`📱 Android Emulator URL: http://10.0.2.2:${PORT}`);
+  console.log(`📲 Physical Device URL: http://192.168.0.101:${PORT}`);
+  console.log(`\n⚠️  Make sure your phone and laptop are on the same WiFi network!`);
 });

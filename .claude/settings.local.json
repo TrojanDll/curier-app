@@ -20,7 +20,15 @@
       "Bash(npm install)",
       "Bash(node server.js:*)",
       "Bash(node -e:*)",
-      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJjb3VyaWVyMSIsImlhdCI6MTc2MjQwMzIwNSwiZXhwIjoxNzYyNDg5NjA1fQ.SBpCjYN5-mdseVAMKL8wuo_HiGDbXg3vAONMMpY3_UU\")"
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJjb3VyaWVyMSIsImlhdCI6MTc2MjQwMzIwNSwiZXhwIjoxNzYyNDg5NjA1fQ.SBpCjYN5-mdseVAMKL8wuo_HiGDbXg3vAONMMpY3_UU\")",
+      "Bash(\"C:\\Users\\user\\AndroidStudioProjects\\curier_mobile\\gradlew.bat\" assembleDebug)",
+      "Bash(timeout:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJjb3VyaWVyMSIsImlhdCI6MTc2MjQ5NjEzMCwiZXhwIjoxNzYyNTgyNTMwfQ.-UnamH7BYd4KgsF2P730bDCfcsM1_4uVAgzGERTi1R8\")",
+      "Bash(npm run dev:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(ipconfig:*)"
     ],
     "deny": [],
     "ask": []

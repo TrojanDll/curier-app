@@ -5,7 +5,8 @@ import {
   getActiveOrdersByCourier,
   getOrderById,
   updateOrderStatus,
-  getOrderHistory
+  getOrderHistory,
+  createRandomOrder
 } from '../data/database.js';
 
 const router = express.Router();
@@ -13,6 +14,36 @@ const router = express.Router();
 // Configure multer for photo uploads
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
+
+// Create new random order for courier
+router.post('/new', authenticateToken, (req, res) => {
+  try {
+    const newOrder = createRandomOrder(req.user.id);
+
+    res.json({
+      success: true,
+      message: 'New order assigned',
+      data: {
+        order: {
+          id: newOrder.id,
+          order_number: newOrder.order_number,
+          customer_name: newOrder.customer_name,
+          customer_phone: newOrder.customer_phone,
+          delivery_address: newOrder.delivery_address,
+          notes: newOrder.notes,
+          status: newOrder.status,
+          assigned_at: newOrder.assigned_at
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Create new order error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create new order'
+    });
+  }
+});
 
 // Get active orders
 router.get('/active', authenticateToken, (req, res) => {

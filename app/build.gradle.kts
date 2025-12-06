@@ -25,12 +25,14 @@ android {
 
     buildTypes {
         debug {
-            // For Android Emulator: 10.0.2.2 maps to localhost on host machine
-            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/\"")
+            // For Physical Device: Use laptop's local IP address
+            // Change back to http://10.0.2.2:8080/ for emulator
+            buildConfigField("String", "BASE_URL", "\"http://192.168.0.101:8080/\"")
         }
         release {
-            // For production: Replace with actual production URL
-            buildConfigField("String", "BASE_URL", "\"https://your-production-api.com/\"")
+            // For Physical Device: Use laptop's local IP address
+            // Make sure your phone and laptop are on the same WiFi network
+            buildConfigField("String", "BASE_URL", "\"http://192.168.0.101:8080/\"")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

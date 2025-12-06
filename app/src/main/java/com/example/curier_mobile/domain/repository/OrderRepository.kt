@@ -25,6 +25,12 @@ interface OrderRepository {
     suspend fun getActiveOrders(): Result<List<Order>>
 
     /**
+     * Create new random order for courier (demo/testing purpose)
+     * @return Result with new Order
+     */
+    suspend fun createNewOrder(): Result<Order>
+
+    /**
      * Get order history for time period
      * @param startDate ISO 8601 timestamp (optional, default: 24h ago)
      * @param endDate ISO 8601 timestamp (optional, default: now)

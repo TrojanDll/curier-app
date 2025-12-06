@@ -137,4 +137,48 @@ class ProfileViewModel(
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
+
+    fun enterEditMode() {
+        _uiState.update { it.copy(isEditMode = true) }
+    }
+
+    fun exitEditMode() {
+        _uiState.update { it.copy(isEditMode = false, updateSuccess = false) }
+    }
+
+    fun updateProfile(email: String?, phone: String?) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true, error = null) }
+
+            when (val result = profileRepository.updateProfile(
+                email = email?.takeIf { it.isNotBlank() },
+                phone = phone?.takeIf { it.isNotBlank() },
+                dateOfBirth = null
+            )) {
+                is Result.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            user = result.data,
+                            isSaving = false,
+                            isEditMode = false,
+                            updateSuccess = true
+                        )
+                    }
+                }
+                is Result.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isSaving = false,
+                            error = result.exception.message ?: "Не удалось обновить профиль"
+                        )
+                    }
+                }
+                is Result.Loading -> { }
+            }
+        }
+    }
+
+    fun clearUpdateSuccess() {
+        _uiState.update { it.copy(updateSuccess = false) }
+    }
 }

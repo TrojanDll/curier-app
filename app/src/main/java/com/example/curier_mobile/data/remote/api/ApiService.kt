@@ -68,6 +68,13 @@ interface ApiService {
     // ==================== Orders ====================
 
     /**
+     * Create new random order for courier (demo/testing purpose)
+     * POST /api/courier/orders/new
+     */
+    @POST("api/courier/orders/new")
+    suspend fun createNewOrder(): Response<OrderResponse>
+
+    /**
      * Get list of active orders for authenticated courier
      * GET /api/courier/orders/active
      */

@@ -42,6 +42,11 @@ class OrdersListFragment : BaseFragment<FragmentOrdersListBinding>() {
         binding.swipeRefresh.setOnRefreshListener {
             viewModel.refreshOrders()
         }
+
+        // Setup Get New Order button
+        binding.fabGetNewOrder.setOnClickListener {
+            viewModel.getNewOrder()
+        }
     }
 
     override fun observeViewModel() {

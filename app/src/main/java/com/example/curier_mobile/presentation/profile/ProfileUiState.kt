@@ -10,5 +10,8 @@ data class ProfileUiState(
     val isRefreshing: Boolean = false,
     val isLoggingOut: Boolean = false,
     val logoutSuccess: Boolean = false,
+    val isEditMode: Boolean = false,
+    val isSaving: Boolean = false,
+    val updateSuccess: Boolean = false,
     val error: String? = null
 )

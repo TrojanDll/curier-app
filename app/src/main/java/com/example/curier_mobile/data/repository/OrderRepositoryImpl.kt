@@ -60,6 +60,29 @@ class OrderRepositoryImpl(
         }
     }
 
+    override suspend fun createNewOrder(): Result<Order> {
+        return try {
+            val response = apiService.createNewOrder()
+
+            if (response.isSuccessful && response.body()?.success == true) {
+                val data = response.body()?.data?.order
+                if (data != null) {
+                    val order = data.toDomainModel()
+                    // Cache order in database
+                    orderDao.insertOrder(order.toEntity())
+                    Result.Success(order)
+                } else {
+                    Result.Error(Exception("Failed to create new order: No data received"))
+                }
+            } else {
+                val message = response.body()?.message ?: "Failed to create new order"
+                Result.Error(Exception(message))
+            }
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
     override suspend fun getOrderHistory(
         startDate: String?,
         endDate: String?

@@ -2,26 +2,37 @@ package com.example.curier_mobile.data.local.preferences
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 
 /**
  * Secure token storage using EncryptedSharedPreferences
  * Stores access token, refresh token, and expiration time
+ * Falls back to regular SharedPreferences if encryption is not available
  */
 class TokenManager(context: Context) {
 
-    private val masterKey = MasterKey.Builder(context)
-        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-        .build()
+    private val sharedPreferences: SharedPreferences = try {
+        // Try to create encrypted SharedPreferences
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
 
-    private val sharedPreferences: SharedPreferences = EncryptedSharedPreferences.create(
-        context,
-        PREFS_NAME,
-        masterKey,
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-    )
+        EncryptedSharedPreferences.create(
+            context,
+            PREFS_NAME,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        ).also {
+            Log.d(TAG, "Using EncryptedSharedPreferences")
+        }
+    } catch (e: Exception) {
+        // Fallback to regular SharedPreferences if encryption fails
+        Log.e(TAG, "Failed to create EncryptedSharedPreferences, falling back to regular SharedPreferences", e)
+        context.getSharedPreferences(PREFS_NAME_FALLBACK, Context.MODE_PRIVATE)
+    }
 
     /**
      * Save authentication tokens
@@ -74,7 +85,9 @@ class TokenManager(context: Context) {
     }
 
     companion object {
+        private const val TAG = "TokenManager"
         private const val PREFS_NAME = "curier_secure_prefs"
+        private const val PREFS_NAME_FALLBACK = "curier_prefs"
         private const val KEY_ACCESS_TOKEN = "access_token"
         private const val KEY_REFRESH_TOKEN = "refresh_token"
         private const val KEY_EXPIRATION_TIME = "expiration_time"

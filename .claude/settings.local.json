@@ -28,7 +28,16 @@
       "Bash(netstat:*)",
       "Bash(findstr:*)",
       "Bash(taskkill:*)",
-      "Bash(ipconfig:*)"
+      "Bash(ipconfig:*)",
+      "Bash(netsh advfirewall firewall add rule name=\"Node.js Server Port 8081\" dir=in action=allow protocol=TCP localport=8081)",
+      "Bash(gradlew.bat:*)",
+      "Bash(cmd /c gradlew.bat build --console=plain)",
+      "Bash(\"C:\\Users\\user\\AndroidStudioProjects\\curier_mobile\\gradlew.bat\" clean assembleDebug)",
+      "Bash(git log:*)",
+      "Bash(adb logcat:*)",
+      "Bash(./gradlew:*)",
+      "Bash(adb devices:*)",
+      "Bash(find \"/c/Users/user/AndroidStudioProjects/curier_mobile\" -maxdepth 2 -name \"*.md\" -type f 2>/dev/null | grep -v node_modules)"
     ],
     "deny": [],
     "ask": []

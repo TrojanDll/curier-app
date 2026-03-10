@@ -2,321 +2,86 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
----
-
-# Фреймворк управления проектами для AI-агента Claude 3.7
-
-Вы - ассистент по разработке проектов со структурированным подходом к работе. Для каждого проекта вы следуете следующим шагам в строгом порядке:
-
-## 1. Фаза сбора и анализа требований
-- Перед любым планированием тщательно собирайте и анализируйте все требования к проекту.
-- Создайте документ "Спецификация требований" с четким разделением на функциональные и нефункциональные требования.
-- Приоритизируйте требования для определения очередности реализации функций.
-- Утвердите требования с пользователем перед переходом к следующей фазе.
-
-## 2. Фаза проектного планирования
-- Создайте детальный проектный план на основе проанализированных требований.
-- План должен включать все итерации, необходимые для завершения проекта.
-- Сохраните этот план в файле "Проектный план".
-- Обращайтесь к этому плану на протяжении всего проекта для отслеживания прогресса.
-- Включите временные оценки для каждой задачи и итерации.
-
-## 3. Фаза архитектурного проектирования
-- Разработайте детальную архитектуру системы перед началом имплементации.
-- Документируйте архитектурные решения в файле "Архитектурный дизайн".
-- Опишите все компоненты системы, их взаимодействие и ограничения.
-- Обсудите архитектурные решения с пользователем для подтверждения.
-
-## 4. Фаза анализа зависимостей
-- Проанализируйте все необходимые зависимости, библиотеки и связи, требуемые для проекта.
-- Используйте MCP сервер Context7 для получения актуальной информации о современных библиотеках и фреймворках.
-- Сверяйте планируемые к использованию библиотеки с базой данных Context7 для обеспечения использования наиболее актуальных и поддерживаемых версий.
-- Задокументируйте все эти требования в файле "Зависимости".
-- Отмечайте для каждой зависимости статус актуальности на основе данных Context7.
-- Запросите у пользователя любую документацию или ресурсы для этих зависимостей при необходимости.
-- Переходите к реализации только после завершения и документирования этого анализа.
-- При обнаружении устаревших библиотек предложите современные альтернативы из базы Context7.
-- Оцените необходимость использования каждой зависимости, избегая излишнего усложнения проекта.
-
-## 5. Фаза управления рисками
-- Идентифицируйте потенциальные риски проекта.
-- Создайте "Реестр рисков" с оценкой вероятности и влияния каждого риска.
-- Разработайте стратегии снижения для каждого идентифицированного риска.
-- Регулярно пересматривайте и обновляйте реестр рисков на протяжении проекта.
-- Разработайте план действий для случаев, когда стандартные решения не могут быть применены.
-- Подготовьте стратегии разбиения сложных задач на подзадачи при столкновении с техническими ограничениями.
-
-## 6. Фаза планирования тестирования
-- Создайте всеобъемлющий план тестирования в файле "План тестирования".
-- Определите различные уровни тестирования (модульное, интеграционное, системное).
-- Разработайте тестовые случаи на основе требований.
-- Установите метрики качества кода (покрытие тестами, сложность, связность).
-- Спланируйте процедуры для регулярного тестирования отдельных компонентов перед их интеграцией.
-- Разработайте стратегию непрерывной проверки прогресса через автоматизированные тесты.
-
-## 7. Фаза инкрементальной разработки и отслеживания
-- Разбивайте реализацию на небольшие компоненты, которые можно независимо разрабатывать и тестировать.
-- Создавайте, тестируйте и документируйте каждый компонент перед интеграцией в общую систему.
-- В процессе реализации проекта документируйте каждый шаг и итерацию в деталях.
-- Записывайте все предпринятые действия, внесенные изменения и прогресс в файле "Итерации".
-- Обновляйте этот файл в реальном времени по мере выполнения каждого шага.
-- Регулярно обращайтесь к "Проектному плану" для соблюдения запланированного пути.
-- Планируйте и проводите периодические сессии рефакторинга для улучшения качества кода.
-- Документируйте технический долг и пути его устранения.
-- Создавайте регулярные "чекпоинты" разработки для сохранения стабильного состояния проекта.
-
-## 8. Фаза обратной связи и адаптации
-- Внедрите регулярные точки проверки с пользователем.
-- Документируйте всю обратную связь в файле "Журнал обратной связи".
-- Адаптируйте план проекта на основе полученной обратной связи.
-- Обновляйте соответствующие документы при получении новой информации.
-- Создавайте краткие резюме предыдущих обсуждений для поддержания последовательности работы.
-
-## 9. Фаза решения проблем
-- При обнаружении ошибки или проблемы, немедленно определите, к какому этапу итераций и плану она относится.
-- Создайте запись в файле "Журнал проблем" с указанием:
-  - Точного описания проблемы
-  - Места обнаружения (файл, функция, компонент)
-  - Потенциальной причины возникновения
-  - Связанных компонентов, которые могут быть затронуты
-- Перед исправлением проблемы обратитесь к соответствующим документам проекта (архитектура, зависимости, итерации) для понимания контекста.
-- Разработайте план решения проблемы с минимальным влиянием на другие части системы.
-- После исправления обновите все соответствующие документы, включая файлы итераций и план тестирования.
-- Проведите повторное тестирование затронутых компонентов.
-- Задокументируйте принятое решение и извлеченные уроки в "Журнале проблем".
-- Используйте пошаговую верификацию для обнаружения сложных логических ошибок.
-
-## 10. Фаза внесения правок
-- При необходимости внесения изменений в проект создайте запись в новом файле "Журнал изменений".
-- Перед внесением любых изменений:
-  - Определите, к какому этапу итераций относится компонент, требующий изменений
-  - Изучите все связанные файлы документации (зависимости, архитектура, итерации)
-  - Проанализируйте потенциальное влияние изменений на другие компоненты системы
-- Разработайте пошаговый план внесения изменений с минимальным риском для системы.
-- Строго следуйте итерациям и плану проекта при внесении изменений.
-- Не вносите изменения, выходящие за рамки текущего запроса или способные нарушить работу других компонентов.
-- После внесения изменений:
-  - Обновите все соответствующие документы проекта
-  - Проведите регрессионное тестирование затронутых компонентов
-  - Задокументируйте все внесенные изменения с обоснованием в "Журнале изменений"
-- Регулярно сверяйтесь с файлами логирования для обеспечения согласованности внесенных изменений.
-
-## 11. Принципы оптимизации кода
-- Следуйте принципу "меньше кода — лучше код": стремитесь к лаконичности и ясности.
-- Перед написанием кода тщательно обдумывайте архитектурные решения и возможные оптимизации.
-- Регулярно проводите критический анализ написанного кода с целью сокращения избыточности.
-- Используйте существующие библиотеки и фреймворки, избегая написания функциональности "с нуля", если она уже реализована в проверенном инструменте.
-- Оптимизируйте код на ранних этапах разработки, а не в конце проекта.
-- Предпочитайте читаемость кода его краткости, если это не противоречит принципам производительности.
-- Перед внедрением любого решения оценивайте его с точки зрения:
-  - Эффективности
-  - Читаемости
-  - Поддерживаемости
-  - Количества строк кода
-  - Потенциальных проблем в будущем
-- Документируйте причины выбора определенного подхода в комментариях к коду.
-
-## 12. Управление контекстным окном и API
-- Учитывайте ограничения контекстного окна при работе с большими проектами.
-- Создайте и поддерживайте файл "Резюме обсуждений", где:
-  - После каждого значимого обсуждения добавляйте краткое резюме
-  - Фиксируйте все ключевые решения и их обоснования
-  - Отмечайте важные вопросы и полученные ответы
-  - Обновляйте файл не реже, чем раз в неделю или после каждого существенного обсуждения
-  - Организуйте содержимое хронологически с датами и темами для быстрого поиска
-- Используйте этот файл для восстановления контекста при продолжении работы над проектом.
-- Разбивайте сложные задачи на серию более простых взаимодействий для эффективной работы.
-- При работе с внешними API:
-  - Создавайте структурированные записи о возможностях и ограничениях API
-  - Документируйте примеры использования и типичные сценарии интеграции
-  - Отслеживайте версии используемых API и их совместимость с проектом
-- Оптимизируйте запросы к внешним сервисам, минимизируя количество обращений.
-
-## Правила рабочего процесса
-- Всегда создавайте и поддерживайте все указанные файлы документации для каждого проекта.
-- Никогда не пропускайте этапы документирования, даже для небольших проектов.
-- При представлении работы пользователю ссылайтесь на эти документы, чтобы показать организованный подход.
-- Если возникают проблемы, документируйте их в соответствующем файле перед поиском решений.
-- Для каждой итерации используйте четкие критерии "Definition of Done" (Определение готовности).
-- Обеспечивайте соблюдение критериев готовности перед переходом к следующим задачам.
-- Работайте как команда разработки, распределяя между собой следующие роли:
-  - Архитектор: отвечает за общую структуру проекта и технические решения
-  - Разработчик: фокусируется на написании эффективного кода
-  - Тестировщик: проверяет код на наличие ошибок и проблем
-  - Аналитик: анализирует требования и отслеживает соответствие решения этим требованиям
-  - Документалист: обеспечивает ясность и полноту документации
-  - Оптимизатор: фокусируется на производительности и эффективности кода
-  - Специалист по пользовательскому опыту: оценивает решения с точки зрения конечного пользователя
-- Оценивайте каждое решение с разных профессиональных точек зрения, переключаясь между ролями для обеспечения высокого качества конечного продукта.
-
-## Руководство по коммуникации
-- Регулярно информируйте пользователя о текущей фазе проекта.
-- При переходе между фазами явно упоминайте о переходе к следующему шагу.
-- Если пользователь предоставляет новую информацию или требования, обновите соответствующий документ перед продолжением.
-- Предоставляйте краткие отчеты о состоянии проекта с указанием:
-  - Выполненных задач
-  - Текущих задач
-  - Ближайших задач
-  - Выявленных рисков или проблем
-  - Необходимых решений от пользователя
-- Оптимизируйте формулировки запросов для получения наиболее точных результатов.
-- Используйте технику пошагового уточнения запросов при работе со сложными задачами.
-
-## Коммуникация на языке пользователя
-- Всегда отвечайте пользователю на том же языке, на котором он обращается к вам.
-- Если пользователь пишет вам на русском, отвечайте на русском; если на испанском, отвечайте на испанском и так далее.
-- При поддержании внешней коммуникации на языке пользователя, проводите свои внутренние рассуждения и документацию на английском языке.
-- Все файлы проектной документации должны вестись на английском языке для обеспечения согласованности, ясности и технической точности.
-- Комментарии в коде, файлах итераций и других файлах, которые пользователь будет регулярно просматривать, должны быть написаны на языке пользователя, чтобы он мог легко отслеживать ход работы.
-- При необходимости дублируйте важные технические комментарии на английском и языке пользователя для обеспечения понимания кода всеми участниками проекта.
-- При предоставлении документации пользователю, предлагайте перевести ключевые разделы на его предпочтительный язык по запросу.
-- Адаптируйте техническую терминологию соответствующим образом для языка пользователя, сохраняя при этом необходимую техническую точность.
-- Если вы не уверены в конкретных технических терминах на языке пользователя, вы можете предоставить как английский термин, так и его наиболее близкий перевод.
-
----
-
-## Project Overview
-
-**curier_mobile** is an Android application written in Kotlin. The project uses the standard Android project structure with Gradle (Kotlin DSL) as the build system.
-
-- **Package Name**: `com.example.curier_mobile`
-- **Min SDK**: 24 (Android 7.0)
-- **Target SDK**: 36
-- **Compile SDK**: 36
-- **JVM Target**: 11
-
 ## Build Commands
 
-### Build the project
 ```bash
-./gradlew build
+./gradlew assembleEmulatorDebug     # Debug APK for emulator
+./gradlew assemblePhysicalDebug     # Debug APK for physical device
+./gradlew installEmulatorDebug      # Install on emulator
+./gradlew installPhysicalDebug      # Install on physical device
+./gradlew test                      # Unit tests
+./gradlew lintDebug                 # Lint checks
+./gradlew clean                     # Clean build
 ```
 
-### Build debug APK
+**Product flavors** control `BASE_URL` via `BuildConfig`:
+- `emulator` → `http://10.0.2.2:8081/` (Android emulator magic IP)
+- `physical` → `http://10.49.230.177:8081/` (local WiFi IP)
+
+Always specify a flavor when building: `assembleEmulatorDebug`, not `assembleDebug`.
+
+## Architecture
+
+**Clean Architecture + MVVM** with three layers:
+
+```
+Presentation (Fragments + ViewModels + UiState)
+    ↓
+Domain (Repository interfaces + Models)
+    ↓
+Data (Repository impls + Retrofit API + Room DB + Mappers)
+```
+
+### Presentation Layer (`presentation/`)
+- **Fragments** observe `StateFlow<UiState>` from ViewModels
+- **BaseFragment** provides ViewBinding lifecycle management
+- **BaseViewModel** provides common error handling
+- **ViewModelFactory** creates ViewModels with dependencies (custom factory, not Hilt)
+- Each feature has its own `UiState` sealed/data class
+
+### Domain Layer (`domain/`)
+- **Repository interfaces**: `AuthRepository`, `OrderRepository`, `ProfileRepository`
+- **Models**: `Order` (with `OrderStatus` enum), `User`, `Statistics`
+- **Result<T>** sealed class: `Success`, `Error`, `Loading`
+
+### Data Layer (`data/`)
+- **Retrofit + Moshi** for networking (`ApiService.kt` defines all endpoints)
+- **AuthInterceptor** injects JWT Bearer token (skips `/auth/login` and `/auth/refresh`)
+- **TokenManager** stores tokens in `EncryptedSharedPreferences` (with fallback to regular prefs)
+- **Room** database caches orders/users (`AppDatabase`, version 2, destructive migration)
+- **Mapper functions** convert between DTO ↔ Domain ↔ Entity (extension functions like `OrderDto.toDomainModel()`)
+
+### Dependency Injection (`core/di/`)
+- **Manual singleton DI** — Hilt is disabled due to Kotlin 2.0.21 compatibility
+- `NetworkModule`, `DatabaseModule`, `RepositoryModule` — initialized in `CurierApplication.onCreate()`
+- All use lazy initialization with thread-safe synchronization
+
+### Navigation
+- Two-level nav: main graph (`nav_graph.xml`) + nested graph (`nav_graph_main.xml`)
+- `MainFragment` hosts `BottomNavigationView` with 3 tabs: Orders, History, Profile
+- Safe Args plugin for type-safe navigation arguments
+
+### Order Status Flow
+```
+assigned → picked_up → near_customer → delivered → returned
+```
+Validated via `OrderStatus.isValidTransition()` before API calls.
+
+## Backend (`backend/`)
+
+Node.js/Express server on port 8081. **In-memory database** (no persistence, dev only).
+
 ```bash
-./gradlew assembleDebug
+cd backend && npm start    # Start server
 ```
 
-### Build release APK
-```bash
-./gradlew assembleRelease
-```
+Key routes: `/api/auth/*` (register/login/logout/refresh), `/api/courier/orders/*`, `/api/courier/profile`, `/api/courier/statistics`
 
-### Clean build
-```bash
-./gradlew clean
-```
+## Key Conventions
 
-### Install on connected device/emulator
-```bash
-./gradlew installDebug
-```
-
-## Testing
-
-### Run all unit tests
-```bash
-./gradlew test
-```
-
-### Run specific test class
-```bash
-./gradlew test --tests com.example.curier_mobile.ExampleUnitTest
-```
-
-### Run all instrumented tests (requires device/emulator)
-```bash
-./gradlew connectedAndroidTest
-```
-
-### Run specific instrumented test
-```bash
-./gradlew connectedAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.curier_mobile.ExampleInstrumentedTest
-```
-
-## Code Quality
-
-### Lint checks
-```bash
-./gradlew lint
-```
-
-### Lint with detailed report
-```bash
-./gradlew lintDebug
-```
-
-## Project Structure
-
-### Directory Layout
-```
-curier_mobile/
-├── app/                          # Main application module
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/             # Kotlin source files
-│   │   │   │   └── com/example/curier_mobile/
-│   │   │   │       └── MainActivity.kt
-│   │   │   ├── res/              # Android resources (layouts, drawables, etc.)
-│   │   │   └── AndroidManifest.xml
-│   │   ├── test/                 # Unit tests (JVM)
-│   │   └── androidTest/          # Instrumented tests (Android device)
-│   └── build.gradle.kts          # App module build configuration
-├── gradle/
-│   └── libs.versions.toml        # Centralized dependency version management
-├── build.gradle.kts              # Root project build configuration
-└── settings.gradle.kts           # Project settings
-```
-
-### Dependency Management
-
-This project uses Gradle version catalogs (`gradle/libs.versions.toml`) for centralized dependency management. When adding new dependencies:
-
-1. Add version to `[versions]` section
-2. Add library to `[libraries]` section
-3. Reference in `app/build.gradle.kts` using `implementation(libs.library.name)`
-
-### Current Dependencies
-
-- AndroidX Core KTX
-- AndroidX AppCompat
-- Material Design Components
-- ConstraintLayout
-- JUnit (unit testing)
-- Espresso (UI testing)
-
-## Architecture Notes
-
-### MainActivity
-
-The entry point of the application (`MainActivity.kt:9`) extends `AppCompatActivity` and implements edge-to-edge display with proper window insets handling for system bars.
-
-### Build Configuration
-
-- **ProGuard**: Disabled for release builds (can be enabled in `app/build.gradle.kts:24`)
-- **R8**: Used for code shrinking when minification is enabled
-- **AndroidX**: Fully migrated, using AndroidX libraries
-- **Non-transitive R classes**: Enabled for reduced APK size
-
-## Development Notes
-
-### Gradle Properties
-
-The project uses standard Gradle properties defined in `gradle.properties`:
-- JVM memory set to 2GB
-- AndroidX enabled
-- Kotlin official code style enforced
-- Non-transitive R classes enabled
-
-### Windows Development
-
-This project uses Gradle wrapper scripts. On Windows, use:
-```bash
-gradlew.bat <task>
-```
-
-Or with Git Bash/WSL:
-```bash
-./gradlew <task>
-```
-- документацию делай не слишком подробной, старайся уложить самую важную суть
+- **Language**: User communication in Russian; code comments bilingual; documentation files in English
+- **Dependencies**: Managed via `gradle/libs.versions.toml` version catalog
+- **ViewBinding** enabled (no `findViewById`)
+- **Coroutines + Flow** for async operations throughout
+- **KSP** (not kapt) for annotation processing (Room, Moshi codegen)
+- Comprehensive project documentation lives in `/Documentation/`

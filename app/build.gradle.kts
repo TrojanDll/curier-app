@@ -18,27 +18,38 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
 
-        // API Configuration - Change this to your actual backend URL
-        buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/\"")
+    flavorDimensions += "device"
+
+    productFlavors {
+        create("emulator") {
+            dimension = "device"
+            // For Android Emulator: Use special address to access host machine's localhost
+            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8081/\"")
+        }
+
+        create("physical") {
+            dimension = "device"
+            // For Physical Device: Use laptop's local network IP address
+            // Make sure your phone and laptop are on the same WiFi network
+            buildConfigField("String", "BASE_URL", "\"http://10.49.230.177:8081/\"")
+        }
     }
 
     buildTypes {
         debug {
-            // For Physical Device: Use laptop's local IP address
-            // Change back to http://10.0.2.2:8080/ for emulator
-            buildConfigField("String", "BASE_URL", "\"http://192.168.0.101:8080/\"")
+            // BASE_URL configured in product flavors
         }
         release {
-            // For Physical Device: Use laptop's local IP address
-            // Make sure your phone and laptop are on the same WiFi network
-            buildConfigField("String", "BASE_URL", "\"http://192.168.0.101:8080/\"")
+            // BASE_URL configured in product flavors
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
+
     }
 
     compileOptions {
@@ -53,6 +64,18 @@ android {
     buildFeatures {
         viewBinding = true
         buildConfig = true
+    }
+
+    packaging {
+        resources {
+            excludes += setOf(
+                "META-INF/LICENSE.md",
+                "META-INF/LICENSE-notice.md",
+                "META-INF/NOTICE.md",
+                "META-INF/LICENSE",
+                "META-INF/NOTICE"
+            )
+        }
     }
 }
 

@@ -6,7 +6,7 @@ import profileRoutes from './routes/profile.js';
 import statisticsRoutes from './routes/statistics.js';
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 8081;
 
 // Middleware
 app.use(cors());
@@ -52,4 +52,5 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`📱 Android Emulator URL: http://10.0.2.2:${PORT}`);
   console.log(`📲 Physical Device URL: http://192.168.0.101:${PORT}`);
   console.log(`\n⚠️  Make sure your phone and laptop are on the same WiFi network!`);
+  console.log(`✅ Server is listening on all network interfaces (0.0.0.0)`);
 });

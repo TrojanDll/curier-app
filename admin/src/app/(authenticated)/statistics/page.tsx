@@ -1,8 +1,13 @@
 import { Header } from "@/components/application/Header";
+import { StatisticsClient } from "./StatisticsClient";
+
+export const metadata = {
+    title: "Статистика — Курьер",
+};
 
 /**
- * Графики и срезы статистики.
- * Содержимое — задача §14.1.6.
+ * Графики и срезы статистики (Recharts).
+ * На Этапе 1 — синтетические данные; реальные эндпойнты подключим в §14.3.5.
  */
 export default function StatisticsPage() {
     return (
@@ -11,9 +16,7 @@ export default function StatisticsPage() {
                 title="Статистика"
                 description="Графики по заказам, времени доставки и курьерам"
             />
-            <div className="px-8 py-6">
-                <p className="text-md text-tertiary">Графики Recharts появятся в следующем шаге.</p>
-            </div>
+            <StatisticsClient />
         </>
     );
 }

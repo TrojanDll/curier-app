@@ -389,7 +389,7 @@ volumes:
 ## 14. План работ по этапам
 
 ### Этап 1 — Admin-панель (стартуем с этого, моки)
-- [ ] **1.1** Установить Untitled UI React + Tailwind CSS v4 в `/admin`
+- [x] **1.1** Установить Untitled UI React + Tailwind CSS v4 в `/admin`
 - [ ] **1.2** Layout приложения: sidebar, header, auth middleware
 - [ ] **1.3** Страница Login (UI без backend, мок)
 - [ ] **1.4** Скелет страницы Orders (live-таблица, моки)

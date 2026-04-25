@@ -8,9 +8,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Maintaining the cache:** When you discover important project information not yet covered by any doc (e.g. a new component, a new module, a complex pattern), create a new file in `docs/` and add a one-line entry to `docs/INDEX.md`. Keep docs factual and concise — no prose, prefer tables and lists.
 
-## Build Commands
+## Repository Layout (v2)
+
+- `/android` — Kotlin Android client (был в корне до v2)
+- `/admin` — Next.js 16 admin panel (Untitled UI React + Tailwind v4)
+- `/backend` — NestJS 10+ backend (пустой, в работе)
+- `/backend-old` — старый Express + in-memory backend (для справки, не запускается)
+- `/Documentation/completion_plan.md` — единственный источник правды по scope/прогрессу v2
+- `/docs` — пользовательская документация (DEPLOYMENT, ADMIN/COURIER USER MANUAL)
+
+## Build Commands (Android)
+
+Все Android-команды запускаются **из подпапки `android/`**:
 
 ```bash
+cd android
 ./gradlew assembleEmulatorDebug     # Debug APK for emulator
 ./gradlew assemblePhysicalDebug     # Debug APK for physical device
 ./gradlew installEmulatorDebug      # Install on emulator
@@ -25,6 +37,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `physical` → `http://10.49.230.177:8081/` (local WiFi IP)
 
 Always specify a flavor when building: `assembleEmulatorDebug`, not `assembleDebug`.
+
+> Note: flavors `emulator` / `physical` будут удалены на Этапе 4 (см. §7.1). URL станет runtime-настройкой через экран «Подключение к серверу».
 
 ## Architecture
 
@@ -73,20 +87,17 @@ assigned → picked_up → near_customer → delivered → returned
 ```
 Validated via `OrderStatus.isValidTransition()` before API calls.
 
-## Backend (`backend/`)
+## Backend
 
-Node.js/Express server on port 8081. **In-memory database** (no persistence, dev only).
+- **`/backend`** — целевой NestJS 10+ + Prisma + PostgreSQL. В работе (Этап 2 в `completion_plan.md`).
+- **`/backend-old`** — старый Node.js/Express + in-memory БД, port 8081. Сохранён только для справки. Не запускается.
 
-```bash
-cd backend && npm start    # Start server
-```
-
-Key routes: `/api/auth/*` (register/login/logout/refresh), `/api/courier/orders/*`, `/api/courier/profile`, `/api/courier/statistics`
+Финальные API/таблицы/события — см. §4–§5 `Documentation/completion_plan.md`.
 
 ## Key Conventions
 
 - **Language**: User communication in Russian; code comments bilingual; documentation files in English
-- **Dependencies**: Managed via `gradle/libs.versions.toml` version catalog
+- **Dependencies**: Managed via `android/gradle/libs.versions.toml` version catalog
 - **ViewBinding** enabled (no `findViewById`)
 - **Coroutines + Flow** for async operations throughout
 - **KSP** (not kapt) for annotation processing (Room, Moshi codegen)

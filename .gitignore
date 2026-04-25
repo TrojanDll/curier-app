@@ -1,18 +1,20 @@
 *.iml
 .gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
 .DS_Store
-/build
-/captures
 .externalNativeBuild
 .cxx
 local.properties
+
+# Android (под /android после v2 рефакторинга)
+/android/local.properties
+/android/build
+/android/captures
+/android/.idea/caches
+/android/.idea/libraries
+/android/.idea/modules.xml
+/android/.idea/workspace.xml
+/android/.idea/navEditor.xml
+/android/.idea/assetWizardSettings.xml
 
 # Claude Code local worktrees
 .claude/worktrees/

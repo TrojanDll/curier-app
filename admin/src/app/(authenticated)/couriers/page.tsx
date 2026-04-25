@@ -1,16 +1,20 @@
 import { Header } from "@/components/application/Header";
+import { CouriersClient } from "./CouriersClient";
+
+export const metadata = {
+    title: "Курьеры — Курьер",
+};
 
 /**
  * CRUD-страница курьеров.
- * Содержимое — задача §14.1.5.
+ * Действия (edit/pause/resume/reset-password/fire) на Этапе 1 работают
+ * как локальные мутации стейта; реальные API подключим в §14.3.4.
  */
 export default function CouriersPage() {
     return (
         <>
             <Header title="Курьеры" description="Управление штатом и статусами курьеров" />
-            <div className="px-8 py-6">
-                <p className="text-md text-tertiary">Скелет CRUD-таблицы появится в следующем шаге.</p>
-            </div>
+            <CouriersClient />
         </>
     );
 }

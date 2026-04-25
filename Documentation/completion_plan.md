@@ -393,7 +393,7 @@ volumes:
 - [x] **1.2** Layout приложения: sidebar, header, auth middleware
 - [x] **1.3** Страница Login (UI без backend, мок)
 - [x] **1.4** Скелет страницы Orders (live-таблица, моки)
-- [ ] **1.5** Скелет страницы Couriers (CRUD, моки)
+- [x] **1.5** Скелет страницы Couriers (CRUD, моки)
 - [ ] **1.6** Скелет страницы Statistics (графики Recharts, моки)
 - [ ] **1.7** Скелет страницы Settings (TTL фото, смена пароля)
 - [ ] **1.8** Скелет Dashboard (карточки с метриками, моки)

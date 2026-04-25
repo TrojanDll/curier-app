@@ -68,10 +68,19 @@ export function OrdersClient() {
     const safePage = Math.min(page, totalPages);
     const pageItems = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
-    // Сбрасываем страницу при смене фильтров.
-    useEffect(() => {
+    // Обёртки сбрасывают пагинацию атомарно с фильтрами — без useEffect.
+    const applyStatusFilter = (value: StatusFilter) => {
+        setStatusFilter(value);
         setPage(1);
-    }, [statusFilter, courierFilter, search]);
+    };
+    const applyCourierFilter = (value: string) => {
+        setCourierFilter(value);
+        setPage(1);
+    };
+    const applySearch = (value: string) => {
+        setSearch(value);
+        setPage(1);
+    };
 
     return (
         <div className="flex flex-col gap-4 px-8 py-6">
@@ -82,7 +91,7 @@ export function OrdersClient() {
                         <button
                             key={f.value}
                             type="button"
-                            onClick={() => setStatusFilter(f.value)}
+                            onClick={() => applyStatusFilter(f.value)}
                             className={cx(
                                 "rounded-full px-3 py-1 text-sm font-medium transition-colors",
                                 statusFilter === f.value
@@ -100,13 +109,13 @@ export function OrdersClient() {
                             type="search"
                             placeholder="Поиск по номеру, клиенту, адресу…"
                             value={search}
-                            onChange={(e) => setSearch(e.target.value)}
+                            onChange={(e) => applySearch(e.target.value)}
                             leftIcon={<SearchLg className="size-4" />}
                         />
                     </div>
                     <select
                         value={courierFilter}
-                        onChange={(e) => setCourierFilter(e.target.value)}
+                        onChange={(e) => applyCourierFilter(e.target.value)}
                         className="h-10 rounded-md border border-primary bg-primary px-3 text-sm text-primary shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand"
                     >
                         <option value="all">Все курьеры</option>

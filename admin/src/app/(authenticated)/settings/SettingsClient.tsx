@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/base/Button";
 import { Input } from "@/components/base/Input";
 
@@ -20,9 +20,10 @@ export function SettingsClient() {
     const [passwordError, setPasswordError] = useState<string | null>(null);
 
     const [toasts, setToasts] = useState<Toast[]>([]);
+    const toastIdRef = useRef(0);
 
     const showToast = (text: string) => {
-        const id = Date.now() + Math.random();
+        const id = ++toastIdRef.current;
         setToasts((prev) => [...prev, { id, text }]);
         setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3000);
     };

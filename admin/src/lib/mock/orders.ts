@@ -188,6 +188,18 @@ function pickIndex(seed: number, length: number): number {
     return seed % length;
 }
 
+/**
+ * Помощник для индексированного доступа: рассчитан на массивы константной
+ * длины и валидный seed, поэтому non-null assert безопасен.
+ */
+function pick<T>(arr: readonly T[], seed: number): T {
+    const value = arr[pickIndex(seed, arr.length)];
+    if (value === undefined) {
+        throw new Error("pick(): индекс выходит за границы массива");
+    }
+    return value;
+}
+
 function isoOffsetHours(baseIso: string, hours: number): string {
     const date = new Date(baseIso);
     date.setMinutes(date.getMinutes() + Math.round(hours * 60));
@@ -203,10 +215,10 @@ const NOW = new Date("2026-04-25T11:00:00Z").getTime();
 export const MOCK_ORDERS: Order[] = SCENARIOS.map((scenario, index) => {
     const seed = index + 1;
     const createdAt = new Date(NOW - (SCENARIOS.length - index) * 90 * 60 * 1000).toISOString();
-    const customerName = NAMES[pickIndex(seed * 3, NAMES.length)];
-    const phone = PHONES[pickIndex(seed * 5, PHONES.length)];
-    const address = ADDRESSES[pickIndex(seed * 7, ADDRESSES.length)];
-    const product = PRODUCTS[pickIndex(seed * 11, PRODUCTS.length)];
+    const customerName = pick(NAMES, seed * 3);
+    const phone = pick(PHONES, seed * 5);
+    const address = pick(ADDRESSES, seed * 7);
+    const product = pick(PRODUCTS, seed * 11);
     const courierId = scenario.courierIndex === null ? null : `c${scenario.courierIndex + 1}`;
 
     const stepMap = new Map<OrderStatus, string>();

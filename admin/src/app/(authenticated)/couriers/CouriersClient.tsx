@@ -9,7 +9,7 @@ import {
     Plus,
     UserX01,
 } from "@untitledui/icons";
-import { useMemo, useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/base/Button";
 import { DropdownDivider, DropdownItem, DropdownMenu } from "@/components/base/DropdownMenu";
 import { CourierStatusBadge } from "@/components/data-display/StatusBadge";
@@ -33,9 +33,10 @@ interface Toast {
 export function CouriersClient() {
     const [couriers, setCouriers] = useState<Courier[]>(MOCK_COURIERS);
     const [toasts, setToasts] = useState<Toast[]>([]);
+    const toastIdRef = useRef(0);
 
     const showToast = (text: string, kind: ToastKind = "success") => {
-        const id = Date.now() + Math.random();
+        const id = ++toastIdRef.current;
         setToasts((prev) => [...prev, { id, text, kind }]);
         setTimeout(() => {
             setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -73,14 +74,14 @@ export function CouriersClient() {
         showToast("Форма добавления курьера откроется на Этапе 3", "info");
     };
 
-    const rows = useMemo(() => {
-        return couriers.map((courier) => ({
-            courier,
-            status: computeCourierStatus(courier, MOCK_ORDERS),
-            activeOrders: countActiveOrders(courier.id, MOCK_ORDERS),
-            deliveries24h: countDeliveriesLast24h(courier.id, MOCK_ORDERS),
-        }));
-    }, [couriers]);
+    // React Compiler сам мемоизирует производные значения, поэтому
+    // ручной useMemo не нужен.
+    const rows = couriers.map((courier) => ({
+        courier,
+        status: computeCourierStatus(courier, MOCK_ORDERS),
+        activeOrders: countActiveOrders(courier.id, MOCK_ORDERS),
+        deliveries24h: countDeliveriesLast24h(courier.id, MOCK_ORDERS),
+    }));
 
     return (
         <div className="flex flex-col gap-4 px-8 py-6">

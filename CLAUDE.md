@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Docs Cache
+
+`docs/INDEX.md` contains an index of cached project documentation files. **Before making tool calls to search or read source files, check `docs/INDEX.md` first** — if a relevant doc exists, read only that file instead of scanning the codebase.
+
+**Maintaining the cache:** When you discover important project information not yet covered by any doc (e.g. a new component, a new module, a complex pattern), create a new file in `docs/` and add a one-line entry to `docs/INDEX.md`. Keep docs factual and concise — no prose, prefer tables and lists.
+
 ## Build Commands
 
 ```bash

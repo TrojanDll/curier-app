@@ -1,0 +1,78 @@
+import type { Courier } from "@/types/courier";
+
+/**
+ * Моковый набор курьеров для разработки UI до подключения backend.
+ * Заменяется реальными данными из /api/admin/couriers на Этапе 3.
+ */
+export const MOCK_COURIERS: Courier[] = [
+    {
+        id: "c1",
+        username: "ivanov",
+        fullName: "Иванов Иван Иванович",
+        email: "ivanov@example.com",
+        phone: "+7 900 123-45-67",
+        dateOfBirth: "1990-05-15",
+        isActive: true,
+        isPaused: false,
+        lastReturnedAt: "2026-04-25T08:30:00Z",
+        createdAt: "2025-11-01T10:00:00Z",
+        updatedAt: "2026-04-25T08:30:00Z",
+    },
+    {
+        id: "c2",
+        username: "petrov",
+        fullName: "Петров Пётр Петрович",
+        email: "petrov@example.com",
+        phone: "+7 900 234-56-78",
+        dateOfBirth: "1988-09-22",
+        isActive: true,
+        isPaused: false,
+        lastReturnedAt: "2026-04-25T09:15:00Z",
+        createdAt: "2025-12-10T10:00:00Z",
+        updatedAt: "2026-04-25T09:15:00Z",
+    },
+    {
+        id: "c3",
+        username: "sidorov",
+        fullName: "Сидоров Алексей Викторович",
+        email: null,
+        phone: "+7 900 345-67-89",
+        dateOfBirth: null,
+        isActive: true,
+        isPaused: true,
+        lastReturnedAt: "2026-04-24T18:00:00Z",
+        createdAt: "2026-01-05T10:00:00Z",
+        updatedAt: "2026-04-25T07:00:00Z",
+    },
+    {
+        id: "c4",
+        username: "kuznetsov",
+        fullName: "Кузнецов Дмитрий Сергеевич",
+        email: "kuznetsov@example.com",
+        phone: "+7 900 456-78-90",
+        dateOfBirth: "1995-03-08",
+        isActive: true,
+        isPaused: false,
+        lastReturnedAt: null,
+        createdAt: "2026-02-20T10:00:00Z",
+        updatedAt: "2026-04-25T07:00:00Z",
+    },
+    {
+        id: "c5",
+        username: "smirnov",
+        fullName: "Смирнов Андрей Олегович",
+        email: "smirnov@example.com",
+        phone: "+7 900 567-89-01",
+        dateOfBirth: "1992-11-30",
+        isActive: false,
+        isPaused: false,
+        lastReturnedAt: "2026-03-15T17:00:00Z",
+        createdAt: "2025-10-01T10:00:00Z",
+        updatedAt: "2026-03-20T12:00:00Z",
+    },
+];
+
+export function findMockCourier(id: string | null): Courier | null {
+    if (!id) return null;
+    return MOCK_COURIERS.find((c) => c.id === id) ?? null;
+}

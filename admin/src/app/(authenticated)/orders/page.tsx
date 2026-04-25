@@ -1,8 +1,14 @@
 import { Header } from "@/components/application/Header";
+import { CreateOrderButton, OrdersClient } from "./OrdersClient";
+
+export const metadata = {
+    title: "Заказы — Курьер",
+};
 
 /**
- * Список заказов с live-обновлениями.
- * Полная разметка (таблица, фильтры, drawer) — задача §14.1.4.
+ * Список заказов с фильтрами, поиском, пагинацией и drawer-ом деталей.
+ * На Этапе 1 работает на моках; live-обновления по Socket.IO и реальные
+ * API-запросы появятся в Этапе 3 (§14.3.3 / §14.3.7).
  */
 export default function OrdersPage() {
     return (
@@ -10,10 +16,9 @@ export default function OrdersPage() {
             <Header
                 title="Заказы"
                 description="Live-таблица всех заказов предприятия"
+                actions={<CreateOrderButton />}
             />
-            <div className="px-8 py-6">
-                <p className="text-md text-tertiary">Скелет таблицы появится в следующем шаге.</p>
-            </div>
+            <OrdersClient />
         </>
     );
 }

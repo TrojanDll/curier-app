@@ -1,0 +1,39 @@
+import { ORDER_STATUS_LABELS, type OrderStatus } from "@/types/order";
+import { COURIER_STATUS_LABELS, type CourierDisplayStatus } from "@/types/courier";
+import { cx } from "@/utils/cx";
+
+const ORDER_STATUS_STYLES: Record<OrderStatus, string> = {
+    new: "bg-utility-blue-50 text-utility-blue-700 ring-utility-blue-200",
+    assigned: "bg-utility-purple-50 text-utility-purple-700 ring-utility-purple-200",
+    picked_up: "bg-utility-indigo-50 text-utility-indigo-700 ring-utility-indigo-200",
+    near_customer: "bg-utility-yellow-50 text-utility-yellow-700 ring-utility-yellow-200",
+    delivered: "bg-utility-green-50 text-utility-green-700 ring-utility-green-200",
+    returned: "bg-utility-neutral-100 text-utility-neutral-700 ring-utility-neutral-200",
+};
+
+const COURIER_STATUS_STYLES: Record<CourierDisplayStatus, string> = {
+    available: "bg-utility-green-50 text-utility-green-700 ring-utility-green-200",
+    busy: "bg-utility-indigo-50 text-utility-indigo-700 ring-utility-indigo-200",
+    paused: "bg-utility-yellow-50 text-utility-yellow-700 ring-utility-yellow-200",
+    fired: "bg-utility-neutral-100 text-utility-neutral-600 ring-utility-neutral-200",
+};
+
+const BASE = "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset";
+
+export function OrderStatusBadge({ status }: { status: OrderStatus }) {
+    return (
+        <span className={cx(BASE, ORDER_STATUS_STYLES[status])}>
+            <span className="size-1.5 rounded-full bg-current" aria-hidden />
+            {ORDER_STATUS_LABELS[status]}
+        </span>
+    );
+}
+
+export function CourierStatusBadge({ status }: { status: CourierDisplayStatus }) {
+    return (
+        <span className={cx(BASE, COURIER_STATUS_STYLES[status])}>
+            <span className="size-1.5 rounded-full bg-current" aria-hidden />
+            {COURIER_STATUS_LABELS[status]}
+        </span>
+    );
+}

@@ -98,11 +98,12 @@ assigned → picked_up → near_customer → delivered → returned
   nearCustomerAt: ISOString|null,
   deliveredAt: ISOString|null,
   returnedAt: ISOString|null,
+  photos: PhotoMeta[],          // [] on list endpoints; populated on detail / transition (see assignment.md, photos.md)
 }
 ```
 
 ### `OrderCourierResponse`
-Same as admin **minus** `price` and `createdByAdminId` per §15.1.
+Same as admin **minus** `price` and `createdByAdminId` per §15.1. `photos: PhotoMeta[]` is included with the same population rule (empty on list, full on detail / transition).
 
 ## DTOs
 
@@ -124,9 +125,9 @@ Plain classes (no class-validator yet — see §14.2.14):
 
 ## What is NOT here yet
 
-- PhotosModule (`POST /api/courier/orders/:id/photo`, `GET /api/admin/orders/:id/photo/:photoId`) → Stage 2.7.
 - Realtime `orders:new`, `orders:updated`, `orders:reassigned` Socket.IO events → Stage 2.9.
 - class-validator on DTOs → Stage 2.14.
 - Global exception filter (cleaner Prisma error mapping) → Stage 2.13.
 
 Auto-assign + queue drainer (Stage 2.6) is in place — see `assignment.md`.
+PhotosModule (Stage 2.7) is in place — see `photos.md`.

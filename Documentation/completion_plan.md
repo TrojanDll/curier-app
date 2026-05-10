@@ -406,7 +406,7 @@ volumes:
 - [x] **2.4** CouriersModule: CRUD + pause/resume + reset-password
 - [x] **2.5** OrdersModule: CRUD для админа, status flow для курьера, валидация переходов
 - [x] **2.6** Auto-assign сервис + queue-разгребатель (см. §8)
-- [ ] **2.7** PhotosModule: multipart upload, выдача с auth-проверкой
+- [x] **2.7** PhotosModule: multipart upload, выдача с auth-проверкой
 - [ ] **2.8** StatisticsModule: overview + по курьерам
 - [ ] **2.9** RealtimeGateway (Socket.IO) с rooms `admin` и `courier:<id>`
 - [ ] **2.10** Cron для удаления просроченных фото (`@nestjs/schedule`)

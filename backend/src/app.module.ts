@@ -4,6 +4,7 @@ import { LoggerModule } from 'nestjs-pino';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { AuthModule } from './auth/auth.module';
 import { CouriersModule } from './couriers/couriers.module';
+import { OrdersModule } from './orders/orders.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 const isProduction = process.env['NODE_ENV'] === 'production';
@@ -18,6 +19,7 @@ const isProduction = process.env['NODE_ENV'] === 'production';
     PrismaModule,
     AuthModule,
     CouriersModule,
+    OrdersModule,
     LoggerModule.forRoot({
       pinoHttp: {
         level: process.env['LOG_LEVEL'] ?? (isProduction ? 'info' : 'debug'),

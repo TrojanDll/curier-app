@@ -1,0 +1,491 @@
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
+import { OrderStatus, Prisma, type Order } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
+import { CourierHistoryQueryDto } from './dto/courier-history.query.dto';
+import { CreateOrderDto } from './dto/create-order.dto';
+import { ListOrdersQueryDto } from './dto/list-orders.query.dto';
+import { UpdateOrderDto } from './dto/update-order.dto';
+
+// ── Public response shapes ───────────────────────────────────────────────────
+
+export interface OrderAdminResponse {
+  id: string;
+  orderNumber: string;
+  customerName: string;
+  customerPhone: string;
+  deliveryAddress: string;
+  productDescription: string;
+  comments: string | null;
+  /** Decimal serialised as "123.45" or null. Admin-only field per §15.1. */
+  price: string | null;
+  status: OrderStatus;
+  courierId: string | null;
+  createdByAdminId: string;
+  createdAt: string;
+  assignedAt: string | null;
+  pickedUpAt: string | null;
+  nearCustomerAt: string | null;
+  deliveredAt: string | null;
+  returnedAt: string | null;
+}
+
+/** Same as admin minus `price` and `createdByAdminId` per §15.1. */
+export interface OrderCourierResponse {
+  id: string;
+  orderNumber: string;
+  customerName: string;
+  customerPhone: string;
+  deliveryAddress: string;
+  productDescription: string;
+  comments: string | null;
+  status: OrderStatus;
+  courierId: string | null;
+  createdAt: string;
+  assignedAt: string | null;
+  pickedUpAt: string | null;
+  nearCustomerAt: string | null;
+  deliveredAt: string | null;
+  returnedAt: string | null;
+}
+
+export interface PaginatedOrders {
+  items: OrderAdminResponse[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+// ── Internal constants ───────────────────────────────────────────────────────
+
+const SORTABLE_FIELDS = [
+  'createdAt',
+  'orderNumber',
+  'status',
+  'assignedAt',
+  'deliveredAt',
+] as const;
+type SortField = (typeof SORTABLE_FIELDS)[number];
+
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 100;
+
+/** Active = courier has it but hasn't returned to base yet. */
+const COURIER_ACTIVE_STATUSES: readonly OrderStatus[] = [
+  OrderStatus.assigned,
+  OrderStatus.picked_up,
+  OrderStatus.near_customer,
+  OrderStatus.delivered,
+];
+
+/** History = finished (handed off or back at base). */
+const COURIER_HISTORY_STATUSES: readonly OrderStatus[] = [
+  OrderStatus.delivered,
+  OrderStatus.returned,
+];
+
+/** Reassign is only meaningful before the courier has physically picked up. */
+const REASSIGNABLE_STATUSES: readonly OrderStatus[] = [
+  OrderStatus.new,
+  OrderStatus.assigned,
+];
+
+/** Forward-only courier transitions enforced by `updateStatus`. */
+const COURIER_NEXT: Partial<Record<OrderStatus, OrderStatus>> = {
+  [OrderStatus.assigned]: OrderStatus.picked_up,
+  [OrderStatus.picked_up]: OrderStatus.near_customer,
+  [OrderStatus.near_customer]: OrderStatus.delivered,
+  [OrderStatus.delivered]: OrderStatus.returned,
+};
+
+/** Maps a target status to the audit timestamp column to stamp on transition. */
+const STATUS_TIMESTAMP_FIELD: Record<OrderStatus, keyof Order | null> = {
+  [OrderStatus.new]: null,
+  [OrderStatus.assigned]: 'assignedAt',
+  [OrderStatus.picked_up]: 'pickedUpAt',
+  [OrderStatus.near_customer]: 'nearCustomerAt',
+  [OrderStatus.delivered]: 'deliveredAt',
+  [OrderStatus.returned]: 'returnedAt',
+};
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+@Injectable()
+export class OrdersService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  // ── Admin ──────────────────────────────────────────────────────────────────
+
+  async list(query: ListOrdersQueryDto): Promise<PaginatedOrders> {
+    const page = clampInt(query.page, 1, Number.MAX_SAFE_INTEGER, 1);
+    const pageSize = clampInt(
+      query.pageSize,
+      1,
+      MAX_PAGE_SIZE,
+      DEFAULT_PAGE_SIZE,
+    );
+    const search = (query.search ?? '').trim();
+    const sortBy: SortField = (SORTABLE_FIELDS as readonly string[]).includes(
+      query.sortBy ?? '',
+    )
+      ? (query.sortBy as SortField)
+      : 'createdAt';
+    const order: Prisma.SortOrder = query.order === 'asc' ? 'asc' : 'desc';
+
+    const where: Prisma.OrderWhereInput = {};
+
+    if (search) {
+      where.OR = [
+        { orderNumber: { contains: search, mode: 'insensitive' } },
+        { customerName: { contains: search, mode: 'insensitive' } },
+        { deliveryAddress: { contains: search, mode: 'insensitive' } },
+        { customerPhone: { contains: search } },
+      ];
+    }
+
+    const statusList = parseStatusList(query.status);
+    if (statusList.length > 0) {
+      where.status = { in: statusList };
+    }
+
+    if (query.courierId && UUID_RE.test(query.courierId)) {
+      where.courierId = query.courierId;
+    }
+
+    const createdAt = buildDateRange(query.from, query.to);
+    if (createdAt) {
+      where.createdAt = createdAt;
+    }
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.order.findMany({
+        where,
+        orderBy: { [sortBy]: order },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+
+    return {
+      items: items.map(toAdminResponse),
+      total,
+      page,
+      pageSize,
+    };
+  }
+
+  async create(
+    adminId: string,
+    dto: CreateOrderDto,
+  ): Promise<OrderAdminResponse> {
+    const orderNumber = await this.allocateOrderNumber();
+    const order = await this.prisma.order.create({
+      data: {
+        orderNumber,
+        customerName: dto.customerName,
+        customerPhone: dto.customerPhone,
+        deliveryAddress: dto.deliveryAddress,
+        productDescription: dto.productDescription,
+        comments: dto.comments ?? null,
+        price: dto.price ?? null,
+        status: OrderStatus.new,
+        courierId: null,
+        createdByAdminId: adminId,
+      },
+    });
+    return toAdminResponse(order);
+  }
+
+  async findOneAdmin(id: string): Promise<OrderAdminResponse> {
+    const order = await this.prisma.order.findUnique({ where: { id } });
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+    return toAdminResponse(order);
+  }
+
+  async update(id: string, dto: UpdateOrderDto): Promise<OrderAdminResponse> {
+    const existing = await this.prisma.order.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException('Order not found');
+    }
+    if (existing.status !== OrderStatus.new) {
+      throw new ConflictException(
+        'Order can only be edited while it has status "new"',
+      );
+    }
+
+    const data: Prisma.OrderUpdateInput = {};
+    if (dto.customerName !== undefined) data.customerName = dto.customerName;
+    if (dto.customerPhone !== undefined) data.customerPhone = dto.customerPhone;
+    if (dto.deliveryAddress !== undefined)
+      data.deliveryAddress = dto.deliveryAddress;
+    if (dto.productDescription !== undefined)
+      data.productDescription = dto.productDescription;
+    if (dto.comments !== undefined) data.comments = dto.comments;
+    if (dto.price !== undefined) data.price = dto.price;
+
+    const updated = await this.prisma.order.update({ where: { id }, data });
+    return toAdminResponse(updated);
+  }
+
+  async reassign(
+    id: string,
+    newCourierId: string,
+  ): Promise<OrderAdminResponse> {
+    if (!UUID_RE.test(newCourierId)) {
+      throw new BadRequestException('courierId must be a UUID');
+    }
+
+    const order = await this.prisma.order.findUnique({ where: { id } });
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+    if (!REASSIGNABLE_STATUSES.includes(order.status)) {
+      throw new ConflictException(
+        'Order can no longer be reassigned (courier already picked it up)',
+      );
+    }
+    if (order.courierId === newCourierId) {
+      throw new BadRequestException(
+        'Order is already assigned to this courier',
+      );
+    }
+
+    const courier = await this.prisma.courier.findUnique({
+      where: { id: newCourierId },
+    });
+    if (!courier) {
+      throw new NotFoundException('Courier not found');
+    }
+    if (!courier.isActive || courier.isPaused) {
+      throw new ConflictException(
+        'Courier is not eligible (inactive or paused)',
+      );
+    }
+
+    const updated = await this.prisma.order.update({
+      where: { id },
+      data: {
+        courierId: newCourierId,
+        status: OrderStatus.assigned,
+        assignedAt: new Date(),
+      },
+    });
+    return toAdminResponse(updated);
+  }
+
+  // ── Courier ────────────────────────────────────────────────────────────────
+
+  async listActive(courierId: string): Promise<OrderCourierResponse[]> {
+    const orders = await this.prisma.order.findMany({
+      where: {
+        courierId,
+        status: { in: [...COURIER_ACTIVE_STATUSES] },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return orders.map(toCourierResponse);
+  }
+
+  async listHistory(
+    courierId: string,
+    query: CourierHistoryQueryDto,
+  ): Promise<OrderCourierResponse[]> {
+    const where: Prisma.OrderWhereInput = {
+      courierId,
+      status: { in: [...COURIER_HISTORY_STATUSES] },
+    };
+    const createdAt = buildDateRange(query.from, query.to);
+    if (createdAt) {
+      where.createdAt = createdAt;
+    }
+
+    const orders = await this.prisma.order.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
+    return orders.map(toCourierResponse);
+  }
+
+  async findOneCourier(
+    courierId: string,
+    id: string,
+  ): Promise<OrderCourierResponse> {
+    const order = await this.prisma.order.findUnique({ where: { id } });
+    // Hide existence of foreign orders entirely — return 404 instead of 403.
+    if (!order || order.courierId !== courierId) {
+      throw new NotFoundException('Order not found');
+    }
+    return toCourierResponse(order);
+  }
+
+  async updateStatus(
+    courierId: string,
+    id: string,
+    target: OrderStatus,
+  ): Promise<OrderCourierResponse> {
+    const order = await this.prisma.order.findUnique({ where: { id } });
+    if (!order || order.courierId !== courierId) {
+      throw new NotFoundException('Order not found');
+    }
+    const expectedNext = COURIER_NEXT[order.status];
+    if (!expectedNext || expectedNext !== target) {
+      throw new ConflictException(
+        `Cannot transition order from "${order.status}" to "${target}"`,
+      );
+    }
+
+    const tsField = STATUS_TIMESTAMP_FIELD[target];
+    if (!tsField) {
+      // `new` has no timestamp and isn't reachable via courier transitions —
+      // belt and braces.
+      throw new InternalServerErrorException('Missing timestamp mapping');
+    }
+    const now = new Date();
+    const updateData: Prisma.OrderUpdateInput = {
+      status: target,
+      [tsField]: now,
+    };
+
+    // `returned` also stamps couriers.last_returned_at — drives the
+    // auto-assign "longest at base" tie-break in Stage 2.6.
+    if (target === OrderStatus.returned) {
+      const [updated] = await this.prisma.$transaction([
+        this.prisma.order.update({ where: { id }, data: updateData }),
+        this.prisma.courier.update({
+          where: { id: courierId },
+          data: { lastReturnedAt: now },
+        }),
+      ]);
+      return toCourierResponse(updated);
+    }
+
+    const updated = await this.prisma.order.update({
+      where: { id },
+      data: updateData,
+    });
+    return toCourierResponse(updated);
+  }
+
+  // ── Internal helpers ───────────────────────────────────────────────────────
+
+  /**
+   * Allocates the next "ORD-YYYY-NNNN" identifier. The sequence is global
+   * (no per-year reset) — keeps the call atomic without a side table or
+   * SERIALIZABLE retry. See migration `20260510111910_add_order_number_sequence`.
+   *
+   * Year is taken from the server clock (UTC). The only race against
+   * `created_at` is a midnight-UTC straddle on Dec 31 — acceptable for a
+   * display id.
+   */
+  private async allocateOrderNumber(): Promise<string> {
+    const rows = await this.prisma.$queryRaw<Array<{ next: bigint }>>`
+      SELECT nextval('order_number_seq') AS next
+    `;
+    const first = rows[0];
+    if (!first) {
+      throw new InternalServerErrorException('Failed to allocate order number');
+    }
+    const year = new Date().getUTCFullYear();
+    return `ORD-${year}-${String(first.next).padStart(4, '0')}`;
+  }
+}
+
+// ── Module-private helpers ───────────────────────────────────────────────────
+
+function toAdminResponse(o: Order): OrderAdminResponse {
+  return {
+    id: o.id,
+    orderNumber: o.orderNumber,
+    customerName: o.customerName,
+    customerPhone: o.customerPhone,
+    deliveryAddress: o.deliveryAddress,
+    productDescription: o.productDescription,
+    comments: o.comments,
+    price: o.price ? o.price.toFixed(2) : null,
+    status: o.status,
+    courierId: o.courierId,
+    createdByAdminId: o.createdByAdminId,
+    createdAt: o.createdAt.toISOString(),
+    assignedAt: o.assignedAt ? o.assignedAt.toISOString() : null,
+    pickedUpAt: o.pickedUpAt ? o.pickedUpAt.toISOString() : null,
+    nearCustomerAt: o.nearCustomerAt ? o.nearCustomerAt.toISOString() : null,
+    deliveredAt: o.deliveredAt ? o.deliveredAt.toISOString() : null,
+    returnedAt: o.returnedAt ? o.returnedAt.toISOString() : null,
+  };
+}
+
+function toCourierResponse(o: Order): OrderCourierResponse {
+  return {
+    id: o.id,
+    orderNumber: o.orderNumber,
+    customerName: o.customerName,
+    customerPhone: o.customerPhone,
+    deliveryAddress: o.deliveryAddress,
+    productDescription: o.productDescription,
+    comments: o.comments,
+    status: o.status,
+    courierId: o.courierId,
+    createdAt: o.createdAt.toISOString(),
+    assignedAt: o.assignedAt ? o.assignedAt.toISOString() : null,
+    pickedUpAt: o.pickedUpAt ? o.pickedUpAt.toISOString() : null,
+    nearCustomerAt: o.nearCustomerAt ? o.nearCustomerAt.toISOString() : null,
+    deliveredAt: o.deliveredAt ? o.deliveredAt.toISOString() : null,
+    returnedAt: o.returnedAt ? o.returnedAt.toISOString() : null,
+  };
+}
+
+function clampInt(
+  raw: string | undefined,
+  min: number,
+  max: number,
+  fallback: number,
+): number {
+  if (raw === undefined || raw === '') return fallback;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || Number.isNaN(n)) return fallback;
+  const i = Math.trunc(n);
+  if (i < min) return min;
+  if (i > max) return max;
+  return i;
+}
+
+function parseStatusList(raw: string | undefined): OrderStatus[] {
+  if (!raw || raw === 'all') return [];
+  const allowed = Object.values(OrderStatus) as readonly string[];
+  const seen = new Set<OrderStatus>();
+  for (const part of raw.split(',')) {
+    const trimmed = part.trim();
+    if (allowed.includes(trimmed)) {
+      seen.add(trimmed as OrderStatus);
+    }
+  }
+  return [...seen];
+}
+
+function parseDateSafe(raw: string | undefined): Date | undefined {
+  if (!raw) return undefined;
+  const d = new Date(raw);
+  return Number.isNaN(d.getTime()) ? undefined : d;
+}
+
+function buildDateRange(
+  fromRaw: string | undefined,
+  toRaw: string | undefined,
+): Prisma.DateTimeFilter | undefined {
+  const from = parseDateSafe(fromRaw);
+  const to = parseDateSafe(toRaw);
+  if (!from && !to) return undefined;
+  const filter: Prisma.DateTimeFilter = {};
+  if (from) filter.gte = from;
+  if (to) filter.lte = to;
+  return filter;
+}

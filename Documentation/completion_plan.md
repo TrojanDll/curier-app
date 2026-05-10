@@ -401,7 +401,7 @@ volumes:
 
 ### Этап 2 — Backend на NestJS
 - [x] **2.1** Инициализация Nest-проекта в `/backend` (TypeScript strict, Pino logs)
-- [ ] **2.2** Prisma schema + первая миграция для всех таблиц (admins, couriers, orders, order_photos, refresh_tokens, ENUMs)
+- [x] **2.2** Prisma schema + первая миграция для всех таблиц (admins, couriers, orders, order_photos, refresh_tokens, ENUMs)
 - [ ] **2.3** AuthModule: стратегии JWT для admin и courier, refresh-flow
 - [ ] **2.4** CouriersModule: CRUD + pause/resume + reset-password
 - [ ] **2.5** OrdersModule: CRUD для админа, status flow для курьера, валидация переходов

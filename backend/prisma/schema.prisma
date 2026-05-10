@@ -1,0 +1,149 @@
+// Prisma schema for the Курьерский SaaS backend.
+// Models follow §4 of Documentation/completion_plan.md.
+// DB columns use snake_case (via @map / @@map) so SQL stays idiomatic;
+// generated client exposes camelCase for ergonomic TypeScript.
+
+generator client {
+  provider      = "prisma-client-js"
+  // Native is for the host machine (dev). linux-musl-openssl-3.0.x is required
+  // for Alpine-based Docker images we'll build on Stage 5.
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Enums
+// ────────────────────────────────────────────────────────────────────────────
+
+/// Order lifecycle. Transitions are enforced in OrdersService (Stage 2.5).
+enum OrderStatus {
+  new
+  assigned
+  picked_up
+  near_customer
+  delivered
+  returned
+
+  @@map("order_status")
+}
+
+/// Discriminator for refresh_tokens (and any future polymorphic auth tables).
+enum UserType {
+  courier
+  admin
+
+  @@map("user_type")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Models
+// ────────────────────────────────────────────────────────────────────────────
+
+model Admin {
+  id           String    @id @default(uuid()) @db.Uuid
+  username     String    @unique
+  passwordHash String    @map("password_hash")
+  fullName     String    @map("full_name")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz(6)
+
+  // Inverse relations
+  createdOrders Order[] @relation("AdminCreatedOrders")
+
+  @@map("admins")
+}
+
+model Courier {
+  id             String    @id @default(uuid()) @db.Uuid
+  username       String    @unique
+  passwordHash   String    @map("password_hash")
+  fullName       String    @map("full_name")
+  email          String?
+  phone          String?
+  dateOfBirth    DateTime? @map("date_of_birth") @db.Date
+  isActive       Boolean   @default(true) @map("is_active")
+  isPaused       Boolean   @default(false) @map("is_paused")
+  /// Set by OrdersService when courier returns to base — drives auto-assign
+  /// "longest at base" tie-break (§8). NULL means "never returned yet";
+  /// service treats it as createdAt for ordering.
+  lastReturnedAt DateTime? @map("last_returned_at") @db.Timestamptz(6)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Inverse relations
+  orders Order[]
+
+  // Composite index supports the auto-assign query:
+  //   WHERE is_active=true AND is_paused=false ORDER BY last_returned_at NULLS FIRST
+  @@index([isActive, isPaused, lastReturnedAt])
+  @@map("couriers")
+}
+
+model Order {
+  id                 String      @id @default(uuid()) @db.Uuid
+  /// Human-readable identifier, e.g. "ORD-2026-0001". Generated server-side.
+  orderNumber        String      @unique @map("order_number")
+  customerName       String      @map("customer_name")
+  customerPhone      String      @map("customer_phone")
+  deliveryAddress    String      @map("delivery_address")
+  productDescription String      @map("product_description")
+  comments           String?
+  /// Sale price. Visible to admins only — courier DTOs strip it (§15.1).
+  price              Decimal?    @db.Decimal(10, 2)
+  status             OrderStatus
+  courierId          String?     @map("courier_id") @db.Uuid
+  createdByAdminId   String      @map("created_by_admin_id") @db.Uuid
+  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  assignedAt         DateTime?   @map("assigned_at") @db.Timestamptz(6)
+  pickedUpAt         DateTime?   @map("picked_up_at") @db.Timestamptz(6)
+  nearCustomerAt     DateTime?   @map("near_customer_at") @db.Timestamptz(6)
+  deliveredAt        DateTime?   @map("delivered_at") @db.Timestamptz(6)
+  returnedAt         DateTime?   @map("returned_at") @db.Timestamptz(6)
+
+  // Relations
+  courier        Courier?     @relation(fields: [courierId], references: [id], onDelete: SetNull)
+  createdByAdmin Admin        @relation("AdminCreatedOrders", fields: [createdByAdminId], references: [id], onDelete: Restrict)
+  photos         OrderPhoto[]
+
+  @@index([status])
+  @@index([courierId])
+  @@index([createdAt])
+  // Hot path: admin listing filters by status+date range.
+  @@index([status, createdAt])
+  @@map("orders")
+}
+
+model OrderPhoto {
+  id         String   @id @default(uuid()) @db.Uuid
+  orderId    String   @map("order_id") @db.Uuid
+  /// Relative path inside PHOTO_UPLOAD_DIR.
+  filePath   String   @map("file_path")
+  uploadedAt DateTime @default(now()) @map("uploaded_at") @db.Timestamptz(6)
+  /// uploadedAt + PHOTO_TTL_DAYS. Cleanup cron deletes the row + the file (§10).
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(6)
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([expiresAt])
+  @@map("order_photos")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  userType  UserType @map("user_type")
+  /// SHA-256 of the raw refresh token. We never store the plaintext.
+  tokenHash String   @map("token_hash")
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  revoked   Boolean  @default(false)
+
+  // Lookup by (user_id, user_type) when rotating; by expires_at for cleanup.
+  @@index([userId, userType])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}

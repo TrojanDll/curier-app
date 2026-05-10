@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, UserType, type Courier } from '@prisma/client';
+import { AssignmentService } from '../assignment/assignment.service';
 import { hashPassword } from '../auth/password.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCourierDto } from './dto/create-courier.dto';
@@ -63,7 +64,10 @@ const MAX_PAGE_SIZE = 100;
 
 @Injectable()
 export class CouriersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly assignment: AssignmentService,
+  ) {}
 
   // ── Admin: list / CRUD ─────────────────────────────────────────────────────
 
@@ -197,7 +201,12 @@ export class CouriersService {
   }
 
   async resume(id: string): Promise<CourierAdminResponse> {
-    return this.runUpdate(id, { isPaused: false });
+    const result = await this.runUpdate(id, { isPaused: false });
+    // §8 trigger #3: courier became eligible again → drain one queued order
+    // to them. Awaited so the admin's response reflects post-drain state if
+    // a follow-up GET inspects the order list immediately.
+    await this.assignment.tryAssignToFreeCourier(id);
+    return result;
   }
 
   /**

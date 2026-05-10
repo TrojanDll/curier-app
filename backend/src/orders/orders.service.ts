@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { OrderStatus, Prisma, type Order } from '@prisma/client';
+import { AssignmentService } from '../assignment/assignment.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CourierHistoryQueryDto } from './dto/courier-history.query.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -118,7 +119,10 @@ const UUID_RE =
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly assignment: AssignmentService,
+  ) {}
 
   // ── Admin ──────────────────────────────────────────────────────────────────
 
@@ -200,7 +204,11 @@ export class OrdersService {
         createdByAdminId: adminId,
       },
     });
-    return toAdminResponse(order);
+    // §8 trigger #1: try to hand the new order off immediately. Returns the
+    // updated row on success or `null` if no eligible courier was free —
+    // either way we surface the latest persisted state to the admin.
+    const assigned = await this.assignment.tryAssignNewOrder(order.id);
+    return toAdminResponse(assigned ?? order);
   }
 
   async findOneAdmin(id: string): Promise<OrderAdminResponse> {
@@ -356,7 +364,7 @@ export class OrdersService {
     };
 
     // `returned` also stamps couriers.last_returned_at — drives the
-    // auto-assign "longest at base" tie-break in Stage 2.6.
+    // auto-assign "longest at base" tie-break.
     if (target === OrderStatus.returned) {
       const [updated] = await this.prisma.$transaction([
         this.prisma.order.update({ where: { id }, data: updateData }),
@@ -365,6 +373,10 @@ export class OrdersService {
           data: { lastReturnedAt: now },
         }),
       ]);
+      // §8 trigger #2: courier just returned → drain one queued order to
+      // them. Awaited so the response reflects the freshly assigned order
+      // (if any) on the courier's "active" list.
+      await this.assignment.tryAssignToFreeCourier(courierId);
       return toCourierResponse(updated);
     }
 

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AssignmentModule } from '../assignment/assignment.module';
 import { AuthModule } from '../auth/auth.module';
 import { AdminOrdersController } from './admin-orders.controller';
 import { CourierOrdersController } from './courier-orders.controller';
@@ -10,11 +11,14 @@ import { OrdersService } from './orders.service';
  * AuthModule is imported so JwtAuthGuard / RolesGuard are resolvable in this
  * module's DI context. PrismaService is global.
  *
- * OrdersService is exported because the auto-assign service (Stage 2.6) and
- * StatisticsModule (2.8) both reach into orders without re-querying.
+ * AssignmentModule is imported because OrdersService triggers auto-assign on
+ * order create and queue-drain on `returned` (Stage 2.6, §8 of the plan).
+ *
+ * OrdersService is exported because StatisticsModule (2.8) will reach into
+ * orders without re-querying.
  */
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, AssignmentModule],
   controllers: [AdminOrdersController, CourierOrdersController],
   providers: [OrdersService],
   exports: [OrdersService],

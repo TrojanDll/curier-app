@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { LoggerModule } from 'nestjs-pino';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { AuthModule } from './auth/auth.module';
@@ -19,6 +20,7 @@ const isProduction = process.env['NODE_ENV'] === 'production';
       cache: true,
       envFilePath: ['.env'],
     }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
     CouriersModule,

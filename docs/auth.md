@@ -70,7 +70,9 @@ export class AdminCouriersController {
 
 - class-validator on DTOs → Stage 2.14.
 - Global exception filter / unified error envelope → Stage 2.13.
-- First-admin auto-seed from `INITIAL_ADMIN_USERNAME` / `INITIAL_ADMIN_PASSWORD` → Stage 2.11.
+
+First-admin auto-seed from `INITIAL_ADMIN_*` env lives in `SeedModule` —
+see [seed.md](seed.md).
 
 ## Side note — WebSocket auth
 

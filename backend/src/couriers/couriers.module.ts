@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AssignmentModule } from '../assignment/assignment.module';
 import { AuthModule } from '../auth/auth.module';
+import { RealtimeModule } from '../realtime/realtime.module';
 import { AdminCouriersController } from './admin-couriers.controller';
 import { CourierProfileController } from './courier-profile.controller';
 import { CouriersService } from './couriers.service';
@@ -18,7 +19,7 @@ import { CouriersService } from './couriers.service';
  * (2.8) look up couriers without re-querying.
  */
 @Module({
-  imports: [AuthModule, AssignmentModule],
+  imports: [AuthModule, AssignmentModule, RealtimeModule],
   controllers: [AdminCouriersController, CourierProfileController],
   providers: [CouriersService],
   exports: [CouriersService],

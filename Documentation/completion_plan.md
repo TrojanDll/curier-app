@@ -408,7 +408,7 @@ volumes:
 - [x] **2.6** Auto-assign сервис + queue-разгребатель (см. §8)
 - [x] **2.7** PhotosModule: multipart upload, выдача с auth-проверкой
 - [x] **2.8** StatisticsModule: overview + по курьерам
-- [ ] **2.9** RealtimeGateway (Socket.IO) с rooms `admin` и `courier:<id>`
+- [x] **2.9** RealtimeGateway (Socket.IO) с rooms `admin` и `courier:<id>`
 - [ ] **2.10** Cron для удаления просроченных фото (`@nestjs/schedule`)
 - [ ] **2.11** Авто-сид первого админа из `INITIAL_ADMIN_USERNAME` / `INITIAL_ADMIN_PASSWORD`
 - [ ] **2.12** Pino logger + request logging middleware

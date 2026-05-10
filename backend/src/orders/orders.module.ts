@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AssignmentModule } from '../assignment/assignment.module';
 import { AuthModule } from '../auth/auth.module';
 import { PhotosModule } from '../photos/photos.module';
+import { RealtimeModule } from '../realtime/realtime.module';
 import { AdminOrdersController } from './admin-orders.controller';
 import { CourierOrdersController } from './courier-orders.controller';
 import { OrdersService } from './orders.service';
@@ -22,7 +23,7 @@ import { OrdersService } from './orders.service';
  * orders without re-querying.
  */
 @Module({
-  imports: [AuthModule, AssignmentModule, PhotosModule],
+  imports: [AuthModule, AssignmentModule, PhotosModule, RealtimeModule],
   controllers: [AdminOrdersController, CourierOrdersController],
   providers: [OrdersService],
   exports: [OrdersService],

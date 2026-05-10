@@ -7,68 +7,23 @@ import {
 } from '@nestjs/common';
 import { OrderStatus, Prisma, type Order } from '@prisma/client';
 import { AssignmentService } from '../assignment/assignment.service';
-import type { PhotoMeta } from '../photos/photos.service';
 import { PhotosService } from '../photos/photos.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { CourierHistoryQueryDto } from './dto/courier-history.query.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { ListOrdersQueryDto } from './dto/list-orders.query.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
+import {
+  toOrderAdminResponse,
+  toOrderCourierResponse,
+  type OrderAdminResponse,
+  type OrderCourierResponse,
+} from './order.mappers';
 
-// ── Public response shapes ───────────────────────────────────────────────────
-
-export interface OrderAdminResponse {
-  id: string;
-  orderNumber: string;
-  customerName: string;
-  customerPhone: string;
-  deliveryAddress: string;
-  productDescription: string;
-  comments: string | null;
-  /** Decimal serialised as "123.45" or null. Admin-only field per §15.1. */
-  price: string | null;
-  status: OrderStatus;
-  courierId: string | null;
-  createdByAdminId: string;
-  createdAt: string;
-  assignedAt: string | null;
-  pickedUpAt: string | null;
-  nearCustomerAt: string | null;
-  deliveredAt: string | null;
-  returnedAt: string | null;
-  /**
-   * Photo metadata. Populated only on detail/create responses (`findOneAdmin`,
-   * `create`, `update`, `reassign`); list endpoints emit `[]` to keep the
-   * paginated query light. Clients fetch bytes via
-   * `GET /api/admin/orders/:id/photo/:photoId`.
-   */
-  photos: PhotoMeta[];
-}
-
-/** Same as admin minus `price` and `createdByAdminId` per §15.1. */
-export interface OrderCourierResponse {
-  id: string;
-  orderNumber: string;
-  customerName: string;
-  customerPhone: string;
-  deliveryAddress: string;
-  productDescription: string;
-  comments: string | null;
-  status: OrderStatus;
-  courierId: string | null;
-  createdAt: string;
-  assignedAt: string | null;
-  pickedUpAt: string | null;
-  nearCustomerAt: string | null;
-  deliveredAt: string | null;
-  returnedAt: string | null;
-  /**
-   * Photo metadata. Populated only on detail/transition responses
-   * (`findOneCourier`, `updateStatus`); list endpoints emit `[]`. Clients
-   * fetch bytes via `GET /api/courier/orders/:id/photo/:photoId`.
-   */
-  photos: PhotoMeta[];
-}
+// Re-export shapes so existing callers (controllers, StatisticsModule) keep
+// importing from `./orders.service` and the mapper move stays internal.
+export type { OrderAdminResponse, OrderCourierResponse } from './order.mappers';
 
 export interface PaginatedOrders {
   items: OrderAdminResponse[];
@@ -138,6 +93,7 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly assignment: AssignmentService,
     private readonly photosService: PhotosService,
+    private readonly realtime: RealtimeGateway,
   ) {}
 
   // ── Admin ──────────────────────────────────────────────────────────────────
@@ -196,7 +152,7 @@ export class OrdersService {
     // List endpoints emit photos: [] to keep the page-of-20 query light;
     // detail endpoints fan out and load metadata via PhotosService.
     return {
-      items: items.map((o) => toAdminResponse(o, [])),
+      items: items.map((o) => toOrderAdminResponse(o, [])),
       total,
       page,
       pageSize,
@@ -226,8 +182,16 @@ export class OrdersService {
     // updated row on success or `null` if no eligible courier was free —
     // either way we surface the latest persisted state to the admin.
     const assigned = await this.assignment.tryAssignNewOrder(order.id);
+    const finalOrder = assigned ?? order;
+    // Realtime: admin sees `orders:updated` either way; if auto-assign landed
+    // the courier sees `orders:new` (their first signal).
+    if (assigned) {
+      this.realtime.emitOrderAssigned(finalOrder);
+    } else {
+      this.realtime.emitOrderUpdated(finalOrder);
+    }
     // A brand-new order can't have photos yet — skip the lookup.
-    return toAdminResponse(assigned ?? order, []);
+    return toOrderAdminResponse(finalOrder, []);
   }
 
   async findOneAdmin(id: string): Promise<OrderAdminResponse> {
@@ -236,7 +200,7 @@ export class OrdersService {
       throw new NotFoundException('Order not found');
     }
     const photos = await this.photosService.listForOrder(id);
-    return toAdminResponse(order, photos);
+    return toOrderAdminResponse(order, photos);
   }
 
   async update(id: string, dto: UpdateOrderDto): Promise<OrderAdminResponse> {
@@ -263,7 +227,8 @@ export class OrdersService {
     const updated = await this.prisma.order.update({ where: { id }, data });
     // PATCH is gated on status='new', which means courier_id is null and no
     // photo can have been uploaded — skip the lookup.
-    return toAdminResponse(updated, []);
+    this.realtime.emitOrderUpdated(updated);
+    return toOrderAdminResponse(updated, []);
   }
 
   async reassign(
@@ -301,6 +266,7 @@ export class OrdersService {
       );
     }
 
+    const previousCourierId = order.courierId;
     const updated = await this.prisma.order.update({
       where: { id },
       data: {
@@ -309,8 +275,12 @@ export class OrdersService {
         assignedAt: new Date(),
       },
     });
+    // Realtime: admin sees `orders:updated`, both prior (if any) and new
+    // courier see `orders:reassigned` so the active list updates on both
+    // sides.
+    this.realtime.emitOrderReassigned(updated, previousCourierId);
     const photos = await this.photosService.listForOrder(id);
-    return toAdminResponse(updated, photos);
+    return toOrderAdminResponse(updated, photos);
   }
 
   // ── Courier ────────────────────────────────────────────────────────────────
@@ -323,7 +293,7 @@ export class OrdersService {
       },
       orderBy: { createdAt: 'desc' },
     });
-    return orders.map((o) => toCourierResponse(o, []));
+    return orders.map((o) => toOrderCourierResponse(o, []));
   }
 
   async listHistory(
@@ -343,7 +313,7 @@ export class OrdersService {
       where,
       orderBy: { createdAt: 'desc' },
     });
-    return orders.map((o) => toCourierResponse(o, []));
+    return orders.map((o) => toOrderCourierResponse(o, []));
   }
 
   async findOneCourier(
@@ -356,7 +326,7 @@ export class OrdersService {
       throw new NotFoundException('Order not found');
     }
     const photos = await this.photosService.listForOrder(id);
-    return toCourierResponse(order, photos);
+    return toOrderCourierResponse(order, photos);
   }
 
   async updateStatus(
@@ -397,20 +367,27 @@ export class OrdersService {
           data: { lastReturnedAt: now },
         }),
       ]);
+      // Admin sees the returning order flip to `returned`.
+      this.realtime.emitOrderUpdated(updated);
       // §8 trigger #2: courier just returned → drain one queued order to
       // them. Awaited so the response reflects the freshly assigned order
       // (if any) on the courier's "active" list.
-      await this.assignment.tryAssignToFreeCourier(courierId);
+      const drained = await this.assignment.tryAssignToFreeCourier(courierId);
+      if (drained) {
+        // Admin sees the drained order updated; courier sees `orders:new`.
+        this.realtime.emitOrderAssigned(drained);
+      }
       const photos = await this.photosService.listForOrder(id);
-      return toCourierResponse(updated, photos);
+      return toOrderCourierResponse(updated, photos);
     }
 
     const updated = await this.prisma.order.update({
       where: { id },
       data: updateData,
     });
+    this.realtime.emitOrderUpdated(updated);
     const photos = await this.photosService.listForOrder(id);
-    return toCourierResponse(updated, photos);
+    return toOrderCourierResponse(updated, photos);
   }
 
   // ── Internal helpers ───────────────────────────────────────────────────────
@@ -438,53 +415,6 @@ export class OrdersService {
 }
 
 // ── Module-private helpers ───────────────────────────────────────────────────
-
-function toAdminResponse(o: Order, photos: PhotoMeta[]): OrderAdminResponse {
-  return {
-    id: o.id,
-    orderNumber: o.orderNumber,
-    customerName: o.customerName,
-    customerPhone: o.customerPhone,
-    deliveryAddress: o.deliveryAddress,
-    productDescription: o.productDescription,
-    comments: o.comments,
-    price: o.price ? o.price.toFixed(2) : null,
-    status: o.status,
-    courierId: o.courierId,
-    createdByAdminId: o.createdByAdminId,
-    createdAt: o.createdAt.toISOString(),
-    assignedAt: o.assignedAt ? o.assignedAt.toISOString() : null,
-    pickedUpAt: o.pickedUpAt ? o.pickedUpAt.toISOString() : null,
-    nearCustomerAt: o.nearCustomerAt ? o.nearCustomerAt.toISOString() : null,
-    deliveredAt: o.deliveredAt ? o.deliveredAt.toISOString() : null,
-    returnedAt: o.returnedAt ? o.returnedAt.toISOString() : null,
-    photos,
-  };
-}
-
-function toCourierResponse(
-  o: Order,
-  photos: PhotoMeta[],
-): OrderCourierResponse {
-  return {
-    id: o.id,
-    orderNumber: o.orderNumber,
-    customerName: o.customerName,
-    customerPhone: o.customerPhone,
-    deliveryAddress: o.deliveryAddress,
-    productDescription: o.productDescription,
-    comments: o.comments,
-    status: o.status,
-    courierId: o.courierId,
-    createdAt: o.createdAt.toISOString(),
-    assignedAt: o.assignedAt ? o.assignedAt.toISOString() : null,
-    pickedUpAt: o.pickedUpAt ? o.pickedUpAt.toISOString() : null,
-    nearCustomerAt: o.nearCustomerAt ? o.nearCustomerAt.toISOString() : null,
-    deliveredAt: o.deliveredAt ? o.deliveredAt.toISOString() : null,
-    returnedAt: o.returnedAt ? o.returnedAt.toISOString() : null,
-    photos,
-  };
-}
 
 function clampInt(
   raw: string | undefined,

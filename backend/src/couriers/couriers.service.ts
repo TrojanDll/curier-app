@@ -7,6 +7,7 @@ import { Prisma, UserType, type Courier } from '@prisma/client';
 import { AssignmentService } from '../assignment/assignment.service';
 import { hashPassword } from '../auth/password.util';
 import { PrismaService } from '../prisma/prisma.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { CreateCourierDto } from './dto/create-courier.dto';
 import { ListCouriersQueryDto } from './dto/list-couriers.query.dto';
 import { UpdateCourierDto } from './dto/update-courier.dto';
@@ -67,6 +68,7 @@ export class CouriersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly assignment: AssignmentService,
+    private readonly realtime: RealtimeGateway,
   ) {}
 
   // ── Admin: list / CRUD ─────────────────────────────────────────────────────
@@ -193,19 +195,28 @@ export class CouriersService {
   }
 
   async softDelete(id: string): Promise<CourierAdminResponse> {
-    return this.runUpdate(id, { isActive: false });
+    const result = await this.runUpdate(id, { isActive: false });
+    this.realtime.emitCourierStatus(result);
+    return result;
   }
 
   async pause(id: string): Promise<CourierAdminResponse> {
-    return this.runUpdate(id, { isPaused: true });
+    const result = await this.runUpdate(id, { isPaused: true });
+    this.realtime.emitCourierStatus(result);
+    return result;
   }
 
   async resume(id: string): Promise<CourierAdminResponse> {
     const result = await this.runUpdate(id, { isPaused: false });
+    this.realtime.emitCourierStatus(result);
     // §8 trigger #3: courier became eligible again → drain one queued order
     // to them. Awaited so the admin's response reflects post-drain state if
     // a follow-up GET inspects the order list immediately.
-    await this.assignment.tryAssignToFreeCourier(id);
+    const drained = await this.assignment.tryAssignToFreeCourier(id);
+    if (drained) {
+      // Admin sees the drained order updated; courier sees `orders:new`.
+      this.realtime.emitOrderAssigned(drained);
+    }
     return result;
   }
 

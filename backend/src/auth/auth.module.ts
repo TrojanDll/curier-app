@@ -35,6 +35,8 @@ import { parseTtlSec } from './ttl.util';
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, JwtAuthGuard, RolesGuard],
-  exports: [AuthService, JwtAuthGuard, RolesGuard],
+  // JwtModule is re-exported so RealtimeGateway (2.9) can verify access
+  // tokens during Socket.IO handshake without re-registering the secret.
+  exports: [AuthService, JwtAuthGuard, RolesGuard, JwtModule],
 })
 export class AuthModule {}

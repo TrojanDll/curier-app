@@ -7,6 +7,7 @@ import { CouriersModule } from './couriers/couriers.module';
 import { OrdersModule } from './orders/orders.module';
 import { PhotosModule } from './photos/photos.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { RealtimeModule } from './realtime/realtime.module';
 import { StatisticsModule } from './statistics/statistics.module';
 
 const isProduction = process.env['NODE_ENV'] === 'production';
@@ -23,6 +24,7 @@ const isProduction = process.env['NODE_ENV'] === 'production';
     CouriersModule,
     OrdersModule,
     PhotosModule,
+    RealtimeModule,
     StatisticsModule,
     LoggerModule.forRoot({
       pinoHttp: {

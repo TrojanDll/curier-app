@@ -5,6 +5,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { AuthModule } from './auth/auth.module';
 import { CouriersModule } from './couriers/couriers.module';
 import { OrdersModule } from './orders/orders.module';
+import { PhotosModule } from './photos/photos.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 const isProduction = process.env['NODE_ENV'] === 'production';
@@ -20,6 +21,7 @@ const isProduction = process.env['NODE_ENV'] === 'production';
     AuthModule,
     CouriersModule,
     OrdersModule,
+    PhotosModule,
     LoggerModule.forRoot({
       pinoHttp: {
         level: process.env['LOG_LEVEL'] ?? (isProduction ? 'info' : 'debug'),

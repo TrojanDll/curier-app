@@ -7,6 +7,8 @@ import {
 } from '@nestjs/common';
 import { OrderStatus, Prisma, type Order } from '@prisma/client';
 import { AssignmentService } from '../assignment/assignment.service';
+import type { PhotoMeta } from '../photos/photos.service';
+import { PhotosService } from '../photos/photos.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CourierHistoryQueryDto } from './dto/courier-history.query.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -34,6 +36,13 @@ export interface OrderAdminResponse {
   nearCustomerAt: string | null;
   deliveredAt: string | null;
   returnedAt: string | null;
+  /**
+   * Photo metadata. Populated only on detail/create responses (`findOneAdmin`,
+   * `create`, `update`, `reassign`); list endpoints emit `[]` to keep the
+   * paginated query light. Clients fetch bytes via
+   * `GET /api/admin/orders/:id/photo/:photoId`.
+   */
+  photos: PhotoMeta[];
 }
 
 /** Same as admin minus `price` and `createdByAdminId` per §15.1. */
@@ -53,6 +62,12 @@ export interface OrderCourierResponse {
   nearCustomerAt: string | null;
   deliveredAt: string | null;
   returnedAt: string | null;
+  /**
+   * Photo metadata. Populated only on detail/transition responses
+   * (`findOneCourier`, `updateStatus`); list endpoints emit `[]`. Clients
+   * fetch bytes via `GET /api/courier/orders/:id/photo/:photoId`.
+   */
+  photos: PhotoMeta[];
 }
 
 export interface PaginatedOrders {
@@ -122,6 +137,7 @@ export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly assignment: AssignmentService,
+    private readonly photosService: PhotosService,
   ) {}
 
   // ── Admin ──────────────────────────────────────────────────────────────────
@@ -177,8 +193,10 @@ export class OrdersService {
       this.prisma.order.count({ where }),
     ]);
 
+    // List endpoints emit photos: [] to keep the page-of-20 query light;
+    // detail endpoints fan out and load metadata via PhotosService.
     return {
-      items: items.map(toAdminResponse),
+      items: items.map((o) => toAdminResponse(o, [])),
       total,
       page,
       pageSize,
@@ -208,7 +226,8 @@ export class OrdersService {
     // updated row on success or `null` if no eligible courier was free —
     // either way we surface the latest persisted state to the admin.
     const assigned = await this.assignment.tryAssignNewOrder(order.id);
-    return toAdminResponse(assigned ?? order);
+    // A brand-new order can't have photos yet — skip the lookup.
+    return toAdminResponse(assigned ?? order, []);
   }
 
   async findOneAdmin(id: string): Promise<OrderAdminResponse> {
@@ -216,7 +235,8 @@ export class OrdersService {
     if (!order) {
       throw new NotFoundException('Order not found');
     }
-    return toAdminResponse(order);
+    const photos = await this.photosService.listForOrder(id);
+    return toAdminResponse(order, photos);
   }
 
   async update(id: string, dto: UpdateOrderDto): Promise<OrderAdminResponse> {
@@ -241,7 +261,9 @@ export class OrdersService {
     if (dto.price !== undefined) data.price = dto.price;
 
     const updated = await this.prisma.order.update({ where: { id }, data });
-    return toAdminResponse(updated);
+    // PATCH is gated on status='new', which means courier_id is null and no
+    // photo can have been uploaded — skip the lookup.
+    return toAdminResponse(updated, []);
   }
 
   async reassign(
@@ -287,7 +309,8 @@ export class OrdersService {
         assignedAt: new Date(),
       },
     });
-    return toAdminResponse(updated);
+    const photos = await this.photosService.listForOrder(id);
+    return toAdminResponse(updated, photos);
   }
 
   // ── Courier ────────────────────────────────────────────────────────────────
@@ -300,7 +323,7 @@ export class OrdersService {
       },
       orderBy: { createdAt: 'desc' },
     });
-    return orders.map(toCourierResponse);
+    return orders.map((o) => toCourierResponse(o, []));
   }
 
   async listHistory(
@@ -320,7 +343,7 @@ export class OrdersService {
       where,
       orderBy: { createdAt: 'desc' },
     });
-    return orders.map(toCourierResponse);
+    return orders.map((o) => toCourierResponse(o, []));
   }
 
   async findOneCourier(
@@ -332,7 +355,8 @@ export class OrdersService {
     if (!order || order.courierId !== courierId) {
       throw new NotFoundException('Order not found');
     }
-    return toCourierResponse(order);
+    const photos = await this.photosService.listForOrder(id);
+    return toCourierResponse(order, photos);
   }
 
   async updateStatus(
@@ -377,14 +401,16 @@ export class OrdersService {
       // them. Awaited so the response reflects the freshly assigned order
       // (if any) on the courier's "active" list.
       await this.assignment.tryAssignToFreeCourier(courierId);
-      return toCourierResponse(updated);
+      const photos = await this.photosService.listForOrder(id);
+      return toCourierResponse(updated, photos);
     }
 
     const updated = await this.prisma.order.update({
       where: { id },
       data: updateData,
     });
-    return toCourierResponse(updated);
+    const photos = await this.photosService.listForOrder(id);
+    return toCourierResponse(updated, photos);
   }
 
   // ── Internal helpers ───────────────────────────────────────────────────────
@@ -413,7 +439,7 @@ export class OrdersService {
 
 // ── Module-private helpers ───────────────────────────────────────────────────
 
-function toAdminResponse(o: Order): OrderAdminResponse {
+function toAdminResponse(o: Order, photos: PhotoMeta[]): OrderAdminResponse {
   return {
     id: o.id,
     orderNumber: o.orderNumber,
@@ -432,10 +458,14 @@ function toAdminResponse(o: Order): OrderAdminResponse {
     nearCustomerAt: o.nearCustomerAt ? o.nearCustomerAt.toISOString() : null,
     deliveredAt: o.deliveredAt ? o.deliveredAt.toISOString() : null,
     returnedAt: o.returnedAt ? o.returnedAt.toISOString() : null,
+    photos,
   };
 }
 
-function toCourierResponse(o: Order): OrderCourierResponse {
+function toCourierResponse(
+  o: Order,
+  photos: PhotoMeta[],
+): OrderCourierResponse {
   return {
     id: o.id,
     orderNumber: o.orderNumber,
@@ -452,6 +482,7 @@ function toCourierResponse(o: Order): OrderCourierResponse {
     nearCustomerAt: o.nearCustomerAt ? o.nearCustomerAt.toISOString() : null,
     deliveredAt: o.deliveredAt ? o.deliveredAt.toISOString() : null,
     returnedAt: o.returnedAt ? o.returnedAt.toISOString() : null,
+    photos,
   };
 }
 

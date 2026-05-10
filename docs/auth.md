@@ -71,4 +71,9 @@ export class AdminCouriersController {
 - class-validator on DTOs → Stage 2.14.
 - Global exception filter / unified error envelope → Stage 2.13.
 - First-admin auto-seed from `INITIAL_ADMIN_USERNAME` / `INITIAL_ADMIN_PASSWORD` → Stage 2.11.
-- WebSocket auth (Socket.IO `WsGuard`) → Stage 2.9.
+
+## Side note — WebSocket auth
+
+`AuthModule` re-exports `JwtModule` so the realtime gateway can verify access
+tokens during the Socket.IO handshake. See `realtime.md` for room layout and
+the `auth.token` channel contract.

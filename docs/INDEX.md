@@ -11,3 +11,4 @@ Project documentation cache. Each entry links to a detailed doc file.
 - [Assignment — Backend Reference](assignment.md) — auto-assign + queue drainer, advisory lock + CAS, eligibility/ordering rules, trigger points (Stage 2.6)
 - [Photos — Backend Reference](photos.md) — multipart upload + auth-checked streaming, MIME/size constraints, atomic DB+disk write, embedded photo metadata in order detail (Stage 2.7)
 - [Statistics — Backend Reference](statistics.md) — admin overview/per-courier breakdown + courier self-stats, period resolution, bucket granularity, metric semantics (Stage 2.8)
+- [Realtime — Backend Reference](realtime.md) — Socket.IO `/realtime` namespace, JWT handshake, `admin` + `courier:<id>` rooms, event/trigger map (Stage 2.9)

@@ -10,6 +10,9 @@ async function bootstrap() {
   const logger = app.get(Logger);
   app.useLogger(logger);
 
+  // All API routes live under /api/* (§5 of completion_plan.md).
+  app.setGlobalPrefix('api');
+
   const config = app.get(ConfigService);
   const port = Number(config.get<string>('PORT') ?? 8081);
 

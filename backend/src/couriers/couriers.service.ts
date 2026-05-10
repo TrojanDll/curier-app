@@ -1,0 +1,331 @@
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { Prisma, UserType, type Courier } from '@prisma/client';
+import { hashPassword } from '../auth/password.util';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateCourierDto } from './dto/create-courier.dto';
+import { ListCouriersQueryDto } from './dto/list-couriers.query.dto';
+import { UpdateCourierDto } from './dto/update-courier.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+
+export interface CourierAdminResponse {
+  id: string;
+  username: string;
+  fullName: string;
+  email: string | null;
+  phone: string | null;
+  /** ISO date "YYYY-MM-DD" or null. */
+  dateOfBirth: string | null;
+  isActive: boolean;
+  isPaused: boolean;
+  /** ISO timestamp; null until the courier returns to base for the first time. */
+  lastReturnedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** What the courier sees in `GET /api/courier/profile` — same as admin minus
+ *  the `lastReturnedAt`/`createdAt`/`updatedAt` audit fields. */
+export interface CourierSelfResponse {
+  id: string;
+  username: string;
+  fullName: string;
+  email: string | null;
+  phone: string | null;
+  dateOfBirth: string | null;
+  isActive: boolean;
+  isPaused: boolean;
+}
+
+export interface PaginatedCouriers {
+  items: CourierAdminResponse[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+const SORTABLE_FIELDS = [
+  'createdAt',
+  'fullName',
+  'username',
+  'lastReturnedAt',
+] as const;
+type SortField = (typeof SORTABLE_FIELDS)[number];
+
+const STATUSES = ['all', 'active', 'paused', 'disabled'] as const;
+type StatusFilter = (typeof STATUSES)[number];
+
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 100;
+
+@Injectable()
+export class CouriersService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  // ── Admin: list / CRUD ─────────────────────────────────────────────────────
+
+  async list(query: ListCouriersQueryDto): Promise<PaginatedCouriers> {
+    const page = clampInt(query.page, 1, Number.MAX_SAFE_INTEGER, 1);
+    const pageSize = clampInt(
+      query.pageSize,
+      1,
+      MAX_PAGE_SIZE,
+      DEFAULT_PAGE_SIZE,
+    );
+    const search = (query.search ?? '').trim();
+    const sortBy: SortField = (SORTABLE_FIELDS as readonly string[]).includes(
+      query.sortBy ?? '',
+    )
+      ? (query.sortBy as SortField)
+      : 'createdAt';
+    const order: Prisma.SortOrder = query.order === 'asc' ? 'asc' : 'desc';
+    const status: StatusFilter = (STATUSES as readonly string[]).includes(
+      query.status ?? '',
+    )
+      ? (query.status as StatusFilter)
+      : 'all';
+
+    const where: Prisma.CourierWhereInput = {};
+    if (search) {
+      where.OR = [
+        { username: { contains: search, mode: 'insensitive' } },
+        { fullName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search } },
+      ];
+    }
+    switch (status) {
+      case 'active':
+        where.isActive = true;
+        where.isPaused = false;
+        break;
+      case 'paused':
+        where.isActive = true;
+        where.isPaused = true;
+        break;
+      case 'disabled':
+        where.isActive = false;
+        break;
+      case 'all':
+        break;
+    }
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.courier.findMany({
+        where,
+        orderBy: { [sortBy]: order },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.courier.count({ where }),
+    ]);
+
+    return {
+      items: items.map(toAdminResponse),
+      total,
+      page,
+      pageSize,
+    };
+  }
+
+  async create(dto: CreateCourierDto): Promise<CourierAdminResponse> {
+    // Pre-check unique username for a nicer 409 instead of P2002 leak.
+    const existing = await this.prisma.courier.findUnique({
+      where: { username: dto.username },
+    });
+    if (existing) {
+      throw new ConflictException('Username already taken');
+    }
+
+    const passwordHash = await hashPassword(dto.password);
+    const courier = await this.prisma.courier.create({
+      data: {
+        username: dto.username,
+        passwordHash,
+        fullName: dto.fullName,
+        email: dto.email ?? null,
+        phone: dto.phone ?? null,
+        dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null,
+      },
+    });
+    return toAdminResponse(courier);
+  }
+
+  async findOne(id: string): Promise<CourierAdminResponse> {
+    const courier = await this.prisma.courier.findUnique({ where: { id } });
+    if (!courier) {
+      throw new NotFoundException('Courier not found');
+    }
+    return toAdminResponse(courier);
+  }
+
+  async update(
+    id: string,
+    dto: UpdateCourierDto,
+  ): Promise<CourierAdminResponse> {
+    if (dto.username !== undefined) {
+      const conflict = await this.prisma.courier.findFirst({
+        where: { username: dto.username, NOT: { id } },
+      });
+      if (conflict) {
+        throw new ConflictException('Username already taken');
+      }
+    }
+
+    const data: Prisma.CourierUpdateInput = {};
+    if (dto.username !== undefined) data.username = dto.username;
+    if (dto.fullName !== undefined) data.fullName = dto.fullName;
+    if (dto.email !== undefined) data.email = dto.email;
+    if (dto.phone !== undefined) data.phone = dto.phone;
+    if (dto.dateOfBirth !== undefined) {
+      data.dateOfBirth =
+        dto.dateOfBirth === null ? null : new Date(dto.dateOfBirth);
+    }
+
+    return this.runUpdate(id, data);
+  }
+
+  async softDelete(id: string): Promise<CourierAdminResponse> {
+    return this.runUpdate(id, { isActive: false });
+  }
+
+  async pause(id: string): Promise<CourierAdminResponse> {
+    return this.runUpdate(id, { isPaused: true });
+  }
+
+  async resume(id: string): Promise<CourierAdminResponse> {
+    return this.runUpdate(id, { isPaused: false });
+  }
+
+  /**
+   * Admin types the new password (per §15.4). Also revokes any active refresh
+   * tokens of this courier so existing sessions die — otherwise an old device
+   * could keep refreshing past the password change.
+   */
+  async resetPassword(id: string, newPassword: string): Promise<void> {
+    const passwordHash = await hashPassword(newPassword);
+    try {
+      await this.prisma.$transaction([
+        this.prisma.courier.update({
+          where: { id },
+          data: { passwordHash },
+        }),
+        this.prisma.refreshToken.updateMany({
+          where: { userId: id, userType: UserType.courier, revoked: false },
+          data: { revoked: true },
+        }),
+      ]);
+    } catch (e) {
+      throw mapNotFound(e);
+    }
+  }
+
+  // ── Courier self-service ───────────────────────────────────────────────────
+
+  async getProfile(courierId: string): Promise<CourierSelfResponse> {
+    const courier = await this.prisma.courier.findUnique({
+      where: { id: courierId },
+    });
+    if (!courier) {
+      throw new NotFoundException('Courier not found');
+    }
+    return toSelfResponse(courier);
+  }
+
+  async updateProfile(
+    courierId: string,
+    dto: UpdateProfileDto,
+  ): Promise<CourierSelfResponse> {
+    const data: Prisma.CourierUpdateInput = {};
+    if (dto.email !== undefined) data.email = dto.email;
+    if (dto.phone !== undefined) data.phone = dto.phone;
+
+    try {
+      const courier = await this.prisma.courier.update({
+        where: { id: courierId },
+        data,
+      });
+      return toSelfResponse(courier);
+    } catch (e) {
+      throw mapNotFound(e);
+    }
+  }
+
+  // ── Internal ───────────────────────────────────────────────────────────────
+
+  private async runUpdate(
+    id: string,
+    data: Prisma.CourierUpdateInput,
+  ): Promise<CourierAdminResponse> {
+    try {
+      const courier = await this.prisma.courier.update({
+        where: { id },
+        data,
+      });
+      return toAdminResponse(courier);
+    } catch (e) {
+      throw mapNotFound(e);
+    }
+  }
+}
+
+// ── Module-private helpers ───────────────────────────────────────────────────
+
+function toAdminResponse(c: Courier): CourierAdminResponse {
+  return {
+    id: c.id,
+    username: c.username,
+    fullName: c.fullName,
+    email: c.email,
+    phone: c.phone,
+    dateOfBirth: formatIsoDate(c.dateOfBirth),
+    isActive: c.isActive,
+    isPaused: c.isPaused,
+    lastReturnedAt: c.lastReturnedAt ? c.lastReturnedAt.toISOString() : null,
+    createdAt: c.createdAt.toISOString(),
+    updatedAt: c.updatedAt.toISOString(),
+  };
+}
+
+function toSelfResponse(c: Courier): CourierSelfResponse {
+  return {
+    id: c.id,
+    username: c.username,
+    fullName: c.fullName,
+    email: c.email,
+    phone: c.phone,
+    dateOfBirth: formatIsoDate(c.dateOfBirth),
+    isActive: c.isActive,
+    isPaused: c.isPaused,
+  };
+}
+
+function formatIsoDate(d: Date | null): string | null {
+  return d ? d.toISOString().slice(0, 10) : null;
+}
+
+function clampInt(
+  raw: string | undefined,
+  min: number,
+  max: number,
+  fallback: number,
+): number {
+  if (raw === undefined || raw === '') return fallback;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || Number.isNaN(n)) return fallback;
+  const i = Math.trunc(n);
+  if (i < min) return min;
+  if (i > max) return max;
+  return i;
+}
+
+/** Map Prisma's "record not found" error to a NestJS 404. */
+function mapNotFound(e: unknown): unknown {
+  if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
+    return new NotFoundException('Courier not found');
+  }
+  return e;
+}

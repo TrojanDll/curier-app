@@ -403,7 +403,7 @@ volumes:
 - [x] **2.1** Инициализация Nest-проекта в `/backend` (TypeScript strict, Pino logs)
 - [x] **2.2** Prisma schema + первая миграция для всех таблиц (admins, couriers, orders, order_photos, refresh_tokens, ENUMs)
 - [x] **2.3** AuthModule: стратегии JWT для admin и courier, refresh-flow
-- [ ] **2.4** CouriersModule: CRUD + pause/resume + reset-password
+- [x] **2.4** CouriersModule: CRUD + pause/resume + reset-password
 - [ ] **2.5** OrdersModule: CRUD для админа, status flow для курьера, валидация переходов
 - [ ] **2.6** Auto-assign сервис + queue-разгребатель (см. §8)
 - [ ] **2.7** PhotosModule: multipart upload, выдача с auth-проверкой

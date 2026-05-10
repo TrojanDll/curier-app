@@ -1,3 +1,4 @@
+import { RequestMethod } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
@@ -10,8 +11,11 @@ async function bootstrap() {
   const logger = app.get(Logger);
   app.useLogger(logger);
 
-  // All API routes live under /api/* (§5 of completion_plan.md).
-  app.setGlobalPrefix('api');
+  // All API routes live under /api/* (§5 of completion_plan.md). The liveness
+  // probe is intentionally exempt so external monitors hit `/health` directly.
+  app.setGlobalPrefix('api', {
+    exclude: [{ path: 'health', method: RequestMethod.GET }],
+  });
 
   const config = app.get(ConfigService);
   const port = Number(config.get<string>('PORT') ?? 8081);

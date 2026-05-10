@@ -14,7 +14,7 @@ NestJS `CouriersModule` (Stage 2.4). Source: `backend/src/couriers/`.
 | PATCH | `/api/admin/couriers/:id` | 200 / 400 / 404 / 409 | Partial update; only fields present in body are touched. |
 | DELETE | `/api/admin/couriers/:id` | 200 / 400 / 404 | **Soft delete** — sets `is_active=false`, returns the row. |
 | POST | `/api/admin/couriers/:id/pause` | 200 / 400 / 404 | Sets `is_paused=true`, returns the row. |
-| POST | `/api/admin/couriers/:id/resume` | 200 / 400 / 404 | Sets `is_paused=false`. |
+| POST | `/api/admin/couriers/:id/resume` | 200 / 400 / 404 | Sets `is_paused=false`. After the update commits, awaits `AssignmentService.tryAssignToFreeCourier` to drain one queued order to the just-resumed courier — see `assignment.md`. |
 | POST | `/api/admin/couriers/:id/reset-password` | 204 / 400 / 404 | Body `{ newPassword }`. Revokes the courier's active refresh tokens in the same tx. |
 
 ### Courier (require `@Roles(['courier'])`)

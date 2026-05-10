@@ -9,7 +9,7 @@ NestJS `OrdersModule` (Stage 2.5). Source: `backend/src/orders/`.
 | Method | Path | Status | Notes |
 |---|---|---|---|
 | GET | `/api/admin/orders` | 200 | Paginated list. Query: `page, pageSize, search, sortBy, order, status, courierId, from, to`. |
-| POST | `/api/admin/orders` | 201 | Body: `CreateOrderDto`. Always lands as `status='new'`, `courierId=null`. Auto-assign is Stage 2.6. |
+| POST | `/api/admin/orders` | 201 | Body: `CreateOrderDto`. Auto-assign runs synchronously after insert — response may already carry `status='assigned'`, `courierId`, `assignedAt` if a courier was free. See `assignment.md`. |
 | GET | `/api/admin/orders/:id` | 200 / 400 / 404 | 400 on malformed UUID (ParseUUIDPipe). |
 | PATCH | `/api/admin/orders/:id` | 200 / 400 / 404 / 409 | 409 if `status != 'new'` (only editable while unassigned). |
 | POST | `/api/admin/orders/:id/reassign` | 200 / 400 / 404 / 409 | Body `{ courierId }`. See "Reassign rules" below. |
@@ -78,7 +78,7 @@ assigned → picked_up → near_customer → delivered → returned
 - 404 if the order does not exist or `order.courierId !== req.user.sub` (foreign orders are invisible).
 - 409 on any other transition (skip, backward, terminal `returned`).
 - The matching audit timestamp is stamped on success: `pickedUpAt`, `nearCustomerAt`, `deliveredAt`, `returnedAt`.
-- On `returned` only: in the same `$transaction`, `couriers.last_returned_at = now()`. This drives the "longest at base" auto-assign tie-break in Stage 2.6.
+- On `returned` only: in the same `$transaction`, `couriers.last_returned_at = now()`. This drives the "longest at base" auto-assign tie-break. Immediately after the transaction commits, `AssignmentService.tryAssignToFreeCourier` is awaited — see `assignment.md` for trigger semantics.
 
 ## Response shapes
 
@@ -124,8 +124,9 @@ Plain classes (no class-validator yet — see §14.2.14):
 
 ## What is NOT here yet
 
-- Auto-assign + queue drainer on order creation / courier return / pause-resume / activation → Stage 2.6.
 - PhotosModule (`POST /api/courier/orders/:id/photo`, `GET /api/admin/orders/:id/photo/:photoId`) → Stage 2.7.
 - Realtime `orders:new`, `orders:updated`, `orders:reassigned` Socket.IO events → Stage 2.9.
 - class-validator on DTOs → Stage 2.14.
 - Global exception filter (cleaner Prisma error mapping) → Stage 2.13.
+
+Auto-assign + queue drainer (Stage 2.6) is in place — see `assignment.md`.

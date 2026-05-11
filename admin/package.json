@@ -11,7 +11,10 @@
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.19",
+    "@tanstack/react-query": "^5.100.9",
+    "@tanstack/react-query-devtools": "^5.100.9",
     "@untitledui/icons": "^0.0.22",
+    "axios": "^1.16.0",
     "clsx": "^2.1.1",
     "next": "16.1.6",
     "react": "19.2.3",

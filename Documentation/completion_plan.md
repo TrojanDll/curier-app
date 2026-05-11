@@ -418,7 +418,7 @@ volumes:
 ### Этап 3 — Интеграция Admin ↔ Backend
 - [x] **3.1** API-клиент в admin (предпочтительно `tanstack/react-query` + `axios`)
 - [x] **3.2** Auth-флоу: login → JWT в HttpOnly cookie (через Next.js route handlers) или localStorage
-- [ ] **3.3** Подменить моки на реальные запросы — Orders
+- [x] **3.3** Подменить моки на реальные запросы — Orders
 - [ ] **3.4** Подменить моки на реальные запросы — Couriers
 - [ ] **3.5** Подменить моки на реальные запросы — Statistics
 - [ ] **3.6** Подменить моки на реальные запросы — Settings

@@ -34,18 +34,6 @@ export interface PaginatedOrders {
 
 // ── Internal constants ───────────────────────────────────────────────────────
 
-const SORTABLE_FIELDS = [
-  'createdAt',
-  'orderNumber',
-  'status',
-  'assignedAt',
-  'deliveredAt',
-] as const;
-type SortField = (typeof SORTABLE_FIELDS)[number];
-
-const DEFAULT_PAGE_SIZE = 20;
-const MAX_PAGE_SIZE = 100;
-
 /** Active = courier has it but hasn't returned to base yet. */
 const COURIER_ACTIVE_STATUSES: readonly OrderStatus[] = [
   OrderStatus.assigned,
@@ -84,9 +72,6 @@ const STATUS_TIMESTAMP_FIELD: Record<OrderStatus, keyof Order | null> = {
   [OrderStatus.returned]: 'returnedAt',
 };
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 @Injectable()
 export class OrdersService {
   constructor(
@@ -99,20 +84,11 @@ export class OrdersService {
   // ── Admin ──────────────────────────────────────────────────────────────────
 
   async list(query: ListOrdersQueryDto): Promise<PaginatedOrders> {
-    const page = clampInt(query.page, 1, Number.MAX_SAFE_INTEGER, 1);
-    const pageSize = clampInt(
-      query.pageSize,
-      1,
-      MAX_PAGE_SIZE,
-      DEFAULT_PAGE_SIZE,
-    );
+    // §14.2.14 — ListOrdersQueryDto already enforces sortBy whitelist,
+    // order enum, page/pageSize clamping, courierId UUID format, and
+    // splits status into a typed OrderStatus[] (or undefined for `all`).
+    const { page, pageSize, sortBy, order, status, courierId } = query;
     const search = (query.search ?? '').trim();
-    const sortBy: SortField = (SORTABLE_FIELDS as readonly string[]).includes(
-      query.sortBy ?? '',
-    )
-      ? (query.sortBy as SortField)
-      : 'createdAt';
-    const order: Prisma.SortOrder = query.order === 'asc' ? 'asc' : 'desc';
 
     const where: Prisma.OrderWhereInput = {};
 
@@ -125,13 +101,12 @@ export class OrdersService {
       ];
     }
 
-    const statusList = parseStatusList(query.status);
-    if (statusList.length > 0) {
-      where.status = { in: statusList };
+    if (status && status.length > 0) {
+      where.status = { in: status };
     }
 
-    if (query.courierId && UUID_RE.test(query.courierId)) {
-      where.courierId = query.courierId;
+    if (courierId) {
+      where.courierId = courierId;
     }
 
     const createdAt = buildDateRange(query.from, query.to);
@@ -235,10 +210,7 @@ export class OrdersService {
     id: string,
     newCourierId: string,
   ): Promise<OrderAdminResponse> {
-    if (!UUID_RE.test(newCourierId)) {
-      throw new BadRequestException('courierId must be a UUID');
-    }
-
+    // courierId UUID format is enforced by ReassignOrderDto (§14.2.14).
     const order = await this.prisma.order.findUnique({ where: { id } });
     if (!order) {
       throw new NotFoundException('Order not found');
@@ -415,34 +387,6 @@ export class OrdersService {
 }
 
 // ── Module-private helpers ───────────────────────────────────────────────────
-
-function clampInt(
-  raw: string | undefined,
-  min: number,
-  max: number,
-  fallback: number,
-): number {
-  if (raw === undefined || raw === '') return fallback;
-  const n = Number(raw);
-  if (!Number.isFinite(n) || Number.isNaN(n)) return fallback;
-  const i = Math.trunc(n);
-  if (i < min) return min;
-  if (i > max) return max;
-  return i;
-}
-
-function parseStatusList(raw: string | undefined): OrderStatus[] {
-  if (!raw || raw === 'all') return [];
-  const allowed = Object.values(OrderStatus) as readonly string[];
-  const seen = new Set<OrderStatus>();
-  for (const part of raw.split(',')) {
-    const trimmed = part.trim();
-    if (allowed.includes(trimmed)) {
-      seen.add(trimmed as OrderStatus);
-    }
-  }
-  return [...seen];
-}
 
 function parseDateSafe(raw: string | undefined): Date | undefined {
   if (!raw) return undefined;

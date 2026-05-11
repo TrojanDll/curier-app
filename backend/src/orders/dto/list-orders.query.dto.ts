@@ -1,28 +1,99 @@
+import { OrderStatus } from '@prisma/client';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsArray,
+  IsEnum,
+  IsIn,
+  IsInt,
+  IsISO8601,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
+
+const SORTABLE = [
+  'createdAt',
+  'orderNumber',
+  'status',
+  'assignedAt',
+  'deliveredAt',
+] as const;
+export type OrdersSortField = (typeof SORTABLE)[number];
+
 /**
- * Query string for `GET /api/admin/orders`. Mirrors the canonical pagination
- * format from §15.9 plus order-specific filters from §5.
+ * Parses the `?status=` query into an `OrderStatus[]` filter.
  *
- * All fields arrive as strings (Express query parsing); OrdersService is
- * responsible for parsing/clamping into safe values.
+ *   `all` or empty / missing → undefined (no filter)
+ *   `assigned,delivered`     → ['assigned', 'delivered']
+ *
+ * Returning `undefined` from a `@Transform` lets the subsequent
+ * `@IsOptional` short-circuit the rest of the chain, so passing
+ * `?status=all` does not blow up `@IsEnum`.
+ */
+function parseStatusList(value: unknown): OrderStatus[] | undefined {
+  if (Array.isArray(value)) return value as OrderStatus[];
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  if (trimmed === '' || trimmed === 'all') return undefined;
+  return trimmed
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean) as OrderStatus[];
+}
+
+/**
+ * Query string for `GET /api/admin/orders`. Pagination format from §15.9
+ * plus order-specific filters from §5.
+ *
+ * `@Type(() => Number)` coerces page / pageSize from the express string-only
+ * query layer; `@IsEnum(OrderStatus, { each: true })` validates the
+ * status array AFTER the @Transform splits it.
  */
 export class ListOrdersQueryDto {
-  page?: string;
-  pageSize?: string;
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page: number = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  pageSize: number = 20;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
   search?: string;
-  /** Whitelist: createdAt, orderNumber, status, assignedAt, deliveredAt. */
-  sortBy?: string;
-  /** asc | desc */
-  order?: string;
-  /**
-   * Either `all` / empty (no filter) or comma-separated OrderStatus values
-   * (e.g. `assigned,picked_up,near_customer,delivered`). Unknown tokens are
-   * dropped silently; if the resulting set is empty, no filter is applied.
-   */
-  status?: string;
-  /** UUID of the assigned courier. Invalid UUID → no filter. */
+
+  @IsOptional()
+  @IsIn(SORTABLE)
+  sortBy: OrdersSortField = 'createdAt';
+
+  @IsOptional()
+  @IsIn(['asc', 'desc'])
+  order: 'asc' | 'desc' = 'desc';
+
+  @IsOptional()
+  @Transform(({ value }) => parseStatusList(value))
+  @IsArray()
+  @IsEnum(OrderStatus, { each: true })
+  status?: OrderStatus[];
+
+  @IsOptional()
+  @IsUUID()
   courierId?: string;
-  /** ISO timestamp; filters `createdAt >= from`. Invalid → no filter. */
+
+  @IsOptional()
+  @IsISO8601({ strict: false })
   from?: string;
-  /** ISO timestamp; filters `createdAt <= to`. Invalid → no filter. */
+
+  @IsOptional()
+  @IsISO8601({ strict: false })
   to?: string;
 }

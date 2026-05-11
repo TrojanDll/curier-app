@@ -124,7 +124,6 @@ interface CourierSelfRawRow {
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const DEFAULT_TOP_LIMIT = 5;
-const MAX_TOP_LIMIT = 50;
 const VALID_BUCKETS: readonly Bucket[] = ['hour', 'day', 'week'];
 const BUCKET_INTERVAL: Record<Bucket, string> = {
   hour: '1 hour',
@@ -146,12 +145,9 @@ export class StatisticsService {
       query.from,
       query.to,
     );
-    const topLimit = clampInt(
-      query.topLimit,
-      1,
-      MAX_TOP_LIMIT,
-      DEFAULT_TOP_LIMIT,
-    );
+    // OverviewQueryDto clamps topLimit to [1, 50] via @Min/@Max; if it's
+    // missing, fall back to the in-house default.
+    const topLimit = query.topLimit ?? DEFAULT_TOP_LIMIT;
     const interval = BUCKET_INTERVAL[bucket];
 
     // ── Scalar KPIs (4 parallel queries) ─────────────────────────────────────
@@ -431,21 +427,6 @@ function parseDateSafe(raw: string | undefined): Date | undefined {
   if (!raw) return undefined;
   const d = new Date(raw);
   return Number.isNaN(d.getTime()) ? undefined : d;
-}
-
-function clampInt(
-  raw: string | undefined,
-  min: number,
-  max: number,
-  fallback: number,
-): number {
-  if (raw === undefined || raw === '') return fallback;
-  const n = Number(raw);
-  if (!Number.isFinite(n) || Number.isNaN(n)) return fallback;
-  const i = Math.trunc(n);
-  if (i < min) return min;
-  if (i > max) return max;
-  return i;
 }
 
 function roundOrNull(v: number | null | undefined): number | null {

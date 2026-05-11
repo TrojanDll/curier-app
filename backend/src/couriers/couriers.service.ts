@@ -49,20 +49,6 @@ export interface PaginatedCouriers {
   pageSize: number;
 }
 
-const SORTABLE_FIELDS = [
-  'createdAt',
-  'fullName',
-  'username',
-  'lastReturnedAt',
-] as const;
-type SortField = (typeof SORTABLE_FIELDS)[number];
-
-const STATUSES = ['all', 'active', 'paused', 'disabled'] as const;
-type StatusFilter = (typeof STATUSES)[number];
-
-const DEFAULT_PAGE_SIZE = 20;
-const MAX_PAGE_SIZE = 100;
-
 @Injectable()
 export class CouriersService {
   constructor(
@@ -74,25 +60,11 @@ export class CouriersService {
   // ── Admin: list / CRUD ─────────────────────────────────────────────────────
 
   async list(query: ListCouriersQueryDto): Promise<PaginatedCouriers> {
-    const page = clampInt(query.page, 1, Number.MAX_SAFE_INTEGER, 1);
-    const pageSize = clampInt(
-      query.pageSize,
-      1,
-      MAX_PAGE_SIZE,
-      DEFAULT_PAGE_SIZE,
-    );
+    // §14.2.14 — ListCouriersQueryDto already enforces sortBy whitelist,
+    // order/status enums, and clamps page/pageSize via @Min/@Max. The
+    // service trusts the DTO and reads typed values directly.
+    const { page, pageSize, sortBy, order, status } = query;
     const search = (query.search ?? '').trim();
-    const sortBy: SortField = (SORTABLE_FIELDS as readonly string[]).includes(
-      query.sortBy ?? '',
-    )
-      ? (query.sortBy as SortField)
-      : 'createdAt';
-    const order: Prisma.SortOrder = query.order === 'asc' ? 'asc' : 'desc';
-    const status: StatusFilter = (STATUSES as readonly string[]).includes(
-      query.status ?? '',
-    )
-      ? (query.status as StatusFilter)
-      : 'all';
 
     const where: Prisma.CourierWhereInput = {};
     if (search) {
@@ -325,21 +297,6 @@ function toSelfResponse(c: Courier): CourierSelfResponse {
 
 function formatIsoDate(d: Date | null): string | null {
   return d ? d.toISOString().slice(0, 10) : null;
-}
-
-function clampInt(
-  raw: string | undefined,
-  min: number,
-  max: number,
-  fallback: number,
-): number {
-  if (raw === undefined || raw === '') return fallback;
-  const n = Number(raw);
-  if (!Number.isFinite(n) || Number.isNaN(n)) return fallback;
-  const i = Math.trunc(n);
-  if (i < min) return min;
-  if (i > max) return max;
-  return i;
 }
 
 /** Map Prisma's "record not found" error to a NestJS 404. */

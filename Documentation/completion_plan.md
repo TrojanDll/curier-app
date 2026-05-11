@@ -24,7 +24,7 @@
 
 - [x] §15a — Подготовительные шаги
 - [x] §14 Этап 1 — Admin-панель на моках
-- [ ] §14 Этап 2 — Backend на NestJS
+- [x] §14 Этап 2 — Backend на NestJS
 - [ ] §14 Этап 3 — Интеграция Admin ↔ Backend
 - [ ] §14 Этап 4 — Доработка Android-клиента (см. §7)
 - [ ] §14 Этап 5 — Dockerization
@@ -413,7 +413,7 @@ volumes:
 - [x] **2.11** Авто-сид первого админа из `INITIAL_ADMIN_USERNAME` / `INITIAL_ADMIN_PASSWORD`
 - [x] **2.12** Pino logger + request logging middleware
 - [x] **2.13** Глобальный exception filter + единый формат ошибок API
-- [ ] **2.14** Валидация входящих DTO через class-validator
+- [x] **2.14** Валидация входящих DTO через class-validator
 
 ### Этап 3 — Интеграция Admin ↔ Backend
 - [ ] **3.1** API-клиент в admin (предпочтительно `tanstack/react-query` + `axios`)

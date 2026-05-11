@@ -145,13 +145,13 @@ The Android client (`StatisticsData` DTO) renames these into snake_case via Mosh
 
 ## DTOs
 
-Plain classes — class-validator wiring is deferred to §14.2.14:
+class-validator decorators per `validation.md`:
 
-- `OverviewQueryDto` — `period?, from?, to?, topLimit?` as strings.
-- `CouriersStatsQueryDto` — `period?, from?, to?`.
-- `CourierStatsQueryDto` — `period?, from?, to?` (different vocabulary: `24h | 7d | 30d`).
+- `OverviewQueryDto` — `period?` (`@IsIn(['today', 'week', 'month'])`), `from?`/`to?` (`@IsISO8601`), `topLimit?` (number, `@Min(1) @Max(50)`).
+- `CouriersStatsQueryDto` — `period?, from?, to?` (same admin vocabulary).
+- `CourierStatsQueryDto` — `period?` (`@IsIn(['24h', '7d', '30d'])`), `from?, to?`.
 
-Service parses + clamps everything (no implicit trust in query strings).
+`topLimit` arrives as a typed number; `from` / `to` stay as ISO strings and the service parses them via `new Date()` so a `null` from `parseDateSafe` falls back to the named-period rules.
 
 ## Behaviour notes
 
@@ -163,9 +163,6 @@ Service parses + clamps everything (no implicit trust in query strings).
 
 ## What is NOT here yet
 
-- Realtime updates as orders land — Stage 2.9 (`@nestjs/websockets`).
-- class-validator on the query DTOs → Stage 2.14.
-- Global exception filter (cleaner Prisma error mapping) → Stage 2.13.
 - Custom-period UI on admin → Stage 3 (currently only the named-period buttons are wired in mocks).
 
 The auto-assign + queue drainer (Stage 2.6, see `assignment.md`) and PhotosModule (Stage 2.7, see `photos.md`) are in place — statistics queries stay read-only over the same tables.

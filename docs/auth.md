@@ -68,11 +68,9 @@ export class AdminCouriersController {
 
 ## What is NOT here yet
 
-- class-validator on DTOs → Stage 2.14.
-- Global exception filter / unified error envelope → Stage 2.13.
-
 First-admin auto-seed from `INITIAL_ADMIN_*` env lives in `SeedModule` —
-see [seed.md](seed.md).
+see [seed.md](seed.md). Validation (`validation.md`) and the global
+exception envelope (`exceptions.md`) cover DTO + error contract.
 
 ## Side note — WebSocket auth
 

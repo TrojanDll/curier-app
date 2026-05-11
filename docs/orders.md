@@ -40,15 +40,15 @@ Format mirrors §15.9 plus the order-specific filters from §5.
 
 | Param | Default | Validation |
 |---|---|---|
-| `page` | `1` | `>= 1`; non-numeric → fallback. |
-| `pageSize` | `20` | Clamped to `[1, 100]`. |
+| `page` | `1` | `@IsInt @Min(1)`; non-numeric → 400. |
+| `pageSize` | `20` | `@Min(1) @Max(100)`; out of range → 400. |
 | `search` | empty | Case-insensitive `contains` on `orderNumber`, `customerName`, `deliveryAddress`; exact substring on `customerPhone`. |
-| `sortBy` | `createdAt` | Whitelist: `createdAt`, `orderNumber`, `status`, `assignedAt`, `deliveredAt`. Anything else → `createdAt`. |
-| `order` | `desc` | `asc` or `desc` only. |
-| `status` | `all` | `all`/empty (no filter) **or** comma-separated `OrderStatus` values, e.g. `assigned,picked_up,near_customer,delivered`. Unknown tokens are dropped silently; if the resulting set is empty, no filter is applied. |
-| `courierId` | none | Validated against UUID regex; invalid → no filter. |
-| `from` | none | ISO timestamp; `createdAt >= from`. Invalid → no filter. |
-| `to` | none | ISO timestamp; `createdAt <= to`. Invalid → no filter. |
+| `sortBy` | `createdAt` | `@IsIn(['createdAt', 'orderNumber', 'status', 'assignedAt', 'deliveredAt'])` → 400 otherwise. |
+| `order` | `desc` | `@IsIn(['asc', 'desc'])` → 400 otherwise. |
+| `status` | `all` | `all` / empty → no filter. Otherwise comma-separated `OrderStatus` (e.g. `assigned,delivered`); each token must validate against `@IsEnum(OrderStatus)` or the whole query 400s. |
+| `courierId` | none | `@IsUUID` → 400 if malformed. |
+| `from` | none | `@IsISO8601` ISO timestamp; `createdAt >= from`. |
+| `to` | none | `@IsISO8601` ISO timestamp; `createdAt <= to`. |
 
 Response envelope:
 ```json
@@ -59,7 +59,7 @@ Response envelope:
 
 `POST /api/admin/orders/:id/reassign` body: `{ courierId: string }`.
 
-- 400 if `courierId` is not a UUID.
+- 400 if `courierId` is not a UUID (enforced by `ReassignOrderDto.@IsUUID`).
 - 404 if the order does not exist.
 - 404 if the target courier does not exist.
 - 409 if the order's status is not in `{new, assigned}` (courier already physically picked it up — reassignment is moot).
@@ -107,12 +107,12 @@ Same as admin **minus** `price` and `createdByAdminId` per §15.1. `photos: Phot
 
 ## DTOs
 
-Plain classes (no class-validator yet — see §14.2.14):
-- `CreateOrderDto` — `customerName, customerPhone, deliveryAddress, productDescription, comments?, price?`. `status`, `courierId`, `orderNumber`, `createdByAdminId`, audit timestamps are all server-set.
+class-validator decorators per `validation.md`:
+- `CreateOrderDto` — `customerName, customerPhone, deliveryAddress, productDescription, comments?, price? (IsNumberString)`. `status`, `courierId`, `orderNumber`, `createdByAdminId`, audit timestamps are all server-set.
 - `UpdateOrderDto` — every non-system field optional; sending `comments: null` / `price: null` clears, omitting leaves as-is.
-- `ReassignOrderDto` — `{ courierId }`.
-- `UpdateStatusDto` — `{ status: OrderStatus }`. Explicit target (not "next") so client and server agree on the intended transition.
-- `ListOrdersQueryDto` / `CourierHistoryQueryDto` — strings as they arrive from Express; service parses.
+- `ReassignOrderDto` — `{ courierId (IsUUID) }`.
+- `UpdateStatusDto` — `{ status: OrderStatus (IsEnum) }`. Explicit target (not "next") so client and server agree on the intended transition.
+- `ListOrdersQueryDto` — typed numbers + status array split from comma-separated and validated per element. `CourierHistoryQueryDto` — `from`/`to` IsISO8601, both optional.
 
 ## Behaviour notes
 
@@ -125,9 +125,7 @@ Plain classes (no class-validator yet — see §14.2.14):
 
 ## What is NOT here yet
 
-- Realtime `orders:new`, `orders:updated`, `orders:reassigned` Socket.IO events → Stage 2.9.
-- class-validator on DTOs → Stage 2.14.
-- Global exception filter (cleaner Prisma error mapping) → Stage 2.13.
-
 Auto-assign + queue drainer (Stage 2.6) is in place — see `assignment.md`.
-PhotosModule (Stage 2.7) is in place — see `photos.md`.
+PhotosModule (Stage 2.7), realtime `orders:*` (Stage 2.9), exception filter
+(see `exceptions.md`), and class-validator (see `validation.md`) are all
+in place.

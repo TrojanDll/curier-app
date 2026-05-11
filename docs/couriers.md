@@ -32,12 +32,12 @@ Format from §15.9: `?page=1&pageSize=20&search=&sortBy=&order=asc&status=`.
 
 | Param | Default | Validation |
 |---|---|---|
-| `page` | `1` | `>= 1`; non-numeric → fallback. |
-| `pageSize` | `20` | Clamped to `[1, 100]`. |
+| `page` | `1` | `@IsInt @Min(1)`; non-numeric → 400. |
+| `pageSize` | `20` | `@Min(1) @Max(100)`; out of range → 400. |
 | `search` | empty | Case-insensitive `contains` on `username`, `fullName`, `email`; exact substring on `phone`. |
-| `sortBy` | `createdAt` | Whitelist: `createdAt`, `fullName`, `username`, `lastReturnedAt`. Anything else → `createdAt`. |
-| `order` | `desc` | `asc` or `desc` only. |
-| `status` | `all` | `all`, `active` (active && !paused), `paused` (active && paused), `disabled` (`is_active=false`). |
+| `sortBy` | `createdAt` | `@IsIn(['createdAt', 'fullName', 'username', 'lastReturnedAt'])`; anything else → 400. |
+| `order` | `desc` | `@IsIn(['asc', 'desc'])` → 400 otherwise. |
+| `status` | `all` | `@IsIn(['all', 'active', 'paused', 'disabled'])` — `active` = active && !paused, `paused` = active && paused, `disabled` = `is_active=false`. |
 
 Response envelope:
 ```json
@@ -65,24 +65,21 @@ Same as admin minus `lastReturnedAt`, `createdAt`, `updatedAt`.
 
 ## DTOs
 
-Plain classes (no class-validator yet — see §14.2.14):
-- `CreateCourierDto` — `username, password, fullName, email?, phone?, dateOfBirth?` (ISO date string).
+class-validator decorators per `validation.md`:
+- `CreateCourierDto` — `username, password (≥6), fullName, email? (IsEmail), phone?, dateOfBirth?` (ISO date string).
 - `UpdateCourierDto` — every field optional. Sending `email: null` clears it; omitting it leaves it as-is. Same for `dateOfBirth`.
-- `ResetPasswordDto` — `{ newPassword }`. Admin types it directly per §15.4.
+- `ResetPasswordDto` — `{ newPassword (≥6) }`. Admin types it directly per §15.4.
 - `UpdateProfileDto` — `{ email?, phone? }` only.
-- `ListCouriersQueryDto` — strings as they arrive from Express; service parses.
+- `ListCouriersQueryDto` — typed numbers (page/pageSize), enum-validated sortBy/order/status; service receives clean values.
 
 ## Behaviour notes
 
 - **Soft delete vs hard delete**: `DELETE /:id` is soft only — `is_active=false`, `orders.courier_id` stays for history (orders schema uses `ON DELETE SET NULL` already, but we don't physically delete).
 - **`is_paused` does not block login** — paused couriers must still see their pause state. `is_active=false` blocks login (and refresh).
 - **`reset-password`** runs `UPDATE couriers + UPDATE refresh_tokens` in a single `$transaction` so the old session can never be used after the new password is set.
-- **Username uniqueness** is pre-checked on POST/PATCH for a 409 message; a race that lands on Prisma's P2002 surfaces as a 500 today (cleaner global filter is §14.2.13).
+- **Username uniqueness** is pre-checked on POST/PATCH for a 409 message; a race that lands on Prisma's P2002 is now translated to 409 by `AllExceptionsFilter` (`exceptions.md`).
 - **`dateOfBirth`** is `@db.Date` in Postgres; we serialise as `"YYYY-MM-DD"` and accept the same on input. JS `new Date("YYYY-MM-DD")` parses as UTC midnight, which round-trips correctly through `@db.Date`.
 
 ## What is NOT here yet
 
-- Per-courier "active orders" / "deliveries today" stats on the list — that's §14.2.8 (StatisticsModule), or a future `?include=stats` flag.
-- class-validator validation → §14.2.14.
-- Global exception filter (cleaner P2002 / Prisma error mapping) → §14.2.13.
-- Realtime `couriers:status` Socket.IO event → §14.2.9.
+- Per-courier "active orders" / "deliveries today" stats on the list — that's covered by StatisticsModule, or a future `?include=stats` flag.

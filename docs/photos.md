@@ -142,7 +142,7 @@ Browsers cannot use `<img src="…">` directly because the `Authorization: Beare
 ## What is NOT here yet
 
 - `MulterError` → 413 mapping → Stage 2.13 (global exception filter).
-- class-validator on the body / file constraints → Stage 2.14.
+- class-validator on multipart file fields — out of scope; Multer + manual MIME/size checks in `PhotosService.uploadForCourier` still own that (see `validation.md`).
 - Realtime `orders:photo-uploaded` event → not in the plan; would slot into Stage 2.9 if needed by the admin live-table.
 - DELETE endpoint → out of scope; cron + cascade are the only deletion paths.
 - Filesystem-side orphan sweep (file present, row missing) → out of scope; only the row-driven path is implemented.

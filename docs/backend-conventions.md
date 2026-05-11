@@ -15,7 +15,7 @@ Cross-cutting backend conventions that every feature module on Stage 2 follows. 
 
 ## DTO + controller pattern
 
-DTOs are plain classes — class-validator wiring is deferred to §14.2.14.
+DTOs are class-validator classes — see `validation.md` for the pipe config + decorator patterns.
 
 - Optional fields typed as `field?: T | null`. PATCH ignores omitted keys; explicit `null` clears the value.
 - Every `:id` path segment uses `ParseUUIDPipe` so malformed UUIDs return 400 before any DB query.

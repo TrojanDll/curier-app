@@ -416,7 +416,7 @@ volumes:
 - [x] **2.14** Валидация входящих DTO через class-validator
 
 ### Этап 3 — Интеграция Admin ↔ Backend
-- [ ] **3.1** API-клиент в admin (предпочтительно `tanstack/react-query` + `axios`)
+- [x] **3.1** API-клиент в admin (предпочтительно `tanstack/react-query` + `axios`)
 - [ ] **3.2** Auth-флоу: login → JWT в HttpOnly cookie (через Next.js route handlers) или localStorage
 - [ ] **3.3** Подменить моки на реальные запросы — Orders
 - [ ] **3.4** Подменить моки на реальные запросы — Couriers

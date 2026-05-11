@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
     BarChart02,
     HomeLine,
@@ -10,6 +10,7 @@ import {
     Settings01,
     Users01,
 } from "@untitledui/icons";
+import { useLogout, useUser } from "@/lib/auth/use-auth";
 import { cx } from "@/utils/cx";
 
 interface NavItem {
@@ -34,14 +35,12 @@ function isActive(pathname: string, item: NavItem): boolean {
 
 export function Sidebar() {
     const pathname = usePathname();
-    const router = useRouter();
+    const logout = useLogout();
+    const user = useUser();
 
     const handleLogout = () => {
-        // На этапе моков cookie не HttpOnly — чистим через document.
-        // На Этапе 3 заменим на POST /api/auth/logout.
-        document.cookie = "admin-auth-token=; path=/; max-age=0";
-        router.push("/login");
-        router.refresh();
+        if (logout.isPending) return;
+        logout.mutate();
     };
 
     return (
@@ -83,15 +82,22 @@ export function Sidebar() {
                 </ul>
             </nav>
 
-            {/* Logout снизу */}
+            {/* User info + Logout снизу */}
             <div className="border-t border-secondary p-3">
+                {user ? (
+                    <div className="mb-2 px-3 py-1">
+                        <p className="truncate text-sm font-medium text-primary">{user.fullName}</p>
+                        <p className="truncate text-xs text-tertiary">{user.username}</p>
+                    </div>
+                ) : null}
                 <button
                     type="button"
                     onClick={handleLogout}
-                    className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-secondary transition-colors hover:bg-primary_hover hover:text-primary"
+                    disabled={logout.isPending}
+                    className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-secondary transition-colors hover:bg-primary_hover hover:text-primary disabled:opacity-60"
                 >
                     <LogOut01 className="size-5 shrink-0 text-fg-quaternary" />
-                    <span>Выйти</span>
+                    <span>{logout.isPending ? "Выходим…" : "Выйти"}</span>
                 </button>
             </div>
         </aside>

@@ -5,8 +5,14 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/base/Button";
 import { Input } from "@/components/base/Input";
 import { OrderStatusBadge } from "@/components/data-display/StatusBadge";
-import { MOCK_COURIERS, findMockCourier } from "@/lib/mock/couriers";
-import { MOCK_ORDERS } from "@/lib/mock/orders";
+import { useDebounce } from "@/hooks/use-debounce";
+import {
+    isApiError,
+    useActiveCouriers,
+    useOrders,
+    useReassignOrder,
+    type OrdersListQuery,
+} from "@/lib/api";
 import { ACTIVE_ORDER_STATUSES, ORDER_STATUS_LABELS, type Order, type OrderStatus } from "@/types/order";
 import { cx } from "@/utils/cx";
 import { formatCurrency, formatDateTime, formatDuration } from "@/utils/format";
@@ -25,62 +31,74 @@ const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
 ];
 
 const PAGE_SIZE = 10;
+const ACTIVE_STATUSES_ARRAY: OrderStatus[] = Array.from(ACTIVE_ORDER_STATUSES);
+const REASSIGNABLE_STATUSES: ReadonlySet<OrderStatus> = new Set(["new", "assigned"]);
 
-function matchesStatus(order: Order, filter: StatusFilter): boolean {
-    if (filter === "all") return true;
-    if (filter === "active") return ACTIVE_ORDER_STATUSES.has(order.status);
-    return order.status === filter;
-}
-
-function matchesSearch(order: Order, query: string): boolean {
-    if (!query) return true;
-    const normalized = query.trim().toLowerCase();
-    return (
-        order.orderNumber.toLowerCase().includes(normalized) ||
-        order.customerName.toLowerCase().includes(normalized) ||
-        order.customerPhone.toLowerCase().includes(normalized) ||
-        order.deliveryAddress.toLowerCase().includes(normalized)
-    );
-}
-
-function matchesCourier(order: Order, courierId: string): boolean {
-    if (courierId === "all") return true;
-    if (courierId === "unassigned") return order.courierId === null;
-    return order.courierId === courierId;
+function buildQuery(
+    statusFilter: StatusFilter,
+    courierFilter: string,
+    debouncedSearch: string,
+    page: number,
+): OrdersListQuery {
+    const q: OrdersListQuery = {
+        page,
+        pageSize: PAGE_SIZE,
+        sortBy: "createdAt",
+        order: "desc",
+    };
+    if (statusFilter === "active") {
+        q.status = ACTIVE_STATUSES_ARRAY;
+    } else if (statusFilter !== "all") {
+        q.status = [statusFilter];
+    }
+    if (courierFilter !== "all") q.courierId = courierFilter;
+    const trimmed = debouncedSearch.trim();
+    if (trimmed) q.search = trimmed;
+    return q;
 }
 
 export function OrdersClient() {
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
     const [courierFilter, setCourierFilter] = useState<string>("all");
-    const [search, setSearch] = useState("");
+    const [searchInput, setSearchInput] = useState("");
+    const debouncedSearch = useDebounce(searchInput, 300);
     const [page, setPage] = useState(1);
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-    const filtered = useMemo(() => {
-        return [...MOCK_ORDERS]
-            .filter((o) => matchesStatus(o, statusFilter))
-            .filter((o) => matchesCourier(o, courierFilter))
-            .filter((o) => matchesSearch(o, search))
-            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    }, [statusFilter, courierFilter, search]);
+    // Дебаунс search и переключение фильтров требуют сброса на первую страницу.
+    useEffect(() => {
+        setPage(1);
+    }, [debouncedSearch, statusFilter, courierFilter]);
 
-    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-    const safePage = Math.min(page, totalPages);
-    const pageItems = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+    const query = useMemo(
+        () => buildQuery(statusFilter, courierFilter, debouncedSearch, page),
+        [statusFilter, courierFilter, debouncedSearch, page],
+    );
+    const ordersQuery = useOrders(query);
+    const couriersQuery = useActiveCouriers();
 
-    // Обёртки сбрасывают пагинацию атомарно с фильтрами — без useEffect.
-    const applyStatusFilter = (value: StatusFilter) => {
-        setStatusFilter(value);
-        setPage(1);
-    };
-    const applyCourierFilter = (value: string) => {
-        setCourierFilter(value);
-        setPage(1);
-    };
-    const applySearch = (value: string) => {
-        setSearch(value);
-        setPage(1);
-    };
+    const items = ordersQuery.data?.items ?? [];
+    const total = ordersQuery.data?.total ?? 0;
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    const couriers = couriersQuery.data ?? [];
+    const courierById = useMemo(() => {
+        const m = new Map<string, string>();
+        for (const c of couriers) m.set(c.id, c.fullName);
+        return m;
+    }, [couriers]);
+
+    // Если page переехал за границу (например, фильтр сильно сократил выдачу) — откат.
+    useEffect(() => {
+        if (!ordersQuery.data) return;
+        if (page > totalPages) setPage(totalPages);
+    }, [ordersQuery.data, page, totalPages]);
+
+    const errorMessage =
+        ordersQuery.error && isApiError(ordersQuery.error)
+            ? ordersQuery.error.messages().join(". ")
+            : ordersQuery.error
+              ? "Не удалось загрузить заказы"
+              : null;
 
     return (
         <div className="flex flex-col gap-4 px-8 py-6">
@@ -91,7 +109,7 @@ export function OrdersClient() {
                         <button
                             key={f.value}
                             type="button"
-                            onClick={() => applyStatusFilter(f.value)}
+                            onClick={() => setStatusFilter(f.value)}
                             className={cx(
                                 "rounded-full px-3 py-1 text-sm font-medium transition-colors",
                                 statusFilter === f.value
@@ -108,19 +126,19 @@ export function OrdersClient() {
                         <Input
                             type="search"
                             placeholder="Поиск по номеру, клиенту, адресу…"
-                            value={search}
-                            onChange={(e) => applySearch(e.target.value)}
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
                             leftIcon={<SearchLg className="size-4" />}
                         />
                     </div>
                     <select
                         value={courierFilter}
-                        onChange={(e) => applyCourierFilter(e.target.value)}
-                        className="h-10 rounded-md border border-primary bg-primary px-3 text-sm text-primary shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand"
+                        onChange={(e) => setCourierFilter(e.target.value)}
+                        disabled={couriersQuery.isLoading}
+                        className="h-10 rounded-md border border-primary bg-primary px-3 text-sm text-primary shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-50"
                     >
                         <option value="all">Все курьеры</option>
-                        <option value="unassigned">Не назначен</option>
-                        {MOCK_COURIERS.filter((c) => c.isActive).map((c) => (
+                        {couriers.map((c) => (
                             <option key={c.id} value={c.id}>
                                 {c.fullName}
                             </option>
@@ -128,6 +146,13 @@ export function OrdersClient() {
                     </select>
                 </div>
             </div>
+
+            {/* Error banner */}
+            {errorMessage ? (
+                <div className="rounded-md border border-error_subtle bg-error_primary px-4 py-3 text-sm text-error-primary">
+                    {errorMessage}
+                </div>
+            ) : null}
 
             {/* Table */}
             <div className="overflow-hidden rounded-lg border border-secondary bg-primary shadow-xs">
@@ -145,15 +170,23 @@ export function OrdersClient() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-secondary">
-                            {pageItems.length === 0 ? (
+                            {ordersQuery.isLoading && items.length === 0 ? (
+                                <tr>
+                                    <td colSpan={7} className="px-4 py-12 text-center text-sm text-tertiary">
+                                        Загрузка…
+                                    </td>
+                                </tr>
+                            ) : items.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className="px-4 py-12 text-center text-sm text-tertiary">
                                         По заданным фильтрам заказов нет.
                                     </td>
                                 </tr>
                             ) : (
-                                pageItems.map((order) => {
-                                    const courier = findMockCourier(order.courierId);
+                                items.map((order) => {
+                                    const courierName = order.courierId
+                                        ? (courierById.get(order.courierId) ?? "—")
+                                        : null;
                                     return (
                                         <tr
                                             key={order.id}
@@ -167,7 +200,7 @@ export function OrdersClient() {
                                             </td>
                                             <td className="px-4 py-3 text-tertiary">{order.deliveryAddress}</td>
                                             <td className="px-4 py-3 text-tertiary">
-                                                {courier ? courier.fullName : <span className="italic">не назначен</span>}
+                                                {courierName ?? <span className="italic">не назначен</span>}
                                             </td>
                                             <td className="px-4 py-3">
                                                 <OrderStatusBadge status={order.status} />
@@ -185,17 +218,16 @@ export function OrdersClient() {
                 </div>
 
                 {/* Pagination */}
-                {filtered.length > PAGE_SIZE ? (
+                {total > PAGE_SIZE ? (
                     <div className="flex items-center justify-between border-t border-secondary px-4 py-3 text-sm text-tertiary">
                         <span>
-                            Показано {(safePage - 1) * PAGE_SIZE + 1}–
-                            {Math.min(safePage * PAGE_SIZE, filtered.length)} из {filtered.length}
+                            Показано {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} из {total}
                         </span>
                         <div className="flex gap-2">
                             <Button
                                 size="sm"
                                 variant="secondary"
-                                disabled={safePage <= 1}
+                                disabled={page <= 1 || ordersQuery.isFetching}
                                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                             >
                                 Назад
@@ -203,7 +235,7 @@ export function OrdersClient() {
                             <Button
                                 size="sm"
                                 variant="secondary"
-                                disabled={safePage >= totalPages}
+                                disabled={page >= totalPages || ordersQuery.isFetching}
                                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                             >
                                 Вперёд
@@ -214,7 +246,11 @@ export function OrdersClient() {
             </div>
 
             {/* Drawer */}
-            <OrderDetailsDrawer order={selectedOrder} onClose={() => setSelectedOrder(null)} />
+            <OrderDetailsDrawer
+                order={selectedOrder}
+                onClose={() => setSelectedOrder(null)}
+                onOrderUpdated={(updated) => setSelectedOrder(updated)}
+            />
         </div>
     );
 }
@@ -222,9 +258,10 @@ export function OrdersClient() {
 interface DrawerProps {
     order: Order | null;
     onClose: () => void;
+    onOrderUpdated: (order: Order) => void;
 }
 
-function OrderDetailsDrawer({ order, onClose }: DrawerProps) {
+function OrderDetailsDrawer({ order, onClose, onOrderUpdated }: DrawerProps) {
     useEffect(() => {
         if (!order) return;
         const handler = (e: KeyboardEvent) => {
@@ -235,7 +272,6 @@ function OrderDetailsDrawer({ order, onClose }: DrawerProps) {
     }, [order, onClose]);
 
     if (!order) return null;
-    const courier = findMockCourier(order.courierId);
 
     const timeline: { label: string; iso: string | null }[] = [
         { label: "Создан", iso: order.createdAt },
@@ -269,21 +305,7 @@ function OrderDetailsDrawer({ order, onClose }: DrawerProps) {
                     </button>
                 </div>
 
-                <dl className="flex flex-col gap-4 px-6 py-5 text-sm">
-                    <DrawerRow label="Клиент" value={order.customerName} />
-                    <DrawerRow label="Телефон" value={order.customerPhone} />
-                    <DrawerRow label="Адрес" value={order.deliveryAddress} />
-                    <DrawerRow label="Товар" value={order.productDescription} />
-                    {order.comments ? <DrawerRow label="Комментарий" value={order.comments} /> : null}
-                    <DrawerRow label="Курьер" value={courier ? courier.fullName : "не назначен"} />
-                    <DrawerRow label="Сумма" value={formatCurrency(order.price)} />
-                    {order.deliveredAt ? (
-                        <DrawerRow
-                            label="Время доставки"
-                            value={formatDuration(order.assignedAt, order.deliveredAt)}
-                        />
-                    ) : null}
-                </dl>
+                <DrawerBody order={order} />
 
                 <div className="border-t border-secondary px-6 py-5">
                     <h3 className="mb-3 text-sm font-semibold text-primary">История статусов</h3>
@@ -302,15 +324,103 @@ function OrderDetailsDrawer({ order, onClose }: DrawerProps) {
                     </ol>
                 </div>
 
-                <div className="mt-auto flex flex-col gap-2 border-t border-secondary px-6 py-5">
-                    <Button variant="secondary" disabled>
-                        Переназначить курьера
-                    </Button>
-                    <p className="text-xs text-tertiary">
-                        Действия будут активированы после интеграции с backend (Этап 3).
-                    </p>
+                <div className="mt-auto border-t border-secondary px-6 py-5">
+                    <ReassignSection order={order} onSuccess={onOrderUpdated} />
                 </div>
             </aside>
+        </div>
+    );
+}
+
+function DrawerBody({ order }: { order: Order }) {
+    const couriersQuery = useActiveCouriers();
+    const courierName = order.courierId
+        ? (couriersQuery.data?.find((c) => c.id === order.courierId)?.fullName ?? "не назначен")
+        : "не назначен";
+    return (
+        <dl className="flex flex-col gap-4 px-6 py-5 text-sm">
+            <DrawerRow label="Клиент" value={order.customerName} />
+            <DrawerRow label="Телефон" value={order.customerPhone} />
+            <DrawerRow label="Адрес" value={order.deliveryAddress} />
+            <DrawerRow label="Товар" value={order.productDescription} />
+            {order.comments ? <DrawerRow label="Комментарий" value={order.comments} /> : null}
+            <DrawerRow label="Курьер" value={courierName} />
+            <DrawerRow label="Сумма" value={formatCurrency(order.price)} />
+            {order.deliveredAt ? (
+                <DrawerRow
+                    label="Время доставки"
+                    value={formatDuration(order.assignedAt, order.deliveredAt)}
+                />
+            ) : null}
+        </dl>
+    );
+}
+
+function ReassignSection({ order, onSuccess }: { order: Order; onSuccess: (o: Order) => void }) {
+    const couriersQuery = useActiveCouriers();
+    const reassign = useReassignOrder();
+    const [target, setTarget] = useState<string>("");
+
+    useEffect(() => {
+        setTarget("");
+        reassign.reset();
+        // Сбрасываем форму при смене заказа в drawer-е.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [order.id]);
+
+    const canReassign = REASSIGNABLE_STATUSES.has(order.status);
+    const eligibleCouriers = useMemo(
+        () => (couriersQuery.data ?? []).filter((c) => !c.isPaused && c.id !== order.courierId),
+        [couriersQuery.data, order.courierId],
+    );
+    const errorMessage =
+        reassign.error && isApiError(reassign.error) ? reassign.error.messages().join(". ") : null;
+
+    if (!canReassign) {
+        return (
+            <p className="text-xs text-tertiary">
+                Переназначение доступно только для статусов «Новый» и «Назначен».
+            </p>
+        );
+    }
+
+    return (
+        <div className="flex flex-col gap-3">
+            <label className="text-xs uppercase tracking-wide text-tertiary" htmlFor="reassign-target">
+                Переназначить курьеру
+            </label>
+            <select
+                id="reassign-target"
+                value={target}
+                onChange={(e) => setTarget(e.target.value)}
+                disabled={couriersQuery.isLoading || reassign.isPending}
+                className="h-10 rounded-md border border-primary bg-primary px-3 text-sm text-primary shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-50"
+            >
+                <option value="">— выберите курьера —</option>
+                {eligibleCouriers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                        {c.fullName}
+                    </option>
+                ))}
+            </select>
+            {errorMessage ? <p className="text-xs text-error-primary">{errorMessage}</p> : null}
+            <Button
+                variant="primary"
+                disabled={!target || reassign.isPending}
+                onClick={() => {
+                    reassign.mutate(
+                        { orderId: order.id, courierId: target },
+                        {
+                            onSuccess: (updated) => {
+                                onSuccess(updated);
+                                setTarget("");
+                            },
+                        },
+                    );
+                }}
+            >
+                {reassign.isPending ? "Назначаем…" : "Подтвердить"}
+            </Button>
         </div>
     );
 }
@@ -326,7 +436,11 @@ function DrawerRow({ label, value }: { label: string; value: string }) {
 
 export function CreateOrderButton() {
     return (
-        <Button leftIcon={<Plus className="size-4" />} disabled title="Будет доступно после интеграции с backend">
+        <Button
+            leftIcon={<Plus className="size-4" />}
+            disabled
+            title="Будет доступно в следующей подзадаче"
+        >
             Создать заказ
         </Button>
     );

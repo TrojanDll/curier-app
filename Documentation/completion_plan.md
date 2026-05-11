@@ -412,7 +412,7 @@ volumes:
 - [x] **2.10** Cron для удаления просроченных фото (`@nestjs/schedule`)
 - [x] **2.11** Авто-сид первого админа из `INITIAL_ADMIN_USERNAME` / `INITIAL_ADMIN_PASSWORD`
 - [x] **2.12** Pino logger + request logging middleware
-- [ ] **2.13** Глобальный exception filter + единый формат ошибок API
+- [x] **2.13** Глобальный exception filter + единый формат ошибок API
 - [ ] **2.14** Валидация входящих DTO через class-validator
 
 ### Этап 3 — Интеграция Admin ↔ Backend

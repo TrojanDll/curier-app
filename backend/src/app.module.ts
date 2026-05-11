@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_FILTER } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { LoggerModule } from 'nestjs-pino';
 import { randomUUID } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { AuthModule } from './auth/auth.module';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { CouriersModule } from './couriers/couriers.module';
 import { HealthModule } from './health/health.module';
 import { OrdersModule } from './orders/orders.module';
@@ -91,6 +93,13 @@ const isProduction = process.env['NODE_ENV'] === 'production';
         },
       },
     }),
+  ],
+  providers: [
+    // Global exception filter — single uniform error envelope across the API.
+    // Registered via APP_FILTER (not main.ts useGlobalFilters) so it gets the
+    // request-scoped PinoLogger injected — needed to log unhandled stacks
+    // with the same `reqId` that pinoHttp puts on the HTTP log line.
+    { provide: APP_FILTER, useClass: AllExceptionsFilter },
   ],
 })
 export class AppModule {}

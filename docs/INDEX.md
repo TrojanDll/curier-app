@@ -17,3 +17,4 @@ Project documentation cache. Each entry links to a detailed doc file.
 - [Exception Filter — Backend Reference](exceptions.md) — global error envelope, HttpException/Prisma/Multer mapping, logging policy, APP_FILTER vs useGlobalFilters (Stage 2.13)
 - [Input Validation — Backend Reference](validation.md) — global ValidationPipe options, DTO patterns (nullable PATCH, pagination, comma-split enum, ISO dates), service contract change, DTO inventory (Stage 2.14)
 - [Admin API Client — Reference](admin-api-client.md) — axios singleton + ApiError + QueryClient defaults + QueryProvider, env config, what each piece is for (Stage 3.1)
+- [Admin Auth — BFF + HttpOnly Cookies](admin-auth.md) — Next BFF flow (login/logout/[...path]), cookie contract, auto-refresh on 401, useLogin/useLogout/useUser API (Stage 3.2)

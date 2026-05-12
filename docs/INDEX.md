@@ -19,3 +19,4 @@ Project documentation cache. Each entry links to a detailed doc file.
 - [Admin API Client — Reference](admin-api-client.md) — axios singleton + ApiError + QueryClient defaults + QueryProvider, env config, what each piece is for (Stage 3.1)
 - [Admin Auth — BFF + HttpOnly Cookies](admin-auth.md) — Next BFF flow (login/logout/[...path]), cookie contract, auto-refresh on 401, useLogin/useLogout/useUser API (Stage 3.2)
 - [Admin Orders — API Integration](admin-orders.md) — orders/couriers hooks, query-key factories, filter mapping, debounced search, reassign UX (Stage 3.3)
+- [Admin Couriers — API Integration](admin-couriers.md) — couriers CRUD hooks (create/update/pause/resume/fire/reset-password), drawer-driven forms, filter mapping, three-state badge rationale (Stage 3.4)

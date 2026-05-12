@@ -5,39 +5,31 @@ import com.example.curier_mobile.data.remote.dto.OrderDto
 import com.example.curier_mobile.domain.model.Order
 import com.example.curier_mobile.domain.model.OrderStatus
 
-/**
- * Mappers for Order conversions between layers:
- * - DTO (network) ↔ Domain Model
- * - Domain Model ↔ Entity (database)
- */
-
 // ==================== DTO → Domain ====================
 
 fun OrderDto.toDomainModel(): Order {
-    // Backend uses "notes" field, but we map it to comments
-    val finalComments = notes ?: comments
-    val finalProductDescription = productDescription ?: "Товар"
-
     return Order(
         id = id,
         orderNumber = orderNumber,
         customerName = customerName,
         customerPhone = customerPhone,
         deliveryAddress = deliveryAddress,
-        productDescription = finalProductDescription,
-        comments = finalComments,
+        productDescription = productDescription,
+        comments = comments,
         status = OrderStatus.fromValue(status),
-        statusUpdatedAt = statusUpdatedAt ?: updatedAt,
+        courierId = courierId,
+        createdAt = createdAt,
         assignedAt = assignedAt,
-        completedAt = completedAt,
-        photoUrl = photoUrl
+        pickedUpAt = pickedUpAt,
+        nearCustomerAt = nearCustomerAt,
+        deliveredAt = deliveredAt,
+        returnedAt = returnedAt,
+        photos = photos.map { it.toDomainModel() }
     )
 }
 
 @JvmName("orderDtoListToDomainModels")
-fun List<OrderDto>.toDomainModels(): List<Order> {
-    return map { it.toDomainModel() }
-}
+fun List<OrderDto>.toDomainModels(): List<Order> = map { it.toDomainModel() }
 
 // ==================== Domain → Entity ====================
 
@@ -51,9 +43,13 @@ fun Order.toEntity(): OrderEntity {
         productDescription = productDescription,
         comments = comments,
         status = status.value,
-        statusUpdatedAt = statusUpdatedAt,
+        courierId = courierId,
+        createdAt = createdAt,
         assignedAt = assignedAt,
-        completedAt = completedAt
+        pickedUpAt = pickedUpAt,
+        nearCustomerAt = nearCustomerAt,
+        deliveredAt = deliveredAt,
+        returnedAt = returnedAt
     )
 }
 
@@ -69,14 +65,16 @@ fun OrderEntity.toDomainModel(): Order {
         productDescription = productDescription,
         comments = comments,
         status = OrderStatus.fromValue(status),
-        statusUpdatedAt = statusUpdatedAt,
+        courierId = courierId,
+        createdAt = createdAt,
         assignedAt = assignedAt,
-        completedAt = completedAt,
-        photoUrl = null // Entity doesn't store photo URL
+        pickedUpAt = pickedUpAt,
+        nearCustomerAt = nearCustomerAt,
+        deliveredAt = deliveredAt,
+        returnedAt = returnedAt,
+        photos = emptyList()
     )
 }
 
 @JvmName("orderEntityListToDomainModels")
-fun List<OrderEntity>.toDomainModels(): List<Order> {
-    return map { it.toDomainModel() }
-}
+fun List<OrderEntity>.toDomainModels(): List<Order> = map { it.toDomainModel() }

@@ -1,142 +1,94 @@
 package com.example.curier_mobile.data.remote.api
 
-import com.example.curier_mobile.data.remote.dto.*
+import com.example.curier_mobile.data.remote.dto.LoginRequest
+import com.example.curier_mobile.data.remote.dto.LoginResponse
+import com.example.curier_mobile.data.remote.dto.LogoutRequest
+import com.example.curier_mobile.data.remote.dto.OrderDto
+import com.example.curier_mobile.data.remote.dto.PhotoMetaDto
+import com.example.curier_mobile.data.remote.dto.ProfileDto
+import com.example.curier_mobile.data.remote.dto.RefreshTokenRequest
+import com.example.curier_mobile.data.remote.dto.RefreshTokenResponse
+import com.example.curier_mobile.data.remote.dto.StatisticsDto
+import com.example.curier_mobile.data.remote.dto.UpdateProfileRequest
+import com.example.curier_mobile.data.remote.dto.UpdateStatusRequest
 import okhttp3.MultipartBody
 import retrofit2.Response
-import retrofit2.http.*
+import retrofit2.http.Body
+import retrofit2.http.GET
+import retrofit2.http.Multipart
+import retrofit2.http.POST
+import retrofit2.http.PUT
+import retrofit2.http.Part
+import retrofit2.http.Path
+import retrofit2.http.Query
 
 /**
- * Retrofit API service for backend communication
- * All endpoints return Response<T> for manual error handling
+ * Retrofit интерфейс под NestJS бэкенд. Все ответы — плоские DTO без
+ * обёрток (см. соответствующие документы в `docs/`).
  */
 interface ApiService {
 
     // ==================== Authentication ====================
 
-    /**
-     * Register new courier account
-     * POST /api/auth/register
-     */
-    @POST("api/auth/register")
-    suspend fun register(
-        @Body request: RegisterRequest
-    ): Response<RegisterResponse>
+    @POST("api/auth/courier/login")
+    suspend fun loginCourier(@Body request: LoginRequest): Response<LoginResponse>
 
-    /**
-     * Login courier and receive access token
-     * POST /api/auth/login
-     */
-    @POST("api/auth/login")
-    suspend fun login(
-        @Body request: LoginRequest
-    ): Response<LoginResponse>
-
-    /**
-     * Logout current session
-     * POST /api/auth/logout
-     */
-    @POST("api/auth/logout")
-    suspend fun logout(): Response<LogoutResponse>
-
-    /**
-     * Refresh access token using refresh token
-     * POST /api/auth/refresh
-     */
     @POST("api/auth/refresh")
-    suspend fun refreshToken(
-        @Body request: RefreshTokenRequest
-    ): Response<RefreshTokenResponse>
+    suspend fun refreshToken(@Body request: RefreshTokenRequest): Response<RefreshTokenResponse>
+
+    @POST("api/auth/logout")
+    suspend fun logout(@Body request: LogoutRequest): Response<Unit>
 
     // ==================== Profile ====================
 
-    /**
-     * Get courier profile information
-     * GET /api/courier/profile
-     */
     @GET("api/courier/profile")
-    suspend fun getProfile(): Response<ProfileResponse>
+    suspend fun getProfile(): Response<ProfileDto>
 
-    /**
-     * Update courier profile settings
-     * PUT /api/courier/profile
-     */
     @PUT("api/courier/profile")
-    suspend fun updateProfile(
-        @Body request: UpdateProfileRequest
-    ): Response<UpdateProfileResponse>
+    suspend fun updateProfile(@Body request: UpdateProfileRequest): Response<ProfileDto>
 
     // ==================== Orders ====================
 
-    /**
-     * Create new random order for courier (demo/testing purpose)
-     * POST /api/courier/orders/new
-     */
-    @POST("api/courier/orders/new")
-    suspend fun createNewOrder(): Response<OrderResponse>
-
-    /**
-     * Get list of active orders for authenticated courier
-     * GET /api/courier/orders/active
-     */
     @GET("api/courier/orders/active")
-    suspend fun getActiveOrders(): Response<OrdersResponse>
+    suspend fun getActiveOrders(): Response<List<OrderDto>>
 
     /**
-     * Get completed orders history for time period
-     * GET /api/courier/orders/history
-     * @param startDate ISO 8601 timestamp (default: 24h ago)
-     * @param endDate ISO 8601 timestamp (default: now)
+     * `from` / `to` — ISO 8601 timestamps (опционально, дефолты на бэке).
      */
     @GET("api/courier/orders/history")
     suspend fun getOrderHistory(
-        @Query("start_date") startDate: String? = null,
-        @Query("end_date") endDate: String? = null
-    ): Response<OrdersResponse>
+        @Query("from") from: String? = null,
+        @Query("to") to: String? = null
+    ): Response<List<OrderDto>>
 
-    /**
-     * Get detailed information for specific order
-     * GET /api/courier/orders/{id}
-     */
     @GET("api/courier/orders/{id}")
-    suspend fun getOrderById(
-        @Path("id") orderId: Long
-    ): Response<OrderResponse>
+    suspend fun getOrderById(@Path("id") orderId: String): Response<OrderDto>
 
-    /**
-     * Update order status
-     * PUT /api/courier/orders/{id}/status
-     */
     @PUT("api/courier/orders/{id}/status")
     suspend fun updateOrderStatus(
-        @Path("id") orderId: Long,
+        @Path("id") orderId: String,
         @Body request: UpdateStatusRequest
-    ): Response<UpdateStatusResponse>
+    ): Response<OrderDto>
 
     // ==================== Photo ====================
 
-    /**
-     * Upload delivery proof photo
-     * POST /api/courier/orders/{id}/photo
-     * Multipart upload with "photo" field
-     */
     @Multipart
     @POST("api/courier/orders/{id}/photo")
     suspend fun uploadPhoto(
-        @Path("id") orderId: Long,
+        @Path("id") orderId: String,
         @Part photo: MultipartBody.Part
-    ): Response<PhotoUploadResponse>
+    ): Response<PhotoMetaDto>
 
     // ==================== Statistics ====================
 
     /**
-     * Get courier delivery statistics for time period
-     * GET /api/courier/statistics
-     * @param startDate ISO 8601 timestamp (default: 24h ago)
-     * @param endDate ISO 8601 timestamp (default: now)
+     * `period` — `24h` / `7d` / `30d` (по умолчанию `24h`). `from`/`to`
+     * перекрывают named-период если оба заданы. См. `docs/statistics.md`.
      */
     @GET("api/courier/statistics")
     suspend fun getStatistics(
-        @Query("start_date") startDate: String? = null,
-        @Query("end_date") endDate: String? = null
-    ): Response<StatisticsResponse>
+        @Query("period") period: String? = null,
+        @Query("from") from: String? = null,
+        @Query("to") to: String? = null
+    ): Response<StatisticsDto>
 }

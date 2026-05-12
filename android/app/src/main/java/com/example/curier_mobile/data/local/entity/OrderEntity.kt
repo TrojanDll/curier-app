@@ -4,21 +4,29 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 /**
- * Room entity for storing orders in local database
- * Cached from API for offline access
+ * Room entity для кэширования заказов.
+ *
+ * Фото (`OrderCourierResponse.photos`) не кэшируем — список фото нужен
+ * только в `OrderDetails` и обновляется при каждом fetch. Хранить
+ * сырые `Photo` отдельной таблицей было бы лишним для UI, которое
+ * всегда показывает свежий ответ API.
  */
 @Entity(tableName = "orders")
 data class OrderEntity(
     @PrimaryKey
-    val id: Long,
+    val id: String,
     val orderNumber: String,
     val customerName: String,
     val customerPhone: String?,
     val deliveryAddress: String,
-    val productDescription: String,
+    val productDescription: String?,
     val comments: String?,
-    val status: String, // "assigned", "picked_up", "near_customer", "delivered", "returned"
-    val statusUpdatedAt: String?, // ISO 8601 timestamp
-    val assignedAt: String, // ISO 8601 timestamp
-    val completedAt: String? // ISO 8601 timestamp
+    val status: String,
+    val courierId: String?,
+    val createdAt: String,
+    val assignedAt: String?,
+    val pickedUpAt: String?,
+    val nearCustomerAt: String?,
+    val deliveredAt: String?,
+    val returnedAt: String?
 )

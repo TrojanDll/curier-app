@@ -11,6 +11,6 @@ data class OrderDetailsUiState(
     val error: String? = null,
     val statusUpdateSuccess: Boolean = false,
     val photoUploadSuccess: Boolean = false,
-    val photoUrl: String? = null,
+    val lastUploadedPhotoId: String? = null,
     val availableStatusTransitions: List<OrderStatus> = emptyList()
 )

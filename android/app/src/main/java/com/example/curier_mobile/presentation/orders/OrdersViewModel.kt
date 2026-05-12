@@ -99,32 +99,4 @@ class OrdersViewModel(
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
-
-    /**
-     * Get new random order for courier (demo/testing purpose)
-     */
-    fun getNewOrder() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
-
-            when (val result = orderRepository.createNewOrder()) {
-                is Result.Success -> {
-                    _uiState.update { it.copy(isLoading = false) }
-                    // Order will appear automatically in the list via Flow
-                }
-                is Result.Error -> {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            error = result.exception.message ?: "Ошибка получения заказа"
-                        )
-                    }
-                    showError(result.exception.message ?: "Ошибка получения заказа")
-                }
-                is Result.Loading -> {
-                    // Already handled
-                }
-            }
-        }
-    }
 }

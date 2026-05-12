@@ -134,7 +134,7 @@ class PhotoCaptureFragment : BaseFragment<FragmentPhotoCaptureBinding>() {
         // Create output file
         val photoFile = PhotoFileManager.createPhotoFile(
             requireContext(),
-            args.orderId.toLong()
+            args.orderId
         )
 
         val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()

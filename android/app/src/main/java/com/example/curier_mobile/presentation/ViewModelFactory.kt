@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModelProvider
 import com.example.curier_mobile.core.di.NetworkModule
 import com.example.curier_mobile.core.di.RepositoryModule
 import com.example.curier_mobile.presentation.auth.LoginViewModel
-import com.example.curier_mobile.presentation.auth.RegisterViewModel
 import com.example.curier_mobile.presentation.history.HistoryViewModel
 import com.example.curier_mobile.presentation.orders.OrderDetailsViewModel
 import com.example.curier_mobile.presentation.orders.OrdersViewModel
@@ -13,7 +12,7 @@ import com.example.curier_mobile.presentation.profile.ProfileViewModel
 import com.example.curier_mobile.presentation.serverconfig.ServerConfigViewModel
 
 /**
- * Factory for creating ViewModels with dependencies
+ * Factory for creating ViewModels with dependencies.
  */
 class ViewModelFactory(
     private val orderId: String? = null
@@ -24,11 +23,6 @@ class ViewModelFactory(
         return when {
             modelClass.isAssignableFrom(LoginViewModel::class.java) -> {
                 LoginViewModel(
-                    authRepository = RepositoryModule.provideAuthRepository()
-                ) as T
-            }
-            modelClass.isAssignableFrom(RegisterViewModel::class.java) -> {
-                RegisterViewModel(
                     authRepository = RepositoryModule.provideAuthRepository()
                 ) as T
             }

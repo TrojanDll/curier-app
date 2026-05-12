@@ -1,13 +1,28 @@
 package com.example.curier_mobile.domain.model
 
 /**
- * Domain model for Courier Statistics
+ * Domain model для статистики курьера.
+ *
+ * Соответствует `CourierSelfStatsResponse` (см. `docs/statistics.md`).
+ *
+ * - `completedDeliveries` — заказы со статусом `delivered` или `returned`
+ *   (бэк отдаёт это в `successfulDeliveries`).
+ * - `returnedDeliveries` — заказы со статусом `returned`
+ *   (полностью закрытый цикл).
+ * - `averageDeliveryTimeMinutes = null` — нет завершённых доставок в окне.
  */
 data class Statistics(
     val totalDeliveries: Int,
     val completedDeliveries: Int,
-    val averageDeliveryTimeMinutes: Int,
-    val successRate: Double, // 0.0 to 1.0
-    val periodStart: String, // ISO 8601 timestamp
-    val periodEnd: String // ISO 8601 timestamp
-)
+    val returnedDeliveries: Int,
+    val averageDeliveryTimeMinutes: Int?,
+    val periodFrom: String?,
+    val periodTo: String?
+) {
+    val successRate: Double
+        get() = if (totalDeliveries > 0) {
+            completedDeliveries.toDouble() / totalDeliveries.toDouble()
+        } else {
+            0.0
+        }
+}

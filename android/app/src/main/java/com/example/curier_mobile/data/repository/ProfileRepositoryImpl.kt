@@ -9,10 +9,6 @@ import com.example.curier_mobile.data.remote.dto.UpdateProfileRequest
 import com.example.curier_mobile.domain.model.User
 import com.example.curier_mobile.domain.repository.ProfileRepository
 
-/**
- * Implementation of ProfileRepository
- * Handles profile operations with API and local caching
- */
 class ProfileRepositoryImpl(
     private val apiService: ApiService,
     private val userDao: UserDao
@@ -21,20 +17,14 @@ class ProfileRepositoryImpl(
     override suspend fun getProfile(): Result<User> {
         return try {
             val response = apiService.getProfile()
+            val body = response.body()
 
-            if (response.isSuccessful && response.body()?.success == true) {
-                val data = response.body()?.data?.profile
-                if (data != null) {
-                    val user = data.toDomainModel()
-                    // Cache profile in database
-                    userDao.insertUser(user.toEntity())
-                    Result.Success(user)
-                } else {
-                    Result.Error(Exception("Profile fetch failed: No data received"))
-                }
+            if (response.isSuccessful && body != null) {
+                val user = body.toDomainModel()
+                userDao.insertUser(user.toEntity())
+                Result.Success(user)
             } else {
-                val message = response.body()?.message ?: "Profile fetch failed"
-                Result.Error(Exception(message))
+                Result.Error(Exception("Не удалось загрузить профиль (HTTP ${response.code()})"))
             }
         } catch (e: Exception) {
             Result.Error(e)
@@ -43,30 +33,20 @@ class ProfileRepositoryImpl(
 
     override suspend fun updateProfile(
         email: String?,
-        phone: String?,
-        dateOfBirth: String?
+        phone: String?
     ): Result<User> {
         return try {
-            val request = UpdateProfileRequest(
-                email = email,
-                phone = phone,
-                dateOfBirth = dateOfBirth
+            val response = apiService.updateProfile(
+                UpdateProfileRequest(email = email, phone = phone)
             )
-            val response = apiService.updateProfile(request)
+            val body = response.body()
 
-            if (response.isSuccessful && response.body()?.success == true) {
-                val data = response.body()?.data?.profile
-                if (data != null) {
-                    val user = data.toDomainModel()
-                    // Update cached profile in database
-                    userDao.insertUser(user.toEntity())
-                    Result.Success(user)
-                } else {
-                    Result.Error(Exception("Profile update failed: No data received"))
-                }
+            if (response.isSuccessful && body != null) {
+                val user = body.toDomainModel()
+                userDao.insertUser(user.toEntity())
+                Result.Success(user)
             } else {
-                val message = response.body()?.message ?: "Profile update failed"
-                Result.Error(Exception(message))
+                Result.Error(Exception("Не удалось обновить профиль (HTTP ${response.code()})"))
             }
         } catch (e: Exception) {
             Result.Error(e)

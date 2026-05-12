@@ -27,7 +27,7 @@ class OrderDetailsViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
-            when (val result = orderRepository.getOrderById(orderId.toLong())) {
+            when (val result = orderRepository.getOrderById(orderId)) {
                 is Result.Success -> {
                     val order = result.data
                     val availableTransitions = getAvailableStatusTransitions(order.status)
@@ -58,7 +58,7 @@ class OrderDetailsViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isUpdatingStatus = true, error = null) }
 
-            when (val result = orderRepository.updateOrderStatus(orderId.toLong(), newStatus)) {
+            when (val result = orderRepository.updateOrderStatus(orderId, newStatus)) {
                 is Result.Success -> {
                     val updatedOrder = result.data
                     val availableTransitions = getAvailableStatusTransitions(updatedOrder.status)
@@ -91,13 +91,13 @@ class OrderDetailsViewModel(
             _uiState.update { it.copy(isUploadingPhoto = true, error = null) }
 
             val photoFile = java.io.File(photoPath)
-            when (val result = orderRepository.uploadPhoto(orderId.toLong(), photoFile)) {
+            when (val result = orderRepository.uploadPhoto(orderId, photoFile)) {
                 is Result.Success -> {
                     _uiState.update {
                         it.copy(
                             isUploadingPhoto = false,
                             photoUploadSuccess = true,
-                            photoUrl = result.data
+                            lastUploadedPhotoId = result.data.id
                         )
                     }
                 }
@@ -130,6 +130,7 @@ class OrderDetailsViewModel(
 
     private fun getAvailableStatusTransitions(currentStatus: OrderStatus): List<OrderStatus> {
         return when (currentStatus) {
+            OrderStatus.NEW -> emptyList()
             OrderStatus.ASSIGNED -> listOf(OrderStatus.PICKED_UP)
             OrderStatus.PICKED_UP -> listOf(OrderStatus.NEAR_CUSTOMER)
             OrderStatus.NEAR_CUSTOMER -> listOf(OrderStatus.DELIVERED, OrderStatus.RETURNED)

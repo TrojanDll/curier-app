@@ -178,8 +178,7 @@ class ProfileViewModel(
 
             when (val result = profileRepository.updateProfile(
                 email = email?.takeIf { it.isNotBlank() },
-                phone = phone?.takeIf { it.isNotBlank() },
-                dateOfBirth = null
+                phone = phone?.takeIf { it.isNotBlank() }
             )) {
                 is Result.Success -> {
                     _uiState.update {

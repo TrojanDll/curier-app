@@ -26,20 +26,6 @@
             app:destination="@id/mainFragment"
             app:popUpTo="@id/loginFragment"
             app:popUpToInclusive="true" />
-        <action
-            android:id="@+id/action_login_to_register"
-            app:destination="@id/registerFragment" />
-    </fragment>
-
-    <fragment
-        android:id="@+id/registerFragment"
-        android:name="com.example.curier_mobile.presentation.auth.RegisterFragment"
-        android:label="Регистрация">
-        <action
-            android:id="@+id/action_register_to_main"
-            app:destination="@id/mainFragment"
-            app:popUpTo="@id/loginFragment"
-            app:popUpToInclusive="true" />
     </fragment>
 
     <!-- Main Container with Bottom Navigation -->

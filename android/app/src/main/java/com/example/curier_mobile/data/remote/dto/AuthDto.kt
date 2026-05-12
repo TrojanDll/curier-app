@@ -1,110 +1,51 @@
 package com.example.curier_mobile.data.remote.dto
 
-import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * Authentication DTOs for login/logout/refresh
+ * Auth DTO — соответствует endpoint-ам NestJS бэкенда:
+ * `POST /api/auth/courier/login`, `POST /api/auth/refresh`,
+ * `POST /api/auth/logout`. См. `docs/auth.md`.
+ *
+ * Ответы — плоские объекты без обёртки `{ success, message, data }`.
  */
 
 @JsonClass(generateAdapter = true)
 data class LoginRequest(
-    @Json(name = "username")
     val username: String,
-
-    @Json(name = "password")
     val password: String
 )
 
 @JsonClass(generateAdapter = true)
 data class LoginResponse(
-    @Json(name = "success")
-    val success: Boolean,
-
-    @Json(name = "message")
-    val message: String,
-
-    @Json(name = "data")
-    val data: TokenData?
-)
-
-@JsonClass(generateAdapter = true)
-data class RegisterRequest(
-    @Json(name = "username")
-    val username: String,
-
-    @Json(name = "password")
-    val password: String,
-
-    @Json(name = "full_name")
-    val fullName: String,
-
-    @Json(name = "phone")
-    val phone: String
-)
-
-@JsonClass(generateAdapter = true)
-data class RegisterResponse(
-    @Json(name = "success")
-    val success: Boolean,
-
-    @Json(name = "message")
-    val message: String,
-
-    @Json(name = "data")
-    val data: TokenData?
-)
-
-@JsonClass(generateAdapter = true)
-data class TokenData(
-    @Json(name = "access_token")
     val accessToken: String,
-
-    @Json(name = "refresh_token")
     val refreshToken: String,
-
-    @Json(name = "expires_in")
-    val expiresIn: Long,
-
-    @Json(name = "courier")
-    val courier: CourierDto
+    val user: CourierProfileDto
 )
 
 @JsonClass(generateAdapter = true)
-data class CourierDto(
-    @Json(name = "id")
-    val id: Long,
-
-    @Json(name = "username")
+data class CourierProfileDto(
+    val id: String,
     val username: String,
-
-    @Json(name = "full_name")
-    val fullName: String
-)
-
-@JsonClass(generateAdapter = true)
-data class LogoutResponse(
-    @Json(name = "success")
-    val success: Boolean,
-
-    @Json(name = "message")
-    val message: String
+    val fullName: String,
+    val email: String? = null,
+    val phone: String? = null,
+    val isActive: Boolean = true,
+    val isPaused: Boolean = false
 )
 
 @JsonClass(generateAdapter = true)
 data class RefreshTokenRequest(
-    @Json(name = "refresh_token")
     val refreshToken: String
 )
 
 @JsonClass(generateAdapter = true)
 data class RefreshTokenResponse(
-    @Json(name = "success")
-    val success: Boolean,
+    val accessToken: String,
+    val refreshToken: String
+)
 
-    @Json(name = "message")
-    val message: String,
-
-    @Json(name = "data")
-    val data: TokenData?
+@JsonClass(generateAdapter = true)
+data class LogoutRequest(
+    val refreshToken: String
 )

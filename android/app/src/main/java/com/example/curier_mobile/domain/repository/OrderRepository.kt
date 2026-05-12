@@ -3,81 +3,48 @@ package com.example.curier_mobile.domain.repository
 import com.example.curier_mobile.core.result.Result
 import com.example.curier_mobile.domain.model.Order
 import com.example.curier_mobile.domain.model.OrderStatus
+import com.example.curier_mobile.domain.model.Photo
 import com.example.curier_mobile.domain.model.Statistics
 import kotlinx.coroutines.flow.Flow
 import java.io.File
 
-/**
- * Repository interface for order operations
- */
 interface OrderRepository {
 
-    /**
-     * Get active orders (Flow for real-time updates)
-     * @return Flow of list of active orders
-     */
     fun getActiveOrdersFlow(): Flow<List<Order>>
 
-    /**
-     * Get active orders (single fetch)
-     * @return Result with list of active orders
-     */
     suspend fun getActiveOrders(): Result<List<Order>>
 
     /**
-     * Create new random order for courier (demo/testing purpose)
-     * @return Result with new Order
-     */
-    suspend fun createNewOrder(): Result<Order>
-
-    /**
-     * Get order history for time period
-     * @param startDate ISO 8601 timestamp (optional, default: 24h ago)
-     * @param endDate ISO 8601 timestamp (optional, default: now)
-     * @return Result with list of completed orders
+     * `from` / `to` — ISO 8601 timestamps. Бэк применяет дефолтное окно,
+     * если оба не заданы (см. `docs/orders.md`).
      */
     suspend fun getOrderHistory(
-        startDate: String? = null,
-        endDate: String? = null
+        from: String? = null,
+        to: String? = null
     ): Result<List<Order>>
 
-    /**
-     * Get order by ID
-     * @param orderId Order ID
-     * @return Result with Order details
-     */
-    suspend fun getOrderById(orderId: Long): Result<Order>
+    suspend fun getOrderById(orderId: String): Result<Order>
 
-    /**
-     * Update order status
-     * @param orderId Order ID
-     * @param newStatus New order status
-     * @return Result with updated Order
-     */
     suspend fun updateOrderStatus(
-        orderId: Long,
+        orderId: String,
         newStatus: OrderStatus
     ): Result<Order>
 
     /**
-     * Upload delivery proof photo
-     * @param orderId Order ID
-     * @param photoFile Photo file
-     * @return Result with photo URL
+     * Возвращает метаданные загруженной фотографии (id + timestamps).
+     * Сами байты выдаются отдельным защищённым endpoint-ом.
      */
     suspend fun uploadPhoto(
-        orderId: Long,
+        orderId: String,
         photoFile: File
-    ): Result<String>
+    ): Result<Photo>
 
     /**
-     * Get delivery statistics
-     * @param startDate ISO 8601 timestamp (optional, default: 24h ago)
-     * @param endDate ISO 8601 timestamp (optional, default: now)
-     * @return Result with Statistics
+     * `period` — `24h` / `7d` / `30d`; `from`/`to` перекрывают named-период.
      */
     suspend fun getStatistics(
-        startDate: String? = null,
-        endDate: String? = null
+        period: String? = null,
+        from: String? = null,
+        to: String? = null
     ): Result<Statistics>
 }

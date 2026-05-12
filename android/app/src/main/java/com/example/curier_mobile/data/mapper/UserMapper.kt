@@ -1,37 +1,35 @@
 package com.example.curier_mobile.data.mapper
 
 import com.example.curier_mobile.data.local.entity.UserEntity
-import com.example.curier_mobile.data.remote.dto.CourierDto
-import com.example.curier_mobile.data.remote.dto.ProfileData
+import com.example.curier_mobile.data.remote.dto.CourierProfileDto
+import com.example.curier_mobile.data.remote.dto.ProfileDto
 import com.example.curier_mobile.domain.model.User
-
-/**
- * Mappers for User conversions between layers:
- * - DTO (network) ↔ Domain Model
- * - Domain Model ↔ Entity (database)
- */
 
 // ==================== DTO → Domain ====================
 
-fun CourierDto.toDomainModel(): User {
-    return User(
-        id = id,
-        username = username,
-        fullName = fullName,
-        email = null,
-        phone = null,
-        dateOfBirth = null
-    )
-}
-
-fun ProfileData.toDomainModel(): User {
+fun CourierProfileDto.toDomainModel(): User {
     return User(
         id = id,
         username = username,
         fullName = fullName,
         email = email,
         phone = phone,
-        dateOfBirth = dateOfBirth
+        dateOfBirth = null,
+        isActive = isActive,
+        isPaused = isPaused
+    )
+}
+
+fun ProfileDto.toDomainModel(): User {
+    return User(
+        id = id,
+        username = username,
+        fullName = fullName,
+        email = email,
+        phone = phone,
+        dateOfBirth = dateOfBirth,
+        isActive = isActive,
+        isPaused = isPaused
     )
 }
 
@@ -43,7 +41,9 @@ fun User.toEntity(): UserEntity {
         username = username,
         fullName = fullName,
         email = email,
-        phone = phone
+        phone = phone,
+        isActive = isActive,
+        isPaused = isPaused
     )
 }
 
@@ -56,6 +56,8 @@ fun UserEntity.toDomainModel(): User {
         fullName = fullName,
         email = email,
         phone = phone,
-        dateOfBirth = null // Entity doesn't store date of birth
+        dateOfBirth = null,
+        isActive = isActive,
+        isPaused = isPaused
     )
 }

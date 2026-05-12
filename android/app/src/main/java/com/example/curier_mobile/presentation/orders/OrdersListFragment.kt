@@ -32,21 +32,19 @@ class OrdersListFragment : BaseFragment<FragmentOrdersListBinding>() {
     }
 
     override fun setupUI() {
-        // Setup RecyclerView adapter
         orderAdapter = OrderAdapter { order ->
             navigateToOrderDetails(order.id)
         }
         binding.rvOrders.adapter = orderAdapter
 
-        // Setup SwipeRefreshLayout
         binding.swipeRefresh.setOnRefreshListener {
             viewModel.refreshOrders()
         }
 
-        // Setup Get New Order button
-        binding.fabGetNewOrder.setOnClickListener {
-            viewModel.getNewOrder()
-        }
+        // FAB «Получить заказ» оставлен для совместимости layout-а, но
+        // курьер не создаёт заказы — они приходят через auto-assign бэка.
+        // TODO §7.5 / §7.6: убрать FAB, оставив только pull-to-refresh.
+        binding.fabGetNewOrder.visibility = View.GONE
     }
 
     override fun observeViewModel() {
@@ -94,10 +92,10 @@ class OrdersListFragment : BaseFragment<FragmentOrdersListBinding>() {
         }
     }
 
-    private fun navigateToOrderDetails(orderId: Long) {
+    private fun navigateToOrderDetails(orderId: String) {
         val action = R.id.action_ordersListFragment_to_orderDetailsFragment
         val bundle = Bundle().apply {
-            putString("orderId", orderId.toString())
+            putString("orderId", orderId)
         }
         findNavController().navigate(action, bundle)
     }

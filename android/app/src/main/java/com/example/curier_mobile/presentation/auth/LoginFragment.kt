@@ -44,11 +44,6 @@ class LoginFragment : BaseFragment<FragmentLoginBinding>() {
         binding.btnLogin.setOnClickListener {
             viewModel.onLoginClicked()
         }
-
-        // Register link click
-        binding.tvRegisterLink.setOnClickListener {
-            findNavController().navigate(R.id.action_login_to_register)
-        }
     }
 
     override fun observeViewModel() {

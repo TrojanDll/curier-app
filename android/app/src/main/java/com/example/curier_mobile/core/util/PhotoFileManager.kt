@@ -7,7 +7,7 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Utility for managing photo files
+ * Utility for managing photo files locally before upload.
  */
 object PhotoFileManager {
 
@@ -15,36 +15,29 @@ object PhotoFileManager {
     private const val PHOTO_PREFIX = "ORDER_"
     private const val PHOTO_EXTENSION = ".jpg"
 
-    /**
-     * Create a new photo file for an order
-     */
-    fun createPhotoFile(context: Context, orderId: Long): File {
+    fun createPhotoFile(context: Context, orderId: String): File {
         val photoDir = getPhotoDirectory(context)
         if (!photoDir.exists()) {
             photoDir.mkdirs()
         }
 
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-        val fileName = "${PHOTO_PREFIX}${orderId}_${timestamp}${PHOTO_EXTENSION}"
+        val safeOrderId = orderId.replace(Regex("[^A-Za-z0-9_-]"), "_")
+        val fileName = "${PHOTO_PREFIX}${safeOrderId}_${timestamp}${PHOTO_EXTENSION}"
 
         return File(photoDir, fileName)
     }
 
-    /**
-     * Get photo file for an order if it exists
-     */
-    fun getPhotoFile(context: Context, orderId: Long): File? {
+    fun getPhotoFile(context: Context, orderId: String): File? {
         val photoDir = getPhotoDirectory(context)
         if (!photoDir.exists()) return null
 
+        val safeOrderId = orderId.replace(Regex("[^A-Za-z0-9_-]"), "_")
         return photoDir.listFiles()
-            ?.filter { it.name.startsWith("${PHOTO_PREFIX}${orderId}_") }
+            ?.filter { it.name.startsWith("${PHOTO_PREFIX}${safeOrderId}_") }
             ?.maxByOrNull { it.lastModified() }
     }
 
-    /**
-     * Delete photo file
-     */
     fun deletePhotoFile(file: File): Boolean {
         return if (file.exists()) {
             file.delete()
@@ -53,24 +46,15 @@ object PhotoFileManager {
         }
     }
 
-    /**
-     * Get photo directory
-     */
     private fun getPhotoDirectory(context: Context): File {
         return File(context.filesDir, PHOTO_DIR)
     }
 
-    /**
-     * Get all photo files for cleanup
-     */
     fun getAllPhotoFiles(context: Context): List<File> {
         val photoDir = getPhotoDirectory(context)
         return photoDir.listFiles()?.toList() ?: emptyList()
     }
 
-    /**
-     * Clean up old photos (older than 30 days)
-     */
     fun cleanupOldPhotos(context: Context, daysToKeep: Int = 30) {
         val photoDir = getPhotoDirectory(context)
         if (!photoDir.exists()) return

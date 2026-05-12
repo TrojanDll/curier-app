@@ -117,7 +117,9 @@ class OrderDetailsFragment : BaseFragment<FragmentOrderDetailsBinding>() {
             binding.tvDeliveryAddress.text = order.deliveryAddress
 
             // Format assigned date
-            binding.tvAssignedAt.text = getString(R.string.assigned_at_format, order.assignedAt)
+            binding.tvAssignedAt.text = order.assignedAt
+                ?.let { getString(R.string.assigned_at_format, it) }
+                ?: getString(R.string.not_specified)
 
             // Show notes if available
             if (!order.comments.isNullOrBlank()) {
@@ -167,8 +169,9 @@ class OrderDetailsFragment : BaseFragment<FragmentOrderDetailsBinding>() {
         // Show only available transitions
         availableTransitions.forEach { status ->
             when (status) {
-                OrderStatus.ASSIGNED -> {
-                    // ASSIGNED is initial status, no button needed
+                OrderStatus.NEW, OrderStatus.ASSIGNED -> {
+                    // ASSIGNED — стартовый статус для курьера, кнопок нет.
+                    // NEW в available-списке не появляется, см. OrderStatus.getNextStatus.
                 }
                 OrderStatus.PICKED_UP -> {
                     binding.btnStatusPickedUp.visibility = View.VISIBLE
@@ -199,6 +202,7 @@ class OrderDetailsFragment : BaseFragment<FragmentOrderDetailsBinding>() {
 
     private fun getStatusColor(status: OrderStatus): Int {
         return when (status) {
+            OrderStatus.NEW -> android.R.color.darker_gray
             OrderStatus.ASSIGNED -> android.R.color.holo_purple
             OrderStatus.PICKED_UP -> android.R.color.holo_blue_light
             OrderStatus.NEAR_CUSTOMER -> android.R.color.holo_orange_light

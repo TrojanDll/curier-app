@@ -28,3 +28,4 @@ Project documentation cache. Each entry links to a detailed doc file.
 - [Android Server Config](android-server-config.md) — ServerConfigManager + runtime BASE_URL, ServerConfigFragment + health-check, Profile change-server flow, reset механика (Stage 4.1–4.2 / §7.1–7.3)
 - [Android API Integration](android-api-integration.md) — wire format (no envelope, camelCase, UUID), DTO ↔ NestJS endpoints, JwtUtils, Room v3, error mapping, paused-courier banner (Stage 4.3–4.4 / §7.4–7.5)
 - [Android Realtime](android-realtime.md) — Socket.IO `/realtime` handshake, RealtimeManager singleton, event → ViewModel map, reconnect/lifecycle policy (Stage 4.5 / §7.6–7.7)
+- [Android App Settings](android-app-settings.md) — Profile info card (photo TTL + support contact) via `GET /api/courier/settings`, repo+DI+UI map, fallback text policy (§7.8)

@@ -1,6 +1,7 @@
 # Admin Settings — API Integration
 
-Stage 14.3.6. Real backend wire-up for the admin Settings page. Source:
+Stage 14.3.6 (TTL + change password). §7.8 added the support-contact
+field. Real backend wire-up for the admin Settings page. Source:
 `admin/src/lib/api/settings.ts`,
 `admin/src/app/(authenticated)/settings/SettingsClient.tsx`. Backend
 contracts: `docs/settings.md` + the change-password section of
@@ -70,6 +71,25 @@ introduced without touching the call sites.
   (`Последнее обновление: dd.mm.yyyy, HH:mm`, ru-RU locale).
 - Submit button is `disabled` while `settings` is undefined (loading);
   isLoading on the button is the mutation's `isPending`.
+
+### Support contact form (§7.8)
+
+- Same controlled-input pattern as TTL — `supportContact` state seeds
+  from `settings.supportContact ?? ""` in the shared `useEffect`.
+- 3-row `<textarea>` with `maxLength={SUPPORT_CONTACT_MAX}` (500 chars,
+  matches backend `@MaxLength(500)`).
+- Submit handler trims and converts the result: empty string → explicit
+  `null` (clear), non-empty trimmed → the trimmed value. The backend
+  also normalises whitespace-only → NULL but sending `null` client-side
+  keeps the no-op detection accurate (`nextValue === currentValue`).
+- Toast wording follows the action: `Контакт поддержки сохранён` on
+  set, `Контакт поддержки очищен` on clear, `Контакт не изменился` on
+  no-op. Backend validation errors surface via `extractMessage`.
+- Save buttons for TTL and support contact are independent — admins can
+  edit one without touching the other; both forms share
+  `updateSettings.isPending` so only the active one shows the spinner
+  (the other reuses the same mutation but won't submit without a
+  change).
 
 ### Password form
 

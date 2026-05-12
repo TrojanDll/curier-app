@@ -1,25 +1,43 @@
 # Settings — Backend Reference
 
-NestJS `SettingsModule` (Stage 2.15, added during §14.3.6). Source:
-`backend/src/settings/`. Runtime-editable app-wide tunables, currently a
-single field — `photoTtlDays`.
+NestJS `SettingsModule` (Stage 2.15, admin endpoints added during
+§14.3.6; courier read added in §7.8). Source: `backend/src/settings/`.
+Runtime-editable app-wide tunables. Currently two fields:
+`photoTtlDays` and `supportContact`.
 
 ## Endpoints
 
-All routes are admin-only (`@UseGuards(JwtAuthGuard, RolesGuard)`,
-`@Roles(['admin'])`) and mounted under `/api/*` via `app.setGlobalPrefix('api')`.
+Admin routes (`@UseGuards(JwtAuthGuard, RolesGuard)`,
+`@Roles(['admin'])`); courier read uses the same guards with
+`@Roles(['courier'])`. All mounted under `/api/*` via
+`app.setGlobalPrefix('api')`.
 
-| Method | Path | Status | Body in | Body out |
-|---|---|---|---|---|
-| GET | `/api/admin/settings` | 200 / 401 / 403 | — | `AppSettingsView` |
-| PATCH | `/api/admin/settings` | 200 / 400 / 401 / 403 | `UpdateSettingsDto` | `AppSettingsView` (after update) |
+| Method | Path | Roles | Status | Body in | Body out |
+|---|---|---|---|---|---|
+| GET | `/api/admin/settings` | admin | 200 / 401 / 403 | — | `AppSettingsView` |
+| PATCH | `/api/admin/settings` | admin | 200 / 400 / 401 / 403 | `UpdateSettingsDto` | `AppSettingsView` (after update) |
+| GET | `/api/courier/settings` | courier | 200 / 401 / 403 | — | `PublicAppSettingsView` |
 
 ### `AppSettingsView`
 
 ```ts
 {
-  photoTtlDays: number;   // 1..365 (DB CHECK is service-level, not column-level)
+  photoTtlDays: number;            // 1..365 (DB CHECK is service-level, not column-level)
+  supportContact: string | null;   // ≤500 chars; NULL = "not configured"
   updatedAt: ISOString;
+}
+```
+
+### `PublicAppSettingsView`
+
+Strict subset of `AppSettingsView` exposed to couriers — drops
+`updatedAt` and any future admin-internal fields (e.g. audit columns).
+Drives the Android Profile info card (§7.8).
+
+```ts
+{
+  photoTtlDays: number;
+  supportContact: string | null;
 }
 ```
 
@@ -27,21 +45,25 @@ All routes are admin-only (`@UseGuards(JwtAuthGuard, RolesGuard)`,
 
 ```ts
 {
-  photoTtlDays?: number;  // optional; class-validator: @IsInt @Min(1) @Max(365)
+  photoTtlDays?: number;             // @IsInt @Min(1) @Max(365)
+  supportContact?: string | null;    // @IsString @MaxLength(500); null clears
 }
 ```
 
 All fields optional — only the columns present in the body are updated.
 Sending an empty `{}` is allowed and a no-op (`updatedAt` still advances
-via Prisma's `@updatedAt`).
+via Prisma's `@updatedAt`). `supportContact: null` (or a whitespace-only
+string, which the service normalises to NULL) clears the field — mirrors
+the `UpdateCourierDto.email` clear-PATCH convention.
 
 ## Storage model
 
 ```prisma
 model AppSettings {
-  id           Int      @id @default(1)
-  photoTtlDays Int      @default(30) @map("photo_ttl_days")
-  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id             Int      @id @default(1)
+  photoTtlDays   Int      @default(30) @map("photo_ttl_days")
+  supportContact String?  @map("support_contact")   // §7.8 — free-form text
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("app_settings")
 }
@@ -68,6 +90,22 @@ change required.
 After the first boot the env value is **never** consulted again — admin
 edits via PATCH are the source of truth. Changing `PHOTO_TTL_DAYS` on a
 deployed instance has no effect; use the admin UI or PATCH directly.
+
+## Support contact semantics
+
+Added in §7.8 so the Android Profile screen can show the dispatcher's
+name + phone / email / Telegram alongside the photo TTL hint.
+
+- Free-form text, ≤500 chars. The service trims and converts
+  whitespace-only input to NULL on PATCH so the courier UI never
+  renders an empty string (it falls back to a generic "обратитесь к
+  администратору" hint instead).
+- Read by `PublicAppSettingsView` for couriers and by `AppSettingsView`
+  for admins. There is no separate cron / runtime consumer — purely
+  informational.
+- Android renders the value with `android:autoLink="phone|email|web"`,
+  so admins typing real phone numbers / URLs get tappable links for
+  free.
 
 ## Photo TTL semantics
 

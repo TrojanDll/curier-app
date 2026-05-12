@@ -41,4 +41,5 @@ Project documentation cache. Each entry links to a detailed doc file.
 - [Android Release Build](android-release-build.md) — keystore.properties + signingConfigs, R8 minify + shrinkResources, ProGuard keep matrix, versioning convention, apksigner verify (Stage 4.6 / §7.9)
 - [Docker Stack](docker-stack.md) — production compose (db + backend + admin), healthchecks/restart, BACKEND_API_URL wiring, env contract, volume backup recipe, troubleshooting (Stage 14.5)
 - [Android Unit Testing](android-testing.md) — JVM test toolchain, ViewModel skeleton, realtime/SharedFlow mocking, Android-stub traps, current coverage matrix (§14.7.1)
-- [Backend Unit Testing](backend-testing.md) — Jest toolchain, extract-then-test pattern, pure-policy modules (transitions/queries/eligibility), coverage matrix (§14.7.2)
+- [Backend Unit Testing](backend-testing.md) — Jest toolchain, extract-then-test pattern, pure-policy modules (transitions/queries/eligibility), coverage matrix (§14.7.2 + §14.7.3 e2e)
+- [Admin Playwright Testing](admin-testing.md) — Playwright config + webServer pair, login-flow coverage, locator-hygiene notes (§14.7.5)

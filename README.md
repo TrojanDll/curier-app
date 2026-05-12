@@ -1,215 +1,118 @@
-# Curier Mobile 📱
+# Курьер SaaS
 
-Мобильное приложение для курьеров на Android с простым backend сервером для разработки и тестирования.
+Self-hosted решение для курьерской службы: подписанное Android-приложение + админ-панель + backend, всё в одном архиве. Один экземпляр = одна компания.
 
-## 🎯 Описание проекта
+```
+┌──────────────┐      ┌──────────────┐      ┌────────────┐
+│ Android-APK  │  →   │ NestJS API   │  ←   │ Next.js    │
+│ (курьеры)    │      │ + PostgreSQL │      │ (админ)    │
+└──────────────┘      └──────────────┘      └────────────┘
+                              ↑
+                       docker compose
+```
 
-Учебный проект курьерского приложения с функциями:
-- Авторизация и регистрация курьеров
-- Просмотр активных заказов
-- Обновление статусов доставки
-- История выполненных заказов
-- Профиль курьера и статистика
-- Фотофиксация доставки
+## Что это даёт
 
-## 🚀 Быстрый старт
+- **Админ** через веб-панель создаёт курьеров, заводит заказы, видит статистику, настраивает TTL фото и контакт поддержки.
+- **Курьеры** ставят APK, вводят адрес сервера один раз, получают заказы push-ом через WebSocket, обновляют статусы, делают фото.
+- **Backend** — NestJS + Prisma + PostgreSQL, JWT + refresh-токены, Socket.IO для realtime, авто-назначение «дольше всех на базе» (§8).
 
-### 1. Запуск Backend сервера
+Один deployment = одна компания. Multi-tenancy нет — это намеренно упрощает всё.
+
+---
+
+## Быстрый старт (Linux-сервер)
 
 ```bash
-cd backend
-npm install
-npm start
+# 1. Поставьте Docker
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker $USER && newgrp docker
+
+# 2. Распакуйте архив (или git clone)
+mkdir -p /opt/curier && cd /opt/curier
+tar xzf ~/curier-v2.tar.gz
+
+# 3. Настройте .env
+cd docker
+cp .env.example .env
+nano .env            # обязательно: DB_PASSWORD, JWT_SECRET, INITIAL_ADMIN_*
+
+# 4. Запустите
+docker compose --env-file .env up -d --build
+
+# 5. Откройте админку
+xdg-open http://localhost:3000      # или ваш внешний IP
 ```
 
-Сервер запустится на `http://localhost:8080`
+Подробно — [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
-**Для Android эмулятора используйте:** `http://10.0.2.2:8080`
+---
 
-Подробная документация API: [backend/README.md](backend/README.md)
+## Раскладка репозитория
 
-### 2. Запуск Android приложения
+| Папка | Что |
+|---|---|
+| `/android` | Kotlin-клиент. Подписанный APK собирается через `./gradlew assembleRelease` (нужен keystore — см. [docs/android-release-build.md](docs/android-release-build.md)) |
+| `/admin` | Next.js 16 + Untitled UI + Tailwind v4 + React Query. BFF на тех же роутах через `/api/*` |
+| `/backend` | NestJS 11 + Prisma + PostgreSQL 16 + Pino |
+| `/docker` | `docker-compose.yml` + `.env.example` — production стек |
+| `/docs` | Reference-доки на каждый модуль (English) + пользовательские мануалы (Russian) |
+| `/Documentation` | План работ (`completion_plan.md`) и архив исходных артефактов проекта |
 
-#### Требования:
-- Android Studio Arctic Fox или новее
-- JDK 11+
-- Android SDK (API 24+)
+---
 
-#### Шаги:
+## Документация
 
-1. Откройте проект в Android Studio
-2. Синхронизируйте Gradle: `File → Sync Project with Gradle Files`
-3. Запустите backend сервер (см. выше)
-4. Выберите эмулятор или подключите устройство
-5. Нажмите `Run` или `Shift+F10`
+### Для тех, кто разворачивает
 
-#### Сборка из командной строки:
+- **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** — пошагово, от установки Docker до раздачи APK курьерам
+- **[docker-stack.md](docs/docker-stack.md)** — справочник по compose-стеку: сервисы, env-переменные, healthchecks, troubleshooting
 
-```bash
-# Windows
-gradlew.bat assembleDebug
+### Для пользователей
 
-# Linux/Mac
-./gradlew assembleDebug
-```
+- **[ADMIN_USER_MANUAL.md](docs/ADMIN_USER_MANUAL.md)** — как работать в админ-панели
+- **[COURIER_USER_MANUAL.md](docs/COURIER_USER_MANUAL.md)** — как пользоваться курьерским приложением
 
-## 🔐 Тестовые данные
+### Для тех, кто разрабатывает или расширяет
 
-### Существующий аккаунт
-```
-Логин: courier1
-Пароль: 123456
-```
+- **[Documentation/completion_plan.md](Documentation/completion_plan.md)** — единственный источник правды по scope и прогрессу
+- **[docs/INDEX.md](docs/INDEX.md)** — индекс reference-доков на каждый модуль (auth, orders, photos, realtime, settings, …)
+- **[CLAUDE.md](CLAUDE.md)** — инструкции для AI-ассистента, попутно описывают конвенции репозитория
 
-### Или создайте новый
-Используйте экран регистрации в приложении.
+### Для тех, кто пересобирает APK
 
-## 📱 Функции приложения
+- **[android-release-build.md](docs/android-release-build.md)** — keystore, R8 minify, ProGuard, signing, apksigner
 
-### Авторизация
-- ✅ Вход в систему
-- ✅ Регистрация нового курьера
-- ✅ JWT токены
-- ✅ Автоматическое обновление токенов
+---
 
-### Заказы
-- ✅ Список активных заказов
-- ✅ Детали заказа (адрес, контакты)
-- ✅ Обновление статусов:
-  - Забрал заказ
-  - Возле клиента
-  - Передал заказ
-  - Вернулся на предприятие
-- ✅ История выполненных заказов
-- ✅ Фотофиксация доставки
+## Технологический стек
 
-### Профиль
-- ✅ Просмотр данных курьера
-- ✅ Редактирование профиля
-- ✅ Статистика доставок
-- ✅ Выход из системы
+| Слой | Технологии |
+|---|---|
+| Android | Kotlin 2.0, Coroutines + Flow, Retrofit + Moshi, Room, Socket.IO 2.x, Material 3, View Binding, Navigation Component, KSP. Clean Architecture + MVVM. Manual DI (Hilt отключён) |
+| Admin | Next.js 16 (App Router, RSC, standalone build), Untitled UI React, Tailwind v4, React Query 5, axios, Recharts |
+| Backend | NestJS 11, Prisma 6, PostgreSQL 16, JWT + Passport, Pino, Socket.IO, class-validator, @nestjs/schedule (cron для очистки фото) |
+| Auth | JWT access (15 мин) + opaque refresh с ротацией (30 дней). HttpOnly cookies для админки. Auto-refresh через Next BFF |
+| Realtime | Socket.IO namespace `/realtime`, rooms `admin` и `courier:<id>`. Без fallback на polling |
+| Хранилище | named volumes: `db_data` (Postgres) + `uploads` (фото). Бэкап — `docker run alpine tar czf …` |
 
-### Дополнительно
-- ✅ Звонок клиенту
-- ✅ SMS клиенту
-- ✅ Открытие адреса на карте
+---
 
-## 🏗️ Архитектура
+## Конвенции
 
-### Android приложение
+- HTTP без HTTPS внутри стека. TLS-termination — задача того, что стоит перед сервером (nginx / Caddy / Traefik / Cloudflare).
+- Сервер раскатывается один раз, dev-флоу — `docker compose up -d --build`. Миграции БД применяются автоматически при старте backend.
+- Версионирование APK — semver, `versionCode` инкрементируется на каждый ship (§12).
+- Документация модулей (`docs/*.md`) на английском, пользовательские мануалы — на русском.
 
-**Clean Architecture + MVVM**
+---
 
-```
-app/
-├── presentation/      # UI слой (Fragments, ViewModels)
-├── domain/           # Бизнес-логика (UseCases, Models, Repositories)
-├── data/             # Данные (API, БД, Preferences)
-└── core/             # Общие компоненты (DI, Utils, Result)
-```
+## Лицензия
 
-**Технологии:**
-- Kotlin
-- Coroutines & Flow
-- Navigation Component
-- View Binding
-- Retrofit + OkHttp
-- Moshi (JSON)
-- Room (локальная БД)
-- CameraX
-- Coil (загрузка изображений)
+Учебный проект. MIT.
 
-### Backend сервер
+---
 
-**Node.js + Express**
+## История
 
-```
-backend/
-├── server.js         # Главный файл
-├── routes/           # API endpoints
-├── middleware/       # Аутентификация
-└── data/             # In-memory БД
-```
-
-**Технологии:**
-- Express 4.19.2
-- JWT токены
-- bcrypt для паролей
-- Multer для загрузки файлов
-
-## 🔧 Настройка
-
-### Изменить URL Backend
-
-В `app/build.gradle.kts`:
-
-```kotlin
-buildTypes {
-    debug {
-        buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/\"")
-    }
-    release {
-        buildConfigField("String", "BASE_URL", "\"https://your-api.com/\"")
-    }
-}
-```
-
-### Разрешить HTTP трафик (только для разработки)
-
-HTTP уже настроен через `network_security_config.xml` для localhost.
-
-⚠️ В production используйте только HTTPS!
-
-## 📚 Документация
-
-- [Backend API документация](backend/README.md)
-- [Инструкции по проекту](CLAUDE.md)
-
-## 🐛 Troubleshooting
-
-### CLEARTEXT communication ошибка
-✅ **Уже исправлено!** Настроен `network_security_config.xml`
-
-### Backend не доступен с эмулятора
-- Используйте `10.0.2.2` вместо `localhost`
-- Убедитесь что backend запущен
-- Проверьте порт (должен быть 8080)
-
-### Ошибка сборки Gradle
-```bash
-./gradlew clean
-./gradlew assembleDebug
-```
-
-### Backend порт занят
-Измените порт в `backend/server.js` или остановите процесс:
-```bash
-# Windows
-netstat -ano | findstr :8080
-taskkill /PID <PID> /F
-```
-
-## 📝 TODO
-
-- [ ] Интеграция с реальной БД (PostgreSQL/MongoDB)
-- [ ] Уведомления о новых заказах
-- [ ] Построение маршрута до клиента
-- [ ] Подпись клиента при получении
-- [ ] Offline режим
-- [ ] Unit и UI тесты
-
-## 📄 Лицензия
-
-MIT - учебный проект
-
-## 👨‍💻 Разработка
-
-Проект создан в учебных целях. Backend использует in-memory хранилище - данные очищаются при перезапуске.
-
-Для production необходимо:
-1. Подключить реальную БД
-2. Настроить HTTPS
-3. Добавить валидацию данных
-4. Настроить логирование
-5. Добавить тесты
-6. Настроить CI/CD
+Проект перерос v1 (Express + in-memory, один Android-клиент с захардкоженным URL) и теперь — самостоятельный SaaS-стек, который реально раздаётся «как продукт». См. [Documentation/discussion_summary.md](Documentation/discussion_summary.md) для контекста переезда.

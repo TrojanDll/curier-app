@@ -1,11 +1,28 @@
 # Architecture Design
 
+> **⚠️ Этот документ описывает v1 (одиночный Android-клиент + Express
+> backend) и сохранён как исторический артефакт. Live-архитектура v2
+> распределена по reference-докам:**
+>
+> | Если вам нужно | Смотрите |
+> |---|---|
+> | Общая картина v2 (Android + admin + backend + Docker) | [`README.md`](../README.md) |
+> | Скоуп, прогресс, технологические решения | [`Documentation/completion_plan.md`](completion_plan.md) §0, §14–§16 |
+> | Контракты backend-модулей (auth, orders, photos, …) | [`docs/INDEX.md`](../docs/INDEX.md) — секция «Backend Reference» |
+> | Интеграция admin ↔ backend | [`docs/admin-*.md`](../docs/INDEX.md) |
+> | Android-уровень после v2-доработок | [`docs/android-*.md`](../docs/INDEX.md) |
+> | Production-стек Docker (db + backend + admin) | [`docs/docker-stack.md`](../docs/docker-stack.md) |
+>
+> Ниже — оригинальный v1-документ. Конкретные классы / пути могут не
+> совпадать с актуальным кодом (структура /android изменилась при
+> v2-рефакторинге, см. CLAUDE.md «Repository Layout (v2)»).
+
 ## Document Information
 - **Project**: Curier Mobile Application
 - **Version**: 1.0
 - **Date Created**: 2025-11-04
 - **Last Updated**: 2025-11-04
-- **Status**: Approved
+- **Status**: Approved (для v1 — суперседед v2-документами выше)
 
 ## 1. System Overview
 

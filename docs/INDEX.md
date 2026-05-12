@@ -4,6 +4,15 @@ Project documentation cache. Each entry links to a detailed doc file.
 
 <!-- Формат: - [Title](file.md) — одна строка описания -->
 
+## User-facing manuals (Russian)
+
+- [DEPLOYMENT](DEPLOYMENT.md) — пошаговая инструкция для владельца сервера: docker, .env, запуск стека, бэкап, обновление (Stage 14.6.1)
+- [ADMIN_USER_MANUAL](ADMIN_USER_MANUAL.md) — мануал администратора: курьеры, заказы, статистика, настройки, troubleshooting (Stage 14.6.2)
+- [COURIER_USER_MANUAL](COURIER_USER_MANUAL.md) — мануал курьера: установка APK, ввод URL сервера, статусы, фото, поддержка (Stage 14.6.3)
+
+## Module reference (English)
+
+
 - [Backend Conventions](backend-conventions.md) — tooling, DTO+controller patterns, list query format, e2e testing helper, commit style, progress protocol
 - [Auth — Backend Reference](auth.md) — JWT/refresh endpoints, guards, decorators, payload shape (Stage 2.3)
 - [Couriers — Backend Reference](couriers.md) — admin CRUD + courier self-service endpoints, list query format, response shapes (Stage 2.4)

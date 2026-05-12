@@ -1,11 +1,27 @@
 # Dependencies
 
+> **⚠️ Этот документ описывает зависимости v1 (только Android-клиент) и
+> сохранён как исторический артефакт. Актуальные зависимости в v2:**
+>
+> | Слой | Где смотреть |
+> |---|---|
+> | Android | `android/gradle/libs.versions.toml` (version catalog), `android/app/build.gradle.kts` |
+> | Backend | `backend/package.json` + `backend/prisma/schema.prisma` |
+> | Admin | `admin/package.json` + `admin/next.config.ts` |
+> | Зафиксированные технологические решения | [`Documentation/completion_plan.md`](completion_plan.md) §15 «Решения по технологическому стеку», §16 «Open-вопросы и решения» |
+> | Production-стек Docker (точные образы) | [`docs/docker-stack.md`](../docs/docker-stack.md) |
+>
+> Ниже — оригинальный v1-документ. Версии и набор зависимостей **не
+> отражают v2-реальность** (нет упоминаний NestJS, Prisma, Next.js,
+> Socket.IO, Coil, Room и т. д.). Используйте этот файл только как
+> исторический контекст.
+
 ## Document Information
 - **Project**: Curier Mobile Application
 - **Version**: 1.0
 - **Date Created**: 2025-11-04
 - **Last Updated**: 2025-11-04
-- **Status**: Approved
+- **Status**: Approved (для v1 — суперседед v2-источниками выше)
 
 ## 1. Current Dependencies (From gradle/libs.versions.toml)
 

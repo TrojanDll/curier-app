@@ -7,7 +7,7 @@ export const metadata = {
 
 /**
  * Графики и срезы статистики (Recharts).
- * На Этапе 1 — синтетические данные; реальные эндпойнты подключим в §14.3.5.
+ * §14.3.5 — реальные данные из `/api/admin/statistics/overview` + `/couriers`.
  */
 export default function StatisticsPage() {
     return (

@@ -34,3 +34,14 @@ export const courierKeys = {
     details: () => [...courierKeys.all, "detail"] as const,
     detail: (id: string) => [...courierKeys.details(), id] as const,
 };
+
+/**
+ * Statistics — два read-only endpoint-а. Разные ключи под разные query,
+ * чтобы переключение period не сбрасывало второй кеш. На §14.3.7 Socket.IO
+ * будет инвалидировать `statisticsKeys.all` целиком, когда меняются заказы.
+ */
+export const statisticsKeys = {
+    all: ["statistics"] as const,
+    overview: (query: unknown) => [...statisticsKeys.all, "overview", query] as const,
+    couriers: (query: unknown) => [...statisticsKeys.all, "couriers", query] as const,
+};

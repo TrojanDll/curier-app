@@ -1,7 +1,7 @@
 export { apiClient } from "./client";
 export { ApiError, isApiError, toApiError, type ApiErrorEnvelope } from "./errors";
 export { createQueryClient } from "./query-client";
-export { courierKeys, orderKeys } from "./keys";
+export { courierKeys, orderKeys, statisticsKeys } from "./keys";
 export {
     useOrder,
     useOrders,
@@ -28,3 +28,18 @@ export {
     type CreateCourierInput,
     type UpdateCourierInput,
 } from "./couriers";
+export {
+    useCouriersStats,
+    useStatisticsOverview,
+    type AdminStatPeriod,
+    type AvgDeliveryBucketPoint,
+    type CouriersStats,
+    type CouriersStatsQuery,
+    type CourierStatsRow,
+    type OverviewBucketPoint,
+    type OverviewQuery,
+    type StatBucket,
+    type StatisticsOverview,
+    type StatisticsPeriod,
+    type TopCourier,
+} from "./statistics";

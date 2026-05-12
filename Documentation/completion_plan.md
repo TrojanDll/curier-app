@@ -456,7 +456,7 @@ volumes:
 ### Этап 7 — Тесты
 - [x] **7.1** Unit tests: ViewModels Android (по `test_plan.md`) _(50 тестов проходят: Login + Orders + OrderDetails + Profile + History + ServerConfig — см. `docs/android-testing.md`. `RealtimeViewModel` отсутствует как отдельный класс — realtime-приём покрыт тестами Orders + OrderDetails. Запуск: `./gradlew testDebugUnitTest`)_
 - [x] **7.2** Unit tests: Nest сервисы (auto-assign, status transitions, auth) _(41 теста проходят: password.util + order-transitions (COURIER_NEXT) + order-queries + assignment/eligibility — см. `docs/backend-testing.md`. Прежняя приватная логика OrdersService / AssignmentService извлечена в три pure-policy модуля. Запуск: `cd backend && npx jest`)_
-- [ ] **7.3** Integration tests Nest: Prisma + endpoints _(deferred: предыдущий `test/jest-e2e` skeleton, упомянутый в §14.2.14 как «30/30 PASS», удалён из репо; нужен новый scaffold с тестовой БД)_
+- [x] **7.3** Integration tests Nest: Prisma + endpoints _(20 e2e тестов проходят: health + auth (login/refresh/logout) + orders (auto-assign, drain-on-return, reassign, RolesGuard) — см. `docs/backend-testing.md`. Запуск: `cd backend && npm run test:e2e` после one-time `CREATE DATABASE curier_test`)_
 - [ ] **7.4** UI tests Android: Espresso для критических флоу _(deferred: требует emulator + AndroidJUnitRunner setup в CI)_
 - [ ] **7.5** UI tests Admin: Playwright (login, создание заказа, назначение) _(deferred: требует running compose stack как fixture)_
 - [ ] **7.6** Покрытие бизнес-логики >70%

@@ -252,8 +252,8 @@ refresh_tokens
 - [x] **7.3** _(Critical)_ В Settings/Profile добавить «Сменить сервер» (logout + сброс URL)
 - [x] **7.4** _(Critical)_ Адаптировать DTO под новый Nest-backend: UUID вместо int, новые поля, отсутствие `price` у курьера
 - [x] **7.5** _(High)_ Обработка состояния `is_paused` — баннер «Вы на паузе, новые заказы не назначаются»
-- [ ] **7.6** _(High)_ Socket.IO клиент: подписка на `orders:new`, автоматическое обновление списка
-- [ ] **7.7** _(High)_ Корректная обработка статуса `new` / `assigned` (раньше курьер видел только `assigned`)
+- [x] **7.6** _(High)_ Socket.IO клиент: подписка на `orders:new`, автоматическое обновление списка
+- [x] **7.7** _(High)_ Корректная обработка статуса `new` / `assigned` (раньше курьер видел только `assigned`)
 - [ ] **7.8** _(Medium)_ Settings → TTL info, contact support
 - [ ] **7.9** _(High)_ Release-сборка: создать keystore, signed APK, версионирование
 
@@ -432,7 +432,7 @@ volumes:
 - [x] **4.2** Экран «Подключение к серверу» (= 7.2, 7.3)
 - [x] **4.3** Адаптировать DTO под Nest API (= 7.4)
 - [x] **4.4** Обработка `is_paused` (= 7.5)
-- [ ] **4.5** Socket.IO Android-клиент (= 7.6, 7.7)
+- [x] **4.5** Socket.IO Android-клиент (= 7.6, 7.7)
 - [ ] **4.6** Сборка signed release APK + keystore (= 7.9)
 
 ### Этап 5 — Dockerization

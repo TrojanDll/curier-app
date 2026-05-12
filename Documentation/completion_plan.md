@@ -247,7 +247,7 @@ refresh_tokens
 
 ## 7. Доработки Android-клиента
 
-- [ ] **7.1** _(Critical)_ Удалить захардкоженные `BASE_URL` flavors (`emulator` / `physical`) — URL только из runtime-настроек
+- [x] **7.1** _(Critical)_ Удалить захардкоженные `BASE_URL` flavors (`emulator` / `physical`) — URL только из runtime-настроек
 - [ ] **7.2** _(Critical)_ Экран «Подключение к серверу» — ввод BASE_URL при первом запуске; хранение в EncryptedSharedPreferences
 - [ ] **7.3** _(Critical)_ В Settings/Profile добавить «Сменить сервер» (logout + сброс URL)
 - [ ] **7.4** _(Critical)_ Адаптировать DTO под новый Nest-backend: UUID вместо int, новые поля, отсутствие `price` у курьера
@@ -428,7 +428,7 @@ volumes:
 
 ### Этап 4 — Доработка Android-клиента
 > Подзадачи дублируют §7. По мере выполнения отмечайте чекбоксы и тут, и там.
-- [ ] **4.1** Удалить flavors `emulator`/`physical`, BASE_URL → runtime config (= 7.1)
+- [x] **4.1** Удалить flavors `emulator`/`physical`, BASE_URL → runtime config (= 7.1)
 - [ ] **4.2** Экран «Подключение к серверу» (= 7.2, 7.3)
 - [ ] **4.3** Адаптировать DTO под Nest API (= 7.4)
 - [ ] **4.4** Обработка `is_paused` (= 7.5)

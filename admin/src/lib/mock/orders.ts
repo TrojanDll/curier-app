@@ -244,5 +244,6 @@ export const MOCK_ORDERS: Order[] = SCENARIOS.map((scenario, index) => {
         nearCustomerAt: stepMap.get("near_customer") ?? null,
         deliveredAt: stepMap.get("delivered") ?? null,
         returnedAt: stepMap.get("returned") ?? null,
+        photos: [],
     } satisfies Order;
 });

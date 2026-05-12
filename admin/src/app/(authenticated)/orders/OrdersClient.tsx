@@ -2,6 +2,7 @@
 
 import { Plus, SearchLg, X } from "@untitledui/icons";
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/base/Button";
 import { Input } from "@/components/base/Input";
 import { OrderStatusBadge } from "@/components/data-display/StatusBadge";
@@ -9,11 +10,18 @@ import { useDebounce } from "@/hooks/use-debounce";
 import {
     isApiError,
     useActiveCouriers,
+    useOrder,
     useOrders,
     useReassignOrder,
     type OrdersListQuery,
 } from "@/lib/api";
-import { ACTIVE_ORDER_STATUSES, ORDER_STATUS_LABELS, type Order, type OrderStatus } from "@/types/order";
+import {
+    ACTIVE_ORDER_STATUSES,
+    ORDER_STATUS_LABELS,
+    type Order,
+    type OrderStatus,
+    type PhotoMeta,
+} from "@/types/order";
 import { cx } from "@/utils/cx";
 import { formatCurrency, formatDateTime, formatDuration } from "@/utils/format";
 
@@ -247,6 +255,9 @@ export function OrdersClient() {
 
             {/* Drawer */}
             <OrderDetailsDrawer
+                // key сбрасывает локальные state при смене заказа
+                // (lightbox + ReassignSection target) — идиоматичнее useEffect-сбросов.
+                key={selectedOrder?.id ?? "empty"}
                 order={selectedOrder}
                 onClose={() => setSelectedOrder(null)}
                 onOrderUpdated={(updated) => setSelectedOrder(updated)}
@@ -262,14 +273,26 @@ interface DrawerProps {
 }
 
 function OrderDetailsDrawer({ order, onClose, onOrderUpdated }: DrawerProps) {
+    // Свежие детали с photos. Списочный endpoint всегда возвращает `photos: []`,
+    // а детальный — реальный список (см. docs/photos.md → «Embedded into order detail»).
+    const detailQuery = useOrder(order?.id ?? null);
+    const [lightboxPhoto, setLightboxPhoto] = useState<PhotoMeta | null>(null);
+
+    // Esc закрывает lightbox, если открыт; иначе — drawer.
+    // Сброс lightbox при смене заказа делается через key={order.id} на компоненте.
     useEffect(() => {
         if (!order) return;
         const handler = (e: KeyboardEvent) => {
-            if (e.key === "Escape") onClose();
+            if (e.key !== "Escape") return;
+            if (lightboxPhoto) {
+                setLightboxPhoto(null);
+            } else {
+                onClose();
+            }
         };
         window.addEventListener("keydown", handler);
         return () => window.removeEventListener("keydown", handler);
-    }, [order, onClose]);
+    }, [order, onClose, lightboxPhoto]);
 
     if (!order) return null;
 
@@ -283,6 +306,7 @@ function OrderDetailsDrawer({ order, onClose, onOrderUpdated }: DrawerProps) {
     ];
 
     return (
+        <>
         <div className="fixed inset-0 z-50 flex" role="dialog" aria-modal="true" aria-labelledby="order-drawer-title">
             <div className="flex-1 bg-overlay/40" onClick={onClose} aria-hidden />
             <aside className="flex h-full w-full max-w-md flex-col overflow-y-auto bg-primary shadow-xl">
@@ -307,6 +331,14 @@ function OrderDetailsDrawer({ order, onClose, onOrderUpdated }: DrawerProps) {
 
                 <DrawerBody order={order} />
 
+                <PhotosSection
+                    orderId={order.id}
+                    photos={detailQuery.data?.photos ?? null}
+                    isLoading={detailQuery.isLoading}
+                    isError={!!detailQuery.error}
+                    onOpen={(photo) => setLightboxPhoto(photo)}
+                />
+
                 <div className="border-t border-secondary px-6 py-5">
                     <h3 className="mb-3 text-sm font-semibold text-primary">История статусов</h3>
                     <ol className="flex flex-col gap-2">
@@ -329,7 +361,129 @@ function OrderDetailsDrawer({ order, onClose, onOrderUpdated }: DrawerProps) {
                 </div>
             </aside>
         </div>
+
+        {/* Lightbox — sibling drawer-контейнера, чтобы z-[60] гарантированно
+            перекрывал aside (z-50 родителя создаёт stacking-context). */}
+        {lightboxPhoto ? (
+            <PhotoLightbox
+                orderId={order.id}
+                photo={lightboxPhoto}
+                onClose={() => setLightboxPhoto(null)}
+            />
+        ) : null}
+        </>
     );
+}
+
+interface PhotosSectionProps {
+    orderId: string;
+    /** null — детали ещё не пришли; пустой массив — фото нет. */
+    photos: PhotoMeta[] | null;
+    isLoading: boolean;
+    isError: boolean;
+    onOpen: (photo: PhotoMeta) => void;
+}
+
+/**
+ * Bytes тянутся через same-origin BFF (`/api/[...path]`), который
+ * подмешивает Authorization из HttpOnly cookie. Это позволяет
+ * использовать обычный `<img src>` — JWT Bearer хедер на `<img>`
+ * напрямую не выставить (см. docs/photos.md → «Streaming GET»).
+ */
+function PhotosSection({ orderId, photos, isLoading, isError, onOpen }: PhotosSectionProps) {
+    let body: React.ReactNode;
+    if (isError) {
+        body = <p className="text-sm text-error-primary">Не удалось загрузить фото.</p>;
+    } else if (photos === null || isLoading) {
+        body = <p className="text-sm text-tertiary">Загрузка фото…</p>;
+    } else if (photos.length === 0) {
+        body = <p className="text-sm text-tertiary">Фото ещё не загружено.</p>;
+    } else {
+        body = (
+            <ul className="grid grid-cols-3 gap-2">
+                {photos.map((photo) => (
+                    <li key={photo.id}>
+                        <button
+                            type="button"
+                            onClick={() => onOpen(photo)}
+                            className="block w-full overflow-hidden rounded-md border border-secondary bg-secondary transition hover:border-brand focus:outline-none focus:ring-2 focus:ring-brand"
+                            aria-label={`Открыть фото от ${formatDateTime(photo.uploadedAt)}`}
+                        >
+                            {/* eslint-disable-next-line @next/next/no-img-element --
+                                BFF-streamed authorized content, не подходит для next/image. */}
+                            <img
+                                src={photoUrl(orderId, photo.id)}
+                                alt=""
+                                loading="lazy"
+                                className="aspect-square w-full object-cover"
+                            />
+                        </button>
+                    </li>
+                ))}
+            </ul>
+        );
+    }
+
+    return (
+        <div className="border-t border-secondary px-6 py-5">
+            <h3 className="mb-3 text-sm font-semibold text-primary">Фото доставки</h3>
+            {body}
+        </div>
+    );
+}
+
+function PhotoLightbox({
+    orderId,
+    photo,
+    onClose,
+}: {
+    orderId: string;
+    photo: PhotoMeta;
+    onClose: () => void;
+}) {
+    // Портал в body — drawer-контейнер имеет z-50 и создаёт собственный
+    // stacking-context; render lightbox-а как sibling document.body
+    // исключает любые конкуренции с локальной иерархией.
+    if (typeof document === "undefined") return null;
+    return createPortal(
+        <div
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-6"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Просмотр фото"
+            onClick={onClose}
+        >
+            <button
+                type="button"
+                onClick={onClose}
+                className="absolute right-4 top-4 rounded-md bg-black/60 p-2 text-white transition-colors hover:bg-black/80"
+                aria-label="Закрыть фото"
+            >
+                <X className="size-5" />
+            </button>
+            {/* eslint-disable-next-line @next/next/no-img-element --
+                BFF-streamed authorized content, не подходит для next/image. */}
+            <img
+                src={photoUrl(orderId, photo.id)}
+                alt={`Фото загружено ${formatDateTime(photo.uploadedAt)}`}
+                onClick={(e) => e.stopPropagation()}
+                className="max-h-full max-w-full rounded-md object-contain shadow-2xl"
+            />
+            <p className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded bg-black/60 px-3 py-1 text-xs text-white">
+                Загружено {formatDateTime(photo.uploadedAt)}
+            </p>
+        </div>,
+        document.body,
+    );
+}
+
+/**
+ * Same-origin URL для admin-фото. BFF proxy
+ * (`admin/src/app/api/[...path]/route.ts`) переписывает запрос на
+ * backend с заголовком Authorization из HttpOnly cookie.
+ */
+function photoUrl(orderId: string, photoId: string): string {
+    return `/api/admin/orders/${orderId}/photo/${photoId}`;
 }
 
 function DrawerBody({ order }: { order: Order }) {
@@ -359,14 +513,8 @@ function DrawerBody({ order }: { order: Order }) {
 function ReassignSection({ order, onSuccess }: { order: Order; onSuccess: (o: Order) => void }) {
     const couriersQuery = useActiveCouriers();
     const reassign = useReassignOrder();
+    // Сброс формы при смене заказа обеспечен key={order.id} у OrderDetailsDrawer.
     const [target, setTarget] = useState<string>("");
-
-    useEffect(() => {
-        setTarget("");
-        reassign.reset();
-        // Сбрасываем форму при смене заказа в drawer-е.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [order.id]);
 
     const canReassign = REASSIGNABLE_STATUSES.has(order.status);
     const eligibleCouriers = useMemo(

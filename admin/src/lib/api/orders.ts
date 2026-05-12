@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "./client";
 import { orderKeys } from "./keys";
-import type { Order, OrderStatus } from "@/types/order";
+import type { Order, OrderStatus, PhotoMeta } from "@/types/order";
 
 /**
  * Контракт `GET /api/admin/orders` (см. docs/orders.md).
@@ -14,8 +14,8 @@ import type { Order, OrderStatus } from "@/types/order";
  */
 export interface PhotoMetaDto {
     id: string;
-    url: string;
     uploadedAt: string;
+    expiresAt: string;
 }
 
 export interface OrderAdminDto {
@@ -71,6 +71,10 @@ export interface OrdersListQuery {
     to?: string;
 }
 
+function mapPhoto(dto: PhotoMetaDto): PhotoMeta {
+    return { id: dto.id, uploadedAt: dto.uploadedAt, expiresAt: dto.expiresAt };
+}
+
 function mapOrder(dto: OrderAdminDto): Order {
     return {
         id: dto.id,
@@ -90,6 +94,7 @@ function mapOrder(dto: OrderAdminDto): Order {
         nearCustomerAt: dto.nearCustomerAt,
         deliveredAt: dto.deliveredAt,
         returnedAt: dto.returnedAt,
+        photos: dto.photos.map(mapPhoto),
     };
 }
 

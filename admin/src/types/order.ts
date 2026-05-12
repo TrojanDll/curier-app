@@ -31,6 +31,18 @@ export const ACTIVE_ORDER_STATUSES: ReadonlySet<OrderStatus> = new Set([
     "near_customer",
 ]);
 
+/**
+ * Метаданные фотографии доставки. Bytes тянутся через
+ * `GET /api/admin/orders/:id/photo/:photoId` (см. docs/photos.md).
+ *
+ * `expiresAt` — момент удаления файла cron-ом TTL (см. settings.md).
+ */
+export interface PhotoMeta {
+    id: string;
+    uploadedAt: string;
+    expiresAt: string;
+}
+
 export interface Order {
     id: string;
     orderNumber: string;
@@ -50,4 +62,10 @@ export interface Order {
     nearCustomerAt: string | null;
     deliveredAt: string | null;
     returnedAt: string | null;
+    /**
+     * Метаданные фото. На list-эндпоинтах backend всегда отдаёт `[]`
+     * (см. docs/photos.md): реальный список приходит только на
+     * `GET /api/admin/orders/:id` и transition/reassign-ответах.
+     */
+    photos: PhotoMeta[];
 }

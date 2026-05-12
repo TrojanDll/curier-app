@@ -1,5 +1,6 @@
 package com.example.curier_mobile.data.remote.api
 
+import com.example.curier_mobile.data.remote.dto.AppSettingsDto
 import com.example.curier_mobile.data.remote.dto.LoginRequest
 import com.example.curier_mobile.data.remote.dto.LoginResponse
 import com.example.curier_mobile.data.remote.dto.LogoutRequest
@@ -91,4 +92,13 @@ interface ApiService {
         @Query("from") from: String? = null,
         @Query("to") to: String? = null
     ): Response<StatisticsDto>
+
+    // ==================== App settings (courier read-only) ====================
+
+    /**
+     * Подмножество админских настроек для информационных блоков на Profile
+     * (§7.8): TTL фото и контакт поддержки. См. `docs/settings.md`.
+     */
+    @GET("api/courier/settings")
+    suspend fun getAppSettings(): Response<AppSettingsDto>
 }

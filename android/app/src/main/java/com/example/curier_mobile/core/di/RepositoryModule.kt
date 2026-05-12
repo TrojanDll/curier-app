@@ -1,8 +1,10 @@
 package com.example.curier_mobile.core.di
 
+import com.example.curier_mobile.data.repository.AppSettingsRepositoryImpl
 import com.example.curier_mobile.data.repository.AuthRepositoryImpl
 import com.example.curier_mobile.data.repository.OrderRepositoryImpl
 import com.example.curier_mobile.data.repository.ProfileRepositoryImpl
+import com.example.curier_mobile.domain.repository.AppSettingsRepository
 import com.example.curier_mobile.domain.repository.AuthRepository
 import com.example.curier_mobile.domain.repository.OrderRepository
 import com.example.curier_mobile.domain.repository.ProfileRepository
@@ -16,6 +18,7 @@ object RepositoryModule {
     private var authRepository: AuthRepository? = null
     private var profileRepository: ProfileRepository? = null
     private var orderRepository: OrderRepository? = null
+    private var appSettingsRepository: AppSettingsRepository? = null
 
     /**
      * Сбросить кэш репозиториев. Вызывать после смены BASE_URL, чтобы
@@ -26,6 +29,7 @@ object RepositoryModule {
         authRepository = null
         profileRepository = null
         orderRepository = null
+        appSettingsRepository = null
     }
 
     /**
@@ -62,6 +66,18 @@ object RepositoryModule {
                 apiService = NetworkModule.provideApiService(),
                 orderDao = DatabaseModule.provideOrderDao()
             ).also { orderRepository = it }
+        }
+    }
+
+    /**
+     * Provide AppSettingsRepository (§7.8). Хранит read-only снимок настроек
+     * курьеру; mutations происходят только в админке.
+     */
+    fun provideAppSettingsRepository(): AppSettingsRepository {
+        return appSettingsRepository ?: synchronized(this) {
+            appSettingsRepository ?: AppSettingsRepositoryImpl(
+                apiService = NetworkModule.provideApiService()
+            ).also { appSettingsRepository = it }
         }
     }
 }

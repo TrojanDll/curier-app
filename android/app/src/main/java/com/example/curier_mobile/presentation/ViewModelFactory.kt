@@ -51,6 +51,7 @@ class ViewModelFactory(
                     profileRepository = RepositoryModule.provideProfileRepository(),
                     orderRepository = RepositoryModule.provideOrderRepository(),
                     authRepository = RepositoryModule.provideAuthRepository(),
+                    appSettingsRepository = RepositoryModule.provideAppSettingsRepository(),
                     serverConfigManager = NetworkModule.provideServerConfigManager()
                 ) as T
             }

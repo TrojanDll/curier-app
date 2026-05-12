@@ -169,6 +169,17 @@ class ProfileFragment : BaseFragment<FragmentProfileBinding>() {
             binding.tvAvgTime.text = getString(R.string.minutes_format, stats.averageDeliveryTimeMinutes)
         }
 
+        // App info: photo TTL + support contact (§7.8). При отсутствии данных
+        // показываем дефолтный hint, чтобы пустой экран не пугал курьера.
+        val settings = state.appSettings
+        binding.tvPhotoTtlValue.text = if (settings != null) {
+            getString(R.string.photo_ttl_value_format, settings.photoTtlDays)
+        } else {
+            getString(R.string.photo_ttl_unknown)
+        }
+        binding.tvSupportContact.text = settings?.supportContact
+            ?: getString(R.string.support_contact_fallback)
+
         // Error with retry action
         state.error?.let { error ->
             Snackbar.make(binding.root, error, Snackbar.LENGTH_LONG)

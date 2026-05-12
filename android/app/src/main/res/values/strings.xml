@@ -86,6 +86,15 @@
     <string name="new_order_snackbar">Новый заказ #%s</string>
     <string name="open">Открыть</string>
 
+    <!-- App info on Profile (§7.8) -->
+    <string name="app_info_title">О приложении</string>
+    <string name="photo_ttl_section_title">Хранение фото</string>
+    <string name="photo_ttl_value_format">Фото доставок хранятся %d дн.</string>
+    <string name="photo_ttl_hint">После этого срока фото и записи о них автоматически удаляются с сервера.</string>
+    <string name="photo_ttl_unknown">Срок хранения фото уточните у администратора.</string>
+    <string name="support_section_title">Поддержка</string>
+    <string name="support_contact_fallback">По вопросам работы с приложением свяжитесь с администратором вашей компании.</string>
+
     <!-- Server Connection -->
     <string name="server_config_title">Подключение к серверу</string>
     <string name="server_config_description">Введите адрес сервера, выданный администратором. Приложение проверит подключение перед сохранением.</string>

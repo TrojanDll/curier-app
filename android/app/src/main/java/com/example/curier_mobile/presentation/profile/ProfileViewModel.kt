@@ -6,6 +6,7 @@ import com.example.curier_mobile.core.di.NetworkModule
 import com.example.curier_mobile.core.di.RepositoryModule
 import com.example.curier_mobile.core.result.Result
 import com.example.curier_mobile.data.local.preferences.ServerConfigManager
+import com.example.curier_mobile.domain.repository.AppSettingsRepository
 import com.example.curier_mobile.domain.repository.AuthRepository
 import com.example.curier_mobile.domain.repository.OrderRepository
 import com.example.curier_mobile.domain.repository.ProfileRepository
@@ -19,6 +20,7 @@ class ProfileViewModel(
     private val profileRepository: ProfileRepository,
     private val orderRepository: OrderRepository,
     private val authRepository: AuthRepository,
+    private val appSettingsRepository: AppSettingsRepository,
     private val serverConfigManager: ServerConfigManager
 ) : ViewModel() {
 
@@ -28,6 +30,7 @@ class ProfileViewModel(
     init {
         loadProfile()
         loadStatistics()
+        loadAppSettings()
     }
 
     private fun loadProfile() {
@@ -74,6 +77,25 @@ class ProfileViewModel(
         }
     }
 
+    /**
+     * Загрузка read-only снимка `GET /api/courier/settings` (§7.8). Ошибки
+     * глотаем — в UI просто не покажется значение TTL / контакта поддержки,
+     * это информационный блок, без него экран остаётся рабочим.
+     */
+    private fun loadAppSettings() {
+        viewModelScope.launch {
+            when (val result = appSettingsRepository.getSettings()) {
+                is Result.Success -> {
+                    _uiState.update { it.copy(appSettings = result.data) }
+                }
+                is Result.Error -> {
+                    // Silently ignore — see comment above.
+                }
+                is Result.Loading -> { }
+            }
+        }
+    }
+
     fun refreshProfile() {
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true, error = null) }
@@ -103,6 +125,15 @@ class ProfileViewModel(
             when (val result = orderRepository.getStatistics()) {
                 is Result.Success -> {
                     _uiState.update { it.copy(statistics = result.data) }
+                }
+                is Result.Error -> { /* Silently ignore */ }
+                is Result.Loading -> { }
+            }
+
+            // Reload app settings (silently)
+            when (val result = appSettingsRepository.getSettings()) {
+                is Result.Success -> {
+                    _uiState.update { it.copy(appSettings = result.data) }
                 }
                 is Result.Error -> { /* Silently ignore */ }
                 is Result.Loading -> { }

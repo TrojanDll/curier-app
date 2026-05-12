@@ -64,6 +64,10 @@ class OrdersListFragment : BaseFragment<FragmentOrdersListBinding>() {
         // Refreshing state
         binding.swipeRefresh.isRefreshing = state.isRefreshing
 
+        // Paused banner
+        binding.pausedBanner.visibility =
+            if (state.isCurrentCourierPaused) View.VISIBLE else View.GONE
+
         // Orders list
         orderAdapter.submitList(state.orders)
 

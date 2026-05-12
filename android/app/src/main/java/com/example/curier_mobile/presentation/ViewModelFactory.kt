@@ -28,7 +28,8 @@ class ViewModelFactory(
             }
             modelClass.isAssignableFrom(OrdersViewModel::class.java) -> {
                 OrdersViewModel(
-                    orderRepository = RepositoryModule.provideOrderRepository()
+                    orderRepository = RepositoryModule.provideOrderRepository(),
+                    profileRepository = RepositoryModule.provideProfileRepository()
                 ) as T
             }
             modelClass.isAssignableFrom(OrderDetailsViewModel::class.java) -> {

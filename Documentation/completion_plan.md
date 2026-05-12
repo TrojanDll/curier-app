@@ -414,6 +414,7 @@ volumes:
 - [x] **2.12** Pino logger + request logging middleware
 - [x] **2.13** Глобальный exception filter + единый формат ошибок API
 - [x] **2.14** Валидация входящих DTO через class-validator
+- [x] **2.15** SettingsModule (`app_settings` singleton row, GET/PATCH `/admin/settings`, runtime TTL для фото) + `POST /auth/admin/change-password` — добавлено в рамках §14.3.6, см. `docs/settings.md` и change-password секцию в `docs/auth.md`
 
 ### Этап 3 — Интеграция Admin ↔ Backend
 - [x] **3.1** API-клиент в admin (предпочтительно `tanstack/react-query` + `axios`)
@@ -421,7 +422,7 @@ volumes:
 - [x] **3.3** Подменить моки на реальные запросы — Orders
 - [x] **3.4** Подменить моки на реальные запросы — Couriers
 - [x] **3.5** Подменить моки на реальные запросы — Statistics
-- [ ] **3.6** Подменить моки на реальные запросы — Settings
+- [x] **3.6** Подменить моки на реальные запросы — Settings
 - [ ] **3.7** Socket.IO клиент в admin, обновление таблиц realtime
 - [ ] **3.8** Загрузка и просмотр фото доставки в drawer-е заказа
 

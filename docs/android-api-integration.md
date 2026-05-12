@@ -1,0 +1,138 @@
+# Android — API Integration (NestJS contract)
+
+How the courier client maps to the NestJS backend after §7.4. Cross-refs:
+`docs/auth.md`, `docs/orders.md`, `docs/couriers.md`, `docs/photos.md`,
+`docs/statistics.md`.
+
+## Wire format
+
+- **No envelope.** Every endpoint returns a plain object (or list).
+  `{ success, message, data }` is gone — Moshi adapters now decode the
+  raw shape directly.
+- **camelCase.** Field names match JSON 1:1
+  (`accessToken`, `fullName`, `pickedUpAt`, etc) — Moshi default
+  reflection produces matching keys, no `@Json(name=…)` needed.
+- **String ids.** All ids are UUIDs (`String`) across DTO / domain /
+  Room / nav-args.
+- **Decimal price** is admin-only and stripped from courier responses
+  per §15.1 — `Order` has no `price` field.
+
+## Auth
+
+| Endpoint | Backend → Android |
+|---|---|
+| `POST /api/auth/courier/login` | `LoginResponse(accessToken, refreshToken, user: CourierProfileDto)` |
+| `POST /api/auth/refresh` | `RefreshTokenResponse(accessToken, refreshToken)` |
+| `POST /api/auth/logout` | 204, body `{ refreshToken }` |
+
+`LoginResponse` no longer carries `expiresIn`. `JwtUtils.expiresInSeconds`
+(`core/util/JwtUtils.kt`) base64-decodes the JWT payload and reads the
+`exp` claim. Decode failure → 15-minute fallback (matches `JWT_ACCESS_TTL`
+default).
+
+Registration is gone — couriers are created by admins
+(`POST /api/admin/couriers`). `RegisterFragment` / `RegisterViewModel` /
+`fragment_register.xml` were removed; `loginFragment` no longer points to
+`registerFragment` and `action_login_to_register` is dropped from the
+nav graph.
+
+## Orders
+
+`OrderDto` mirrors `OrderCourierResponse`:
+
+| Field | Notes |
+|---|---|
+| `id` | UUID string. |
+| `orderNumber` | `ORD-2026-0001`-style human id from the order_number_seq. |
+| `customerName/Phone`, `deliveryAddress`, `productDescription?`, `comments?` | As on the wire. |
+| `status` | `OrderStatus` enum — now includes `NEW` for completeness, though couriers never see it (backend filters active list to `assigned+`). |
+| `courierId?` | Always the caller's id; carried so realtime cache merges still work. |
+| `createdAt`, `assignedAt?`, `pickedUpAt?`, `nearCustomerAt?`, `deliveredAt?`, `returnedAt?` | Full timeline; nullable until the transition fires. |
+| `photos: List<PhotoMetaDto>` | Embedded on detail / transition responses, empty on lists (see `docs/photos.md`). |
+
+| Endpoint | Method |
+|---|---|
+| `GET /api/courier/orders/active` | `getActiveOrders()` → `List<OrderDto>` |
+| `GET /api/courier/orders/history?from&to` | `getOrderHistory(from, to)` |
+| `GET /api/courier/orders/:id` | `getOrderById(id)` |
+| `PUT /api/courier/orders/:id/status` | body `{ status }` (no client-side timestamp) |
+
+Forward-only transitions remain enforced both client-side
+(`OrderStatus.isValidTransition` against the cached row) and server-side
+(409 otherwise).
+
+## Profile
+
+`ProfileDto` mirrors `CourierSelfResponse` (adds `isActive`, `isPaused`).
+`PUT /api/courier/profile` accepts `{ email?, phone? }` only —
+`dateOfBirth` is admin-edited.
+
+## Statistics
+
+`StatisticsDto` mirrors `CourierSelfStatsResponse`:
+
+```kt
+StatisticsDto(
+    period: StatisticsPeriodDto(from, to),
+    totalDeliveries: Int,
+    successfulDeliveries: Int,   // delivered + returned (closed cycles)
+    returnedOrders: Int,          // returned only
+    avgDeliveryTimeMinutes: Int?
+)
+```
+
+`GET /api/courier/statistics` now accepts `period` (`24h`/`7d`/`30d`,
+default `24h`) and/or `from`/`to`. Repository signature is
+`getStatistics(period, from, to)`.
+
+## Photos
+
+Upload (`POST /api/courier/orders/:id/photo`) returns a single
+`PhotoMetaDto(id, uploadedAt, expiresAt)` — no URL, byte access is gated
+by the auth-checked streaming endpoint
+`GET /api/courier/orders/:id/photo/:photoId`. The repository now returns
+`Photo` (domain), and `OrderDetailsUiState.photoUrl` was renamed to
+`lastUploadedPhotoId` to reflect that.
+
+`PhotoFileManager.createPhotoFile(context, orderId: String)` sanitises
+the UUID (`[^A-Za-z0-9_-]` → `_`) before composing the local filename.
+
+## Room schema (v3)
+
+Destructive migration is on (`fallbackToDestructiveMigration`), so the
+v2 → v3 jump simply rebuilds the cache:
+
+| Entity | Change |
+|---|---|
+| `OrderEntity` | `id: String`, `productDescription` nullable, no `statusUpdatedAt`/`completedAt`/`photoUrl`, full timestamp set, nullable `assignedAt`, `courierId?`, `createdAt`. |
+| `UserEntity` | `id: String`, gains `isActive`, `isPaused`. |
+| `OrderDao` | Active query orders by `createdAt DESC`; history by `returnedAt DESC`. |
+
+Photos are not cached — they live in the detail response only and are
+refetched on every `OrderDetails` open.
+
+## Error envelope
+
+The new `errorMessage(code, fallback)` helper in `AuthRepositoryImpl`
+maps 401 → "Неверный логин или пароль" and 403 → "Доступ запрещён";
+other failures surface as `"<fallback> (HTTP <code>)"`. Repositories for
+orders / profile / statistics use the same shape for consistency.
+
+The backend's exception filter (see `docs/exceptions.md`) returns a
+typed envelope, but the courier client does not yet parse it — the
+status-code fallback is enough for current screens; richer parsing
+slots into §7.5+ once realtime errors enter the UI.
+
+## Files touched
+
+| Layer | File |
+|---|---|
+| Domain | `domain/model/{User,Order,Photo,Statistics}.kt`, `domain/repository/{Auth,Order,Profile}Repository.kt` |
+| Data — DTO | `data/remote/dto/{Auth,Order,Profile,Statistics,Photo}Dto.kt` |
+| Data — API | `data/remote/api/ApiService.kt` |
+| Data — Mapper | `data/mapper/{Auth,Order,Photo,Statistics,User}Mapper.kt` |
+| Data — Room | `data/local/entity/{Order,User}Entity.kt`, `data/local/dao/OrderDao.kt`, `data/local/database/AppDatabase.kt` |
+| Data — Repository | `data/repository/{Auth,Order,Profile}RepositoryImpl.kt` |
+| Core | `core/util/JwtUtils.kt`, `core/util/PhotoFileManager.kt` |
+| Presentation | `presentation/ViewModelFactory.kt`, `presentation/orders/*`, `presentation/profile/ProfileViewModel.kt`, `presentation/auth/LoginFragment.kt`, `presentation/photo/PhotoCaptureFragment.kt` |
+| Resources | `res/navigation/nav_graph.xml`, `res/layout/fragment_login.xml` |

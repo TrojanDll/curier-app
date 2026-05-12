@@ -6,9 +6,9 @@ export const metadata = {
 };
 
 /**
- * CRUD-страница курьеров.
- * Действия (edit/pause/resume/reset-password/fire) на Этапе 1 работают
- * как локальные мутации стейта; реальные API подключим в §14.3.4.
+ * CRUD-страница курьеров. Подключена к backend в §14.3.4
+ * (см. docs/admin-couriers.md). Дополняет actions из drawer-а:
+ * Create / Edit / Pause / Resume / Reset password / Fire (soft delete).
  */
 export default function CouriersPage() {
     return (

@@ -165,4 +165,8 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.mockk.android)
     androidTestImplementation(libs.truth)
+    // fragment-testing exposes FragmentScenario; the runtime piece must live on
+    // debugImplementation because it provides the EmptyFragmentActivity host
+    // theme that the test classpath needs at install time.
+    debugImplementation(libs.androidx.fragment.testing)
 }

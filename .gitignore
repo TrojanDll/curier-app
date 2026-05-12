@@ -21,3 +21,10 @@ local.properties
 
 # Playwright MCP scratch (snapshots, console logs)
 .playwright-mcp/
+
+# Release signing (Stage 4.6 / §7.9)
+# keystore.properties holds the alias + passwords; *.jks / *.keystore are the
+# actual signing keys. Both stay out of the repo — see docs/android-release-build.md.
+/android/keystore.properties
+/android/**/*.jks
+/android/**/*.keystore

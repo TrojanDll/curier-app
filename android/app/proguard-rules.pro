@@ -96,3 +96,41 @@
 # Navigation Component
 # ================================
 -keepnames class androidx.navigation.fragment.NavHostFragment
+
+# ================================
+# Moshi - JsonAdapter codegen (§7.9)
+# ================================
+# Moshi-codegen генерирует <DtoName>JsonAdapter рядом с каждой data-class.
+# Эти классы инстанцируются reflection'ом — без явного keep ProGuard их
+# удаляет, и парсинг падает в рантайме.
+-keep class **JsonAdapter { *; }
+-keepnames @com.squareup.moshi.JsonClass class *
+
+# ================================
+# Socket.IO 2.x client (§7.9)
+# ================================
+# io.socket:socket.io-client:2.1.0 + engine.io используют reflection в
+# Ack / EventEmitter; на R8 без этих keep падает с NoSuchMethodError на
+# первом emit. Также подавляем warnings для нативных deps (json-org
+# исключён транзитивно — см. build.gradle).
+-keep class io.socket.** { *; }
+-keep interface io.socket.** { *; }
+-keep class io.engineio.** { *; }
+-keep interface io.engineio.** { *; }
+-dontwarn io.socket.**
+-dontwarn io.engineio.**
+-dontwarn org.slf4j.**
+
+# ================================
+# OkHttp / Okio — extra dontwarn for R8 (§7.9)
+# ================================
+# R8 ругается на отсутствующие опциональные deps OkHttp (conscrypt, BCJSSE).
+-dontwarn org.conscrypt.**
+-dontwarn org.bouncycastle.**
+-dontwarn org.openjsse.**
+
+# ================================
+# Coil — image loader (§7.9)
+# ================================
+-dontwarn coil.**
+-dontwarn com.squareup.picasso.**

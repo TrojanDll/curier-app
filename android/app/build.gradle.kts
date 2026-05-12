@@ -1,9 +1,24 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.ksp)
     alias(libs.plugins.androidx.navigation.safeargs)
     // alias(libs.plugins.hilt) // Временно отключено из-за проблем совместимости
+}
+
+// Release signing (Stage 4.6 / §7.9). `keystore.properties` лежит рядом с
+// этим build-файлом и НЕ коммитится — см. docs/android-release-build.md.
+// Если файла нет (типичный сценарий для CI или dev-машины), signing для
+// release-варианта остаётся пустой; assembleRelease упадёт с понятным
+// "Keystore file not set" — собрать release без ключа нельзя.
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        FileInputStream(keystorePropertiesFile).use { load(it) }
+    }
 }
 
 android {
@@ -15,9 +30,24 @@ android {
         minSdk = 24
         targetSdk = 36
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        create("release") {
+            val storePath = keystoreProperties.getProperty("storeFile")
+            if (storePath != null) {
+                storeFile = rootProject.file(storePath)
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+            // v1 (JAR) + v2 (APK Signature Scheme) — default on AGP 8.x, оставляем явно.
+            enableV1Signing = true
+            enableV2Signing = true
+        }
     }
 
     buildTypes {
@@ -25,7 +55,9 @@ android {
             // BASE_URL загружается в runtime через ServerConfigManager
         }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

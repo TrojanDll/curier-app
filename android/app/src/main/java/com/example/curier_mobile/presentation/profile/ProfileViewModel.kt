@@ -2,7 +2,10 @@ package com.example.curier_mobile.presentation.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.curier_mobile.core.di.NetworkModule
+import com.example.curier_mobile.core.di.RepositoryModule
 import com.example.curier_mobile.core.result.Result
+import com.example.curier_mobile.data.local.preferences.ServerConfigManager
 import com.example.curier_mobile.domain.repository.AuthRepository
 import com.example.curier_mobile.domain.repository.OrderRepository
 import com.example.curier_mobile.domain.repository.ProfileRepository
@@ -15,7 +18,8 @@ import kotlinx.coroutines.launch
 class ProfileViewModel(
     private val profileRepository: ProfileRepository,
     private val orderRepository: OrderRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val serverConfigManager: ServerConfigManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
@@ -130,6 +134,28 @@ class ProfileViewModel(
                     }
                 }
                 is Result.Loading -> { }
+            }
+        }
+    }
+
+    /**
+     * Сменить сервер: logout на бэкенде (best-effort) + сброс BASE_URL и кэша
+     * Retrofit/repositories. Fragment после этого навигирует на ServerConfigFragment.
+     */
+    fun changeServer() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isChangingServer = true, error = null) }
+
+            // Best-effort logout — игнорируем сетевые ошибки, локальные токены
+            // всё равно будут удалены ниже.
+            runCatching { authRepository.logout() }
+
+            serverConfigManager.clearBaseUrl()
+            NetworkModule.resetClients()
+            RepositoryModule.resetCache()
+
+            _uiState.update {
+                it.copy(isChangingServer = false, changeServerSuccess = true)
             }
         }
     }

@@ -78,6 +78,16 @@
     <string name="profile_updated_successfully">Профиль успешно обновлен</string>
     <string name="profile_update_failed">Не удалось обновить профиль</string>
 
+    <!-- Server Connection -->
+    <string name="server_config_title">Подключение к серверу</string>
+    <string name="server_config_description">Введите адрес сервера, выданный администратором. Приложение проверит подключение перед сохранением.</string>
+    <string name="server_config_url_hint">Адрес сервера</string>
+    <string name="server_config_url_helper">Например: http://192.168.1.10:8081</string>
+    <string name="server_config_connect">Подключиться</string>
+    <string name="server_config_error_unreachable">Не удалось подключиться к серверу. Проверьте адрес и сеть.</string>
+    <string name="change_server">Сменить сервер</string>
+    <string name="change_server_confirmation">Сменить сервер? Вы выйдете из аккаунта.</string>
+
     <!-- Common -->
     <string name="error_network">Ошибка сети</string>
     <string name="error_unknown">Неизвестная ошибка</string>

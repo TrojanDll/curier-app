@@ -2,7 +2,19 @@
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/loginFragment">
+    app:startDestination="@id/serverConfigFragment">
+
+    <!-- Server Connection (стартовый экран при первом запуске) -->
+    <fragment
+        android:id="@+id/serverConfigFragment"
+        android:name="com.example.curier_mobile.presentation.serverconfig.ServerConfigFragment"
+        android:label="@string/server_config_title">
+        <action
+            android:id="@+id/action_serverConfig_to_login"
+            app:destination="@id/loginFragment"
+            app:popUpTo="@id/serverConfigFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
 
     <!-- Auth Navigation -->
     <fragment
@@ -38,6 +50,11 @@
         <action
             android:id="@+id/action_main_to_login"
             app:destination="@id/loginFragment"
+            app:popUpTo="@id/nav_graph"
+            app:popUpToInclusive="true" />
+        <action
+            android:id="@+id/action_main_to_serverConfig"
+            app:destination="@id/serverConfigFragment"
             app:popUpTo="@id/nav_graph"
             app:popUpToInclusive="true" />
     </fragment>

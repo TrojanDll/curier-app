@@ -2,6 +2,7 @@ package com.example.curier_mobile.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.example.curier_mobile.core.di.NetworkModule
 import com.example.curier_mobile.core.di.RepositoryModule
 import com.example.curier_mobile.presentation.auth.LoginViewModel
 import com.example.curier_mobile.presentation.auth.RegisterViewModel
@@ -9,6 +10,7 @@ import com.example.curier_mobile.presentation.history.HistoryViewModel
 import com.example.curier_mobile.presentation.orders.OrderDetailsViewModel
 import com.example.curier_mobile.presentation.orders.OrdersViewModel
 import com.example.curier_mobile.presentation.profile.ProfileViewModel
+import com.example.curier_mobile.presentation.serverconfig.ServerConfigViewModel
 
 /**
  * Factory for creating ViewModels with dependencies
@@ -51,7 +53,13 @@ class ViewModelFactory(
                 ProfileViewModel(
                     profileRepository = RepositoryModule.provideProfileRepository(),
                     orderRepository = RepositoryModule.provideOrderRepository(),
-                    authRepository = RepositoryModule.provideAuthRepository()
+                    authRepository = RepositoryModule.provideAuthRepository(),
+                    serverConfigManager = NetworkModule.provideServerConfigManager()
+                ) as T
+            }
+            modelClass.isAssignableFrom(ServerConfigViewModel::class.java) -> {
+                ServerConfigViewModel(
+                    serverConfigManager = NetworkModule.provideServerConfigManager()
                 ) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")

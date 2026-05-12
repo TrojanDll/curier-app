@@ -330,6 +330,18 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/cardStatistics" />
 
+        <!-- Change Server Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnChangeServer"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/change_server"
+            style="@style/Widget.Material3.Button.TextButton"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/btnLogout" />
+
         <!-- App Version -->
         <TextView
             android:id="@+id/tvAppVersion"
@@ -342,7 +354,7 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/btnLogout"
+            app:layout_constraintTop_toBottomOf="@+id/btnChangeServer"
             tools:text="Версия приложения: 1.0.0" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>

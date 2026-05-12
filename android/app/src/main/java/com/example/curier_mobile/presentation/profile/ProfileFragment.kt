@@ -39,6 +39,11 @@ class ProfileFragment : BaseFragment<FragmentProfileBinding>() {
             showLogoutConfirmation()
         }
 
+        // Setup change-server button
+        binding.btnChangeServer.setOnClickListener {
+            showChangeServerConfirmation()
+        }
+
         // Setup edit button
         binding.btnEdit.setOnClickListener {
             viewModel.enterEditMode()
@@ -70,6 +75,17 @@ class ProfileFragment : BaseFragment<FragmentProfileBinding>() {
             .setMessage(R.string.logout_confirmation)
             .setPositiveButton(R.string.ok) { _, _ ->
                 viewModel.logout()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun showChangeServerConfirmation() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.change_server)
+            .setMessage(R.string.change_server_confirmation)
+            .setPositiveButton(R.string.ok) { _, _ ->
+                viewModel.changeServer()
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
@@ -108,12 +124,19 @@ class ProfileFragment : BaseFragment<FragmentProfileBinding>() {
         binding.btnCancel.isEnabled = !state.isSaving
         binding.btnEdit.isEnabled = !state.isSaving
 
-        // Logout in progress - disable button
-        binding.btnLogout.isEnabled = !state.isLoggingOut && !state.isSaving
+        // Logout / change-server in progress - disable buttons
+        val busy = state.isLoggingOut || state.isChangingServer || state.isSaving
+        binding.btnLogout.isEnabled = !busy
+        binding.btnChangeServer.isEnabled = !busy
 
         // Logout success - navigate to login
         if (state.logoutSuccess) {
             navigateToLogin()
+        }
+
+        // Change-server success - navigate to server config screen
+        if (state.changeServerSuccess) {
+            navigateToServerConfig()
         }
 
         // Update success message
@@ -162,15 +185,23 @@ class ProfileFragment : BaseFragment<FragmentProfileBinding>() {
     }
 
     private fun navigateToLogin() {
-        // Find the parent MainFragment and navigate from there
-        val parentNavController = requireActivity()
-            .supportFragmentManager
-            .findFragmentById(R.id.nav_host_fragment)
-            ?.childFragmentManager
-            ?.fragments
-            ?.firstOrNull()
-            ?.findNavController()
-
-        parentNavController?.navigate(R.id.action_main_to_login)
+        rootNavController()?.navigate(R.id.action_main_to_login)
     }
+
+    private fun navigateToServerConfig() {
+        rootNavController()?.navigate(R.id.action_main_to_serverConfig)
+    }
+
+    /**
+     * Profile живёт внутри MainFragment, у которого свой вложенный NavController.
+     * Чтобы дойти до root-графа (где лежит loginFragment / serverConfigFragment),
+     * берём NavController первого фрагмента в NavHost-е активити.
+     */
+    private fun rootNavController() = requireActivity()
+        .supportFragmentManager
+        .findFragmentById(R.id.nav_host_fragment)
+        ?.childFragmentManager
+        ?.fragments
+        ?.firstOrNull()
+        ?.findNavController()
 }

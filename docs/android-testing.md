@@ -94,3 +94,40 @@ before testing.
 
 Run: `./gradlew testDebugUnitTest` (from `/android`). Report at
 `app/build/reports/tests/testDebugUnitTest/index.html`.
+
+## Instrumented / Espresso (§14.7.4)
+
+Espresso lives in `app/src/androidTest/`. Run on an attached emulator or
+physical device:
+
+```bash
+./gradlew :app:connectedDebugAndroidTest
+```
+
+Without a device, `./gradlew :app:compileDebugAndroidTestKotlin` is the
+strongest local check — it catches API/resource breakage without needing
+hardware.
+
+### Coverage
+
+| Test class | # tests | Notes |
+|---|---|---|
+| `LoginFragmentInstrumentedTest` | 4 | empty username / empty password / short password / happy launch — all four exercise the offline VM validation path so no backend is required |
+
+### Wiring
+
+- `fragment-testing` is on `debugImplementation` (not `androidTest…`)
+  because the runtime piece — `EmptyFragmentActivity` — must ship inside
+  the host APK.
+- Theme is passed via `themeResId = R.style.Theme_Curier_mobile` so the
+  fragment renders against the real app theme.
+- `R.id.*` matchers use the existing fragment_login.xml IDs (`etUsername`,
+  `etPassword`, `tilUsername`, `tilPassword`, `btnLogin`).
+
+### Expanding coverage later
+
+Add new specs alongside `LoginFragmentInstrumentedTest`. For flows that
+exit the fragment via Navigation, wrap with `TestNavHostController` so
+the action is observed without booting MainActivity. For flows that talk
+to the backend, drop in `MockWebServer` and point `NetworkModule` at
+`mockServer.url("/").toString()` via a test-only initializer.

@@ -17,6 +17,12 @@ import { settingsKeys } from "./keys";
 
 export interface AppSettingsDto {
     photoTtlDays: number;
+    /**
+     * Свободный текст с контактом диспетчера/поддержки. Курьер видит его на
+     * своём экране Profile (§7.8). `null` — поле не настроено, на курьере
+     * показываем дефолтный hint.
+     */
+    supportContact: string | null;
     updatedAt: string;
 }
 
@@ -25,6 +31,8 @@ export type AppSettings = AppSettingsDto;
 
 export interface UpdateSettingsInput {
     photoTtlDays?: number;
+    /** `null` очищает поле; пропуск оставляет как есть. */
+    supportContact?: string | null;
 }
 
 /**

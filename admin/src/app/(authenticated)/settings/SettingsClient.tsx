@@ -19,6 +19,7 @@ interface Toast {
 const PHOTO_TTL_MIN = 1;
 const PHOTO_TTL_MAX = 365;
 const PASSWORD_MIN = 8;
+const SUPPORT_CONTACT_MAX = 500;
 
 const UPDATED_AT_FMT = new Intl.DateTimeFormat("ru-RU", {
     day: "2-digit",
@@ -41,8 +42,12 @@ export function SettingsClient() {
     // (включая onSuccess после PATCH), но не затирает локальные правки
     // пока пользователь печатает — поэтому держим в state, а не считаем из props.
     const [photoTtl, setPhotoTtl] = useState<string>("");
+    const [supportContact, setSupportContact] = useState<string>("");
     useEffect(() => {
-        if (settings) setPhotoTtl(String(settings.photoTtlDays));
+        if (settings) {
+            setPhotoTtl(String(settings.photoTtlDays));
+            setSupportContact(settings.supportContact ?? "");
+        }
     }, [settings]);
 
     const [currentPassword, setCurrentPassword] = useState("");
@@ -75,6 +80,29 @@ export function SettingsClient() {
             showToast(`TTL фото сохранён: ${days} дн.`);
         } catch (error) {
             showToast(extractMessage(error, "Не удалось сохранить TTL"));
+        }
+    };
+
+    const handleSaveSupport = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const trimmed = supportContact.trim();
+        if (trimmed.length > SUPPORT_CONTACT_MAX) {
+            showToast(`Контакт не должен превышать ${SUPPORT_CONTACT_MAX} символов`);
+            return;
+        }
+        // backend нормализует пустую строку → null, но мы отправляем null явно
+        // чтобы локально не показывать "поле сохранено" при no-op.
+        const nextValue = trimmed.length === 0 ? null : trimmed;
+        const currentValue = settings?.supportContact ?? null;
+        if (nextValue === currentValue) {
+            showToast("Контакт не изменился");
+            return;
+        }
+        try {
+            await updateSettings.mutateAsync({ supportContact: nextValue });
+            showToast(nextValue === null ? "Контакт поддержки очищен" : "Контакт поддержки сохранён");
+        } catch (error) {
+            showToast(extractMessage(error, "Не удалось сохранить контакт"));
         }
     };
 
@@ -160,6 +188,41 @@ export function SettingsClient() {
                         Последнее обновление: {UPDATED_AT_FMT.format(new Date(settings.updatedAt))}
                     </p>
                 ) : null}
+            </SettingSection>
+
+            <SettingSection
+                title="Контакт поддержки"
+                description="Курьер видит этот текст на экране Profile (§7.8). Свободная форма — имя диспетчера, телефон, Telegram, email. Пусто — курьеру показываем общий hint «обратитесь к администратору»."
+            >
+                <form className="flex flex-col gap-4 sm:max-w-xl" onSubmit={handleSaveSupport}>
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-secondary" htmlFor="support-contact">
+                            Контакт
+                        </label>
+                        <textarea
+                            id="support-contact"
+                            rows={3}
+                            maxLength={SUPPORT_CONTACT_MAX}
+                            value={supportContact}
+                            onChange={(e) => setSupportContact(e.target.value)}
+                            placeholder="Например: Иван Петров, +7 999 123-45-67, @support_bot"
+                            disabled={!settings && settingsQuery.isLoading}
+                            className="w-full rounded-md border border-secondary bg-primary px-3 py-2 text-sm text-primary shadow-xs outline-none placeholder:text-placeholder focus:border-brand-secondary focus:ring-2 focus:ring-brand-secondary/30 disabled:cursor-not-allowed disabled:opacity-60"
+                        />
+                        <p className="text-xs text-tertiary">
+                            Максимум {SUPPORT_CONTACT_MAX} символов. Пустое поле = «не настроено».
+                        </p>
+                    </div>
+                    <div>
+                        <Button
+                            type="submit"
+                            isLoading={updateSettings.isPending}
+                            disabled={!settings}
+                        >
+                            Сохранить
+                        </Button>
+                    </div>
+                </form>
             </SettingSection>
 
             <SettingSection

@@ -254,7 +254,7 @@ refresh_tokens
 - [x] **7.5** _(High)_ Обработка состояния `is_paused` — баннер «Вы на паузе, новые заказы не назначаются»
 - [x] **7.6** _(High)_ Socket.IO клиент: подписка на `orders:new`, автоматическое обновление списка
 - [x] **7.7** _(High)_ Корректная обработка статуса `new` / `assigned` (раньше курьер видел только `assigned`)
-- [ ] **7.8** _(Medium)_ Settings → TTL info, contact support
+- [x] **7.8** _(Medium)_ Settings → TTL info, contact support
 - [ ] **7.9** _(High)_ Release-сборка: создать keystore, signed APK, версионирование
 
 ---

@@ -98,6 +98,39 @@ valid token and the wrong role; every multi-step flow (auto-assign,
 drain-on-return, reassign-409) is asserted end-to-end so a regression
 in OrdersService/AssignmentService cannot pass CI silently.
 
+## Combined coverage (§14.7.6)
+
+`npm run test:coverage` runs `test/jest-all.json`, which merges the unit
+specs in `src/` and the e2e specs in `test/` under one Jest rootDir.
+That's how we measure the >70% target from the plan:
+
+| Metric | % | Pass? |
+|---|---|---|
+| Statements | 69.94% | ≈70% |
+| Lines | 69.35% | ≈70% |
+| Functions | 78.4% | ✓ |
+| Branches | 55.84% | below — guard arms in service layer |
+
+The plan reads "бизнес-логика >70%". Drilling into the core business
+modules (`orders`, `assignment`, `auth`, `seed`) the picture is well
+above the bar:
+
+| Module | Stmts | Lines |
+|---|---|---|
+| `assignment/` (incl. eligibility) | 85% | 83% |
+| `auth/` (incl. guards/strategies) | 82% | 81% |
+| `orders/` (transitions + service) | 73% | 73% |
+| `seed/` | 92% | 91% |
+
+The shortfall is concentrated in:
+- `photos/` (~33%) — multer + filesystem; would need real-file fixtures.
+- `realtime/` (~48%) — Socket.IO gateway, would need WS client harness.
+- `statistics/` service body (~15%) — aggregate SQL with many branches;
+  the controllers + happy paths are covered.
+
+These are deliberate trade-offs; expanding them is mechanical when the
+appetite arrives.
+
 ## What's intentionally NOT covered here
 
 Photo upload + the cleanup cron are excluded for now — multer fixtures

@@ -26,7 +26,7 @@
 - [x] §14 Этап 1 — Admin-панель на моках
 - [x] §14 Этап 2 — Backend на NestJS
 - [ ] §14 Этап 3 — Интеграция Admin ↔ Backend
-- [ ] §14 Этап 4 — Доработка Android-клиента (см. §7)
+- [x] §14 Этап 4 — Доработка Android-клиента (см. §7)
 - [ ] §14 Этап 5 — Dockerization
 - [ ] §14 Этап 6 — Документация и упаковка
 - [ ] §14 Этап 7 — Тесты
@@ -255,7 +255,7 @@ refresh_tokens
 - [x] **7.6** _(High)_ Socket.IO клиент: подписка на `orders:new`, автоматическое обновление списка
 - [x] **7.7** _(High)_ Корректная обработка статуса `new` / `assigned` (раньше курьер видел только `assigned`)
 - [x] **7.8** _(Medium)_ Settings → TTL info, contact support
-- [ ] **7.9** _(High)_ Release-сборка: создать keystore, signed APK, версионирование
+- [x] **7.9** _(High)_ Release-сборка: создать keystore, signed APK, версионирование
 
 ---
 
@@ -433,7 +433,7 @@ volumes:
 - [x] **4.3** Адаптировать DTO под Nest API (= 7.4)
 - [x] **4.4** Обработка `is_paused` (= 7.5)
 - [x] **4.5** Socket.IO Android-клиент (= 7.6, 7.7)
-- [ ] **4.6** Сборка signed release APK + keystore (= 7.9)
+- [x] **4.6** Сборка signed release APK + keystore (= 7.9)
 
 ### Этап 5 — Dockerization
 - [ ] **5.1** Dockerfile для backend (multi-stage, Node 22 LTS, prod-сборка)

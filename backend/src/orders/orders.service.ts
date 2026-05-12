@@ -5,7 +5,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { OrderStatus, Prisma, type Order } from '@prisma/client';
+import { OrderStatus, Prisma } from '@prisma/client';
 import { AssignmentService } from '../assignment/assignment.service';
 import { PhotosService } from '../photos/photos.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -20,6 +20,13 @@ import {
   type OrderAdminResponse,
   type OrderCourierResponse,
 } from './order.mappers';
+import { buildDateRange } from './order-queries';
+import {
+  COURIER_ACTIVE_STATUSES,
+  COURIER_HISTORY_STATUSES,
+  REASSIGNABLE_STATUSES,
+  validateCourierTransition,
+} from './order-transitions';
 
 // Re-export shapes so existing callers (controllers, StatisticsModule) keep
 // importing from `./orders.service` and the mapper move stays internal.
@@ -32,45 +39,8 @@ export interface PaginatedOrders {
   pageSize: number;
 }
 
-// ── Internal constants ───────────────────────────────────────────────────────
-
-/** Active = courier has it but hasn't returned to base yet. */
-const COURIER_ACTIVE_STATUSES: readonly OrderStatus[] = [
-  OrderStatus.assigned,
-  OrderStatus.picked_up,
-  OrderStatus.near_customer,
-  OrderStatus.delivered,
-];
-
-/** History = finished (handed off or back at base). */
-const COURIER_HISTORY_STATUSES: readonly OrderStatus[] = [
-  OrderStatus.delivered,
-  OrderStatus.returned,
-];
-
-/** Reassign is only meaningful before the courier has physically picked up. */
-const REASSIGNABLE_STATUSES: readonly OrderStatus[] = [
-  OrderStatus.new,
-  OrderStatus.assigned,
-];
-
-/** Forward-only courier transitions enforced by `updateStatus`. */
-const COURIER_NEXT: Partial<Record<OrderStatus, OrderStatus>> = {
-  [OrderStatus.assigned]: OrderStatus.picked_up,
-  [OrderStatus.picked_up]: OrderStatus.near_customer,
-  [OrderStatus.near_customer]: OrderStatus.delivered,
-  [OrderStatus.delivered]: OrderStatus.returned,
-};
-
-/** Maps a target status to the audit timestamp column to stamp on transition. */
-const STATUS_TIMESTAMP_FIELD: Record<OrderStatus, keyof Order | null> = {
-  [OrderStatus.new]: null,
-  [OrderStatus.assigned]: 'assignedAt',
-  [OrderStatus.picked_up]: 'pickedUpAt',
-  [OrderStatus.near_customer]: 'nearCustomerAt',
-  [OrderStatus.delivered]: 'deliveredAt',
-  [OrderStatus.returned]: 'returnedAt',
-};
+// Pure-function constants and helpers live in order-transitions.ts (§14.7.2)
+// so unit tests can pin the state machine without a Prisma client.
 
 @Injectable()
 export class OrdersService {
@@ -310,23 +280,19 @@ export class OrdersService {
     if (!order || order.courierId !== courierId) {
       throw new NotFoundException('Order not found');
     }
-    const expectedNext = COURIER_NEXT[order.status];
-    if (!expectedNext || expectedNext !== target) {
-      throw new ConflictException(
-        `Cannot transition order from "${order.status}" to "${target}"`,
-      );
-    }
-
-    const tsField = STATUS_TIMESTAMP_FIELD[target];
-    if (!tsField) {
-      // `new` has no timestamp and isn't reachable via courier transitions —
-      // belt and braces.
-      throw new InternalServerErrorException('Missing timestamp mapping');
+    const decision = validateCourierTransition(order.status, target);
+    if (!decision.ok) {
+      // "Missing timestamp mapping" is unreachable for any allowed transition —
+      // it only fires if COURIER_NEXT and STATUS_TIMESTAMP_FIELD drift.
+      if (decision.reason === 'Missing timestamp mapping') {
+        throw new InternalServerErrorException(decision.reason);
+      }
+      throw new ConflictException(decision.reason);
     }
     const now = new Date();
     const updateData: Prisma.OrderUpdateInput = {
       status: target,
-      [tsField]: now,
+      [decision.timestampField]: now,
     };
 
     // `returned` also stamps couriers.last_returned_at — drives the
@@ -386,23 +352,4 @@ export class OrdersService {
   }
 }
 
-// ── Module-private helpers ───────────────────────────────────────────────────
-
-function parseDateSafe(raw: string | undefined): Date | undefined {
-  if (!raw) return undefined;
-  const d = new Date(raw);
-  return Number.isNaN(d.getTime()) ? undefined : d;
-}
-
-function buildDateRange(
-  fromRaw: string | undefined,
-  toRaw: string | undefined,
-): Prisma.DateTimeFilter | undefined {
-  const from = parseDateSafe(fromRaw);
-  const to = parseDateSafe(toRaw);
-  if (!from && !to) return undefined;
-  const filter: Prisma.DateTimeFilter = {};
-  if (from) filter.gte = from;
-  if (to) filter.lte = to;
-  return filter;
-}
+// Date-range helpers moved to ./order-queries.ts for unit-test access.

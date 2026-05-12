@@ -1,14 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OrderStatus, type Order } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-
-/** Courier is currently carrying an order — not eligible for auto-assign. */
-const COURIER_BUSY_STATUSES: readonly OrderStatus[] = [
-  OrderStatus.assigned,
-  OrderStatus.picked_up,
-  OrderStatus.near_customer,
-  OrderStatus.delivered,
-];
+import { COURIER_BUSY_STATUSES } from './eligibility';
 
 @Injectable()
 export class AssignmentService {

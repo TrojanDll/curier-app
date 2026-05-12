@@ -82,6 +82,10 @@
     <string name="paused_banner_title">Вы на паузе</string>
     <string name="paused_banner_subtitle">Новые заказы не назначаются. Свяжитесь с администратором, чтобы вернуться в работу.</string>
 
+    <!-- Realtime -->
+    <string name="new_order_snackbar">Новый заказ #%s</string>
+    <string name="open">Открыть</string>
+
     <!-- Server Connection -->
     <string name="server_config_title">Подключение к серверу</string>
     <string name="server_config_description">Введите адрес сервера, выданный администратором. Приложение проверит подключение перед сохранением.</string>

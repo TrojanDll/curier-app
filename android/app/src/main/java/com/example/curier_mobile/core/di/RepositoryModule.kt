@@ -35,7 +35,8 @@ object RepositoryModule {
         return authRepository ?: synchronized(this) {
             authRepository ?: AuthRepositoryImpl(
                 apiService = NetworkModule.provideApiService(),
-                tokenManager = NetworkModule.provideTokenManager()
+                tokenManager = NetworkModule.provideTokenManager(),
+                realtimeManager = NetworkModule.provideRealtimeManager()
             ).also { authRepository = it }
         }
     }

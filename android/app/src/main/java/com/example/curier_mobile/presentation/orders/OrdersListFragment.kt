@@ -55,6 +55,19 @@ class OrdersListFragment : BaseFragment<FragmentOrdersListBinding>() {
                 }
             }
         }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.newOrderEvents.collect { order ->
+                    Snackbar.make(
+                        binding.root,
+                        getString(R.string.new_order_snackbar, order.orderNumber),
+                        Snackbar.LENGTH_LONG
+                    )
+                        .setAction(R.string.open) { navigateToOrderDetails(order.id) }
+                        .show()
+                }
+            }
+        }
     }
 
     private fun updateUI(state: OrdersUiState) {

@@ -24,6 +24,10 @@ class OrderRepositoryImpl(
     private val orderDao: OrderDao
 ) : OrderRepository {
 
+    override suspend fun cacheOrder(order: Order) {
+        orderDao.insertOrder(order.toEntity())
+    }
+
     override fun getActiveOrdersFlow(): Flow<List<Order>> {
         return orderDao.getActiveOrders().map { entities ->
             entities.toDomainModels()

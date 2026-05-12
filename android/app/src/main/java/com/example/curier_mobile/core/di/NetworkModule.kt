@@ -5,6 +5,7 @@ import com.example.curier_mobile.data.local.preferences.ServerConfigManager
 import com.example.curier_mobile.data.local.preferences.TokenManager
 import com.example.curier_mobile.data.remote.api.ApiService
 import com.example.curier_mobile.data.remote.interceptor.AuthInterceptor
+import com.example.curier_mobile.data.remote.realtime.RealtimeManager
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import okhttp3.OkHttpClient
@@ -27,26 +28,32 @@ object NetworkModule {
 
     private var tokenManager: TokenManager? = null
     private var serverConfigManager: ServerConfigManager? = null
+    private var moshi: Moshi? = null
     private var okHttpClient: OkHttpClient? = null
     private var retrofit: Retrofit? = null
     private var apiService: ApiService? = null
+    private var realtimeManager: RealtimeManager? = null
     private var cachedBaseUrl: String? = null
 
-    /**
-     * Initialize NetworkModule with application context.
-     * Call this from Application.onCreate().
-     */
     fun initialize(context: Context) {
         tokenManager = TokenManager.getInstance(context)
         serverConfigManager = ServerConfigManager.getInstance(context)
+        moshi = provideMoshi()
+        realtimeManager = RealtimeManager(
+            serverConfigManager = serverConfigManager!!,
+            tokenManager = tokenManager!!,
+            moshi = moshi!!
+        )
     }
 
     /**
-     * Сбросить кэш Retrofit/OkHttpClient/ApiService.
-     * Вызывать после изменения BASE_URL — иначе старый Retrofit продолжит работать.
+     * Сбрасывает сетевой стек после смены BASE_URL: закрывает realtime-сокет
+     * и обнуляет Retrofit/OkHttp/ApiService. Realtime-инстанс пересоздавать
+     * не нужно — он сам читает текущий URL из [ServerConfigManager] при connect.
      */
     @Synchronized
     fun resetClients() {
+        realtimeManager?.disconnect()
         retrofit = null
         okHttpClient = null
         apiService = null
@@ -97,7 +104,7 @@ object NetworkModule {
                 Retrofit.Builder()
                     .baseUrl(baseUrl)
                     .client(provideOkHttpClient())
-                    .addConverterFactory(MoshiConverterFactory.create(provideMoshi()))
+                    .addConverterFactory(MoshiConverterFactory.create(moshi ?: provideMoshi()))
                     .build()
                     .also {
                         retrofit = it
@@ -122,6 +129,11 @@ object NetworkModule {
 
     fun provideServerConfigManager(): ServerConfigManager {
         return serverConfigManager
+            ?: throw IllegalStateException("NetworkModule not initialized. Call initialize(context) first.")
+    }
+
+    fun provideRealtimeManager(): RealtimeManager {
+        return realtimeManager
             ?: throw IllegalStateException("NetworkModule not initialized. Call initialize(context) first.")
     }
 }

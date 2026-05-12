@@ -8,6 +8,7 @@ import com.example.curier_mobile.data.remote.api.ApiService
 import com.example.curier_mobile.data.remote.dto.LoginRequest
 import com.example.curier_mobile.data.remote.dto.LogoutRequest
 import com.example.curier_mobile.data.remote.dto.RefreshTokenRequest
+import com.example.curier_mobile.data.remote.realtime.RealtimeManager
 import com.example.curier_mobile.domain.model.User
 import com.example.curier_mobile.domain.repository.AuthRepository
 
@@ -19,7 +20,8 @@ import com.example.curier_mobile.domain.repository.AuthRepository
  */
 class AuthRepositoryImpl(
     private val apiService: ApiService,
-    private val tokenManager: TokenManager
+    private val tokenManager: TokenManager,
+    private val realtimeManager: RealtimeManager
 ) : AuthRepository {
 
     override suspend fun login(username: String, password: String): Result<User> {
@@ -33,6 +35,7 @@ class AuthRepositoryImpl(
                     refreshToken = body.refreshToken,
                     expiresIn = JwtUtils.expiresInSeconds(body.accessToken)
                 )
+                realtimeManager.reconnectWithCurrentCredentials()
                 Result.Success(body.user.toDomainModel())
             } else {
                 Result.Error(Exception(errorMessage(response.code(), "Ошибка входа")))
@@ -48,9 +51,11 @@ class AuthRepositoryImpl(
             if (!refresh.isNullOrBlank()) {
                 runCatching { apiService.logout(LogoutRequest(refresh)) }
             }
+            realtimeManager.disconnect()
             tokenManager.clearTokens()
             Result.Success(Unit)
         } catch (e: Exception) {
+            realtimeManager.disconnect()
             tokenManager.clearTokens()
             Result.Success(Unit)
         }
@@ -70,6 +75,7 @@ class AuthRepositoryImpl(
                     refreshToken = body.refreshToken,
                     expiresIn = JwtUtils.expiresInSeconds(body.accessToken)
                 )
+                realtimeManager.reconnectWithCurrentCredentials()
                 Result.Success(Unit)
             } else {
                 Result.Error(Exception(errorMessage(response.code(), "Ошибка обновления токена")))

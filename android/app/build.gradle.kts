@@ -95,6 +95,9 @@ dependencies {
     implementation(libs.okhttp.logging)
     implementation(libs.moshi)
     ksp(libs.moshi.codegen)
+    implementation(libs.socketio) {
+        exclude(group = "org.json", module = "json")
+    }
 
     // Database
     implementation(libs.androidx.room.runtime)

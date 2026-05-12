@@ -2,9 +2,11 @@ package com.example.curier_mobile.presentation.orders
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.curier_mobile.core.result.Result
+import com.example.curier_mobile.data.remote.realtime.RealtimeEvent
+import com.example.curier_mobile.data.remote.realtime.RealtimeManager
 import com.example.curier_mobile.domain.model.OrderStatus
 import com.example.curier_mobile.domain.repository.OrderRepository
-import com.example.curier_mobile.core.result.Result
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,6 +15,7 @@ import kotlinx.coroutines.launch
 
 class OrderDetailsViewModel(
     private val orderRepository: OrderRepository,
+    private val realtimeManager: RealtimeManager,
     private val orderId: String
 ) : ViewModel() {
 
@@ -21,6 +24,32 @@ class OrderDetailsViewModel(
 
     init {
         loadOrderDetails()
+        observeRealtime()
+    }
+
+    /**
+     * Подписка на realtime: если приходит событие про текущий заказ
+     * (например, админ переназначил), кладём его в state без дополнительного
+     * REST-запроса.
+     */
+    private fun observeRealtime() {
+        viewModelScope.launch {
+            realtimeManager.events.collect { event ->
+                val updated = when (event) {
+                    is RealtimeEvent.OrderAssigned -> event.order
+                    is RealtimeEvent.OrderReassigned -> event.order
+                }
+                if (updated.id == orderId) {
+                    orderRepository.cacheOrder(updated)
+                    _uiState.update {
+                        it.copy(
+                            order = updated,
+                            availableStatusTransitions = getAvailableStatusTransitions(updated.status)
+                        )
+                    }
+                }
+            }
+        }
     }
 
     private fun loadOrderDetails() {
@@ -47,9 +76,7 @@ class OrderDetailsViewModel(
                         )
                     }
                 }
-                is Result.Loading -> {
-                    // Already handled by initial state update
-                }
+                is Result.Loading -> Unit
             }
         }
     }
@@ -79,9 +106,7 @@ class OrderDetailsViewModel(
                         )
                     }
                 }
-                is Result.Loading -> {
-                    // Already handled by initial state update
-                }
+                is Result.Loading -> Unit
             }
         }
     }
@@ -109,9 +134,7 @@ class OrderDetailsViewModel(
                         )
                     }
                 }
-                is Result.Loading -> {
-                    // Already handled by initial state update
-                }
+                is Result.Loading -> Unit
             }
         }
     }

@@ -12,6 +12,14 @@ interface OrderRepository {
 
     fun getActiveOrdersFlow(): Flow<List<Order>>
 
+    /**
+     * Сохранить заказ в локальный кэш без обращения к сети.
+     * Используется realtime-каналом: событие приходит с уже свежим Order,
+     * пишем его в Room — Flow в [getActiveOrdersFlow] автоматически
+     * обновит UI.
+     */
+    suspend fun cacheOrder(order: Order)
+
     suspend fun getActiveOrders(): Result<List<Order>>
 
     /**

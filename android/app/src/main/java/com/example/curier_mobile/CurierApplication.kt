@@ -6,20 +6,27 @@ import com.example.curier_mobile.core.di.DatabaseModule
 import com.example.curier_mobile.core.di.NetworkModule
 
 /**
- * Main application class
- * Initializes DI modules (Network and Database)
+ * Main application class.
+ * Initializes DI modules (Network, Database) and reconnects realtime
+ * socket if a valid token survives a restart.
  */
 class CurierApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
 
-        // Initialize DI modules
         NetworkModule.initialize(this)
-        Log.d(TAG, "NetworkModule initialized successfully")
+        Log.d(TAG, "NetworkModule initialized")
 
         DatabaseModule.initialize(this)
-        Log.d(TAG, "DatabaseModule initialized successfully")
+        Log.d(TAG, "DatabaseModule initialized")
+
+        // Если токен ещё валиден (после рестарта приложения) — пытаемся
+        // сразу поднять realtime. Сам менеджер тихо вернётся, если URL
+        // или токен пусты.
+        if (NetworkModule.provideTokenManager().isLoggedIn()) {
+            NetworkModule.provideRealtimeManager().connect()
+        }
     }
 
     companion object {

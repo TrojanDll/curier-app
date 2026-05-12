@@ -29,3 +29,4 @@ Project documentation cache. Each entry links to a detailed doc file.
 - [Android API Integration](android-api-integration.md) — wire format (no envelope, camelCase, UUID), DTO ↔ NestJS endpoints, JwtUtils, Room v3, error mapping, paused-courier banner (Stage 4.3–4.4 / §7.4–7.5)
 - [Android Realtime](android-realtime.md) — Socket.IO `/realtime` handshake, RealtimeManager singleton, event → ViewModel map, reconnect/lifecycle policy (Stage 4.5 / §7.6–7.7)
 - [Android App Settings](android-app-settings.md) — Profile info card (photo TTL + support contact) via `GET /api/courier/settings`, repo+DI+UI map, fallback text policy (§7.8)
+- [Android Release Build](android-release-build.md) — keystore.properties + signingConfigs, R8 minify + shrinkResources, ProGuard keep matrix, versioning convention, apksigner verify (Stage 4.6 / §7.9)

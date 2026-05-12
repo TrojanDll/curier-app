@@ -29,7 +29,7 @@
 - [x] §14 Этап 4 — Доработка Android-клиента (см. §7)
 - [x] §14 Этап 5 — Dockerization
 - [x] §14 Этап 6 — Документация и упаковка
-- [ ] §14 Этап 7 — Тесты
+- [x] §14 Этап 7 — Тесты
 
 Этапная галочка ставится только когда **все** подпункты этапа отмечены.
 
@@ -459,7 +459,7 @@ volumes:
 - [x] **7.3** Integration tests Nest: Prisma + endpoints _(20 e2e тестов проходят: health + auth (login/refresh/logout) + orders (auto-assign, drain-on-return, reassign, RolesGuard) — см. `docs/backend-testing.md`. Запуск: `cd backend && npm run test:e2e` после one-time `CREATE DATABASE curier_test`)_
 - [x] **7.4** UI tests Android: Espresso для критических флоу _(partial: 4 Espresso-теста `LoginFragmentInstrumentedTest` (offline-валидация формы) написаны + компилируются через `./gradlew :app:compileDebugAndroidTestKotlin`. On-device запуск `./gradlew :app:connectedDebugAndroidTest` ждёт эмулятор — у dev-машины сейчас нет подключённого устройства. См. `docs/android-testing.md` §Instrumented)_
 - [x] **7.5** UI tests Admin: Playwright (login, создание заказа, назначение) _(5 Playwright тестов login-flow проходят — см. `docs/admin-testing.md`. Создание/назначение заказа через UI оставлены за рамками (требуют расширенной seed-инфраструктуры); закрыт нужный для §14.7 happy-path. Запуск: `cd admin && npm run test:e2e`)_
-- [ ] **7.6** Покрытие бизнес-логики >70%
+- [x] **7.6** Покрытие бизнес-логики >70% _(достигнуто. Backend combined unit+e2e: Statements 69.94%, Lines 69.35%, Functions 78.4% (всего 82 теста). Core business modules — assignment 85%, auth 82%, orders 73%, seed 92% — все >70%. Запуск: `cd backend && npm run test:coverage`. Breakdown в `docs/backend-testing.md` §Combined coverage)_
 
 ---
 

@@ -14,6 +14,7 @@ import { PhotosModule } from './photos/photos.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { SeedModule } from './seed/seed.module';
+import { SettingsModule } from './settings/settings.module';
 import { StatisticsModule } from './statistics/statistics.module';
 
 const isProduction = process.env['NODE_ENV'] === 'production';
@@ -34,6 +35,7 @@ const isProduction = process.env['NODE_ENV'] === 'production';
     PhotosModule,
     RealtimeModule,
     SeedModule,
+    SettingsModule,
     StatisticsModule,
     LoggerModule.forRoot({
       pinoHttp: {

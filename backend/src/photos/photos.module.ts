@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
+import { SettingsModule } from '../settings/settings.module';
 import { AdminPhotosController } from './admin-photos.controller';
 import { CourierPhotosController } from './courier-photos.controller';
 import { PhotosCleanupService } from './photos-cleanup.service';
@@ -19,7 +20,7 @@ import { PhotosService } from './photos.service';
  * can call `cleanup()` directly through a standalone application context.
  */
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, SettingsModule],
   controllers: [AdminPhotosController, CourierPhotosController],
   providers: [PhotosService, PhotosCleanupService],
   exports: [PhotosService, PhotosCleanupService],

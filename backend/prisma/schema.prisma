@@ -147,3 +147,18 @@ model RefreshToken {
   @@index([expiresAt])
   @@map("refresh_tokens")
 }
+
+/// Application-wide tunables editable by an admin at runtime (§14.3.6).
+/// Singleton row keyed by id=1 — SettingsService guarantees existence via
+/// upsert at bootstrap, seeding from PHOTO_TTL_DAYS env on first run.
+/// Add new tunables here as columns rather than introducing a KV table.
+model AppSettings {
+  id           Int      @id @default(1)
+  /// Days after upload before a photo (and its row) becomes eligible for
+  /// the cleanup cron (§10). Only applies to *new* uploads — already-stored
+  /// photos keep the expires_at written at upload time.
+  photoTtlDays Int      @default(30) @map("photo_ttl_days")
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("app_settings")
+}

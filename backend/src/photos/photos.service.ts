@@ -12,6 +12,7 @@ import { createReadStream } from 'node:fs';
 import { mkdir, unlink, writeFile } from 'node:fs/promises';
 import { isAbsolute, join, resolve } from 'node:path';
 import { PrismaService } from '../prisma/prisma.service';
+import { SettingsService } from '../settings/settings.service';
 
 /** Wire-shape for embedding photo metadata in order detail responses. */
 export interface PhotoMeta {
@@ -45,18 +46,19 @@ const EXT_TO_MIME: Record<'jpg' | 'png', AllowedMime> = {
 export class PhotosService {
   private readonly logger = new Logger(PhotosService.name);
   private readonly uploadDir: string;
-  private readonly ttlDays: number;
   private readonly maxBytes: number;
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly settings: SettingsService,
     config: ConfigService,
   ) {
     const rawDir = config.get<string>('PHOTO_UPLOAD_DIR') ?? './uploads';
     this.uploadDir = isAbsolute(rawDir)
       ? rawDir
       : resolve(process.cwd(), rawDir);
-    this.ttlDays = Number(config.get<string>('PHOTO_TTL_DAYS') ?? '30');
+    // PHOTO_TTL_DAYS env is consumed only by SettingsService on first-run
+    // bootstrap. Live TTL comes from app_settings — see uploadForCourier.
     this.maxBytes =
       Number(config.get<string>('PHOTO_MAX_SIZE_MB') ?? '10') * 1024 * 1024;
   }
@@ -106,8 +108,13 @@ export class PhotosService {
 
     const ext = MIME_TO_EXT[mimeType];
     const uploadedAt = new Date();
+    // Pull TTL at upload time — admin edits via PATCH /admin/settings take
+    // effect on the next upload. Already-stored rows keep their stamped
+    // expires_at; intentional, so changing TTL doesn't retroactively erase
+    // photos that admins committed to keeping.
+    const ttlDays = await this.settings.getPhotoTtlDays();
     const expiresAt = new Date(
-      uploadedAt.getTime() + this.ttlDays * 24 * 60 * 60 * 1000,
+      uploadedAt.getTime() + ttlDays * 24 * 60 * 60 * 1000,
     );
 
     // Pre-allocate the row so we know the photo id before touching disk.

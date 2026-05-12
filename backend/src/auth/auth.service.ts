@@ -1,10 +1,14 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { UserType } from '@prisma/client';
 import { createHash, randomBytes } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
-import { comparePassword } from './password.util';
+import { comparePassword, hashPassword } from './password.util';
 import { parseTtlMs } from './ttl.util';
 import type { JwtPayload, Role } from './types/jwt-payload';
 
@@ -165,6 +169,51 @@ export class AuthService {
       where: { tokenHash, revoked: false },
       data: { revoked: true },
     });
+  }
+
+  /**
+   * Self-service password change for an authenticated admin (§14.3.6).
+   *
+   * The current password is verified before writing — this defends against
+   * an access-token leak being escalated into a permanent takeover. After a
+   * successful change, *all* refresh tokens for this admin are revoked so
+   * any other session/device must re-login. The current session's access
+   * token stays valid until its short TTL expires, which is acceptable —
+   * the attacker would have to refresh, which now fails.
+   */
+  async changeAdminPassword(
+    adminId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    const admin = await this.prisma.admin.findUnique({ where: { id: adminId } });
+    if (!admin) {
+      // JWT verification already happened — this can only fire if the admin
+      // was deleted between request issuance and now. 404 reads better than
+      // 401 for that edge case.
+      throw new NotFoundException('Admin not found');
+    }
+
+    const ok = await comparePassword(currentPassword, admin.passwordHash);
+    if (!ok) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    const passwordHash = await hashPassword(newPassword);
+    await this.prisma.$transaction([
+      this.prisma.admin.update({
+        where: { id: admin.id },
+        data: { passwordHash },
+      }),
+      this.prisma.refreshToken.updateMany({
+        where: {
+          userId: admin.id,
+          userType: UserType.admin,
+          revoked: false,
+        },
+        data: { revoked: true },
+      }),
+    ]);
   }
 
   // ── Internal helpers ───────────────────────────────────────────────────────

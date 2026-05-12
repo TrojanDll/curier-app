@@ -1,7 +1,20 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { CurrentUser } from './decorators/current-user.decorator';
+import { Roles } from './decorators/roles.decorator';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
+import type { AuthenticatedUser } from './types/jwt-payload';
 
 /**
  * Auth endpoints (§5 of completion_plan.md). Mounted under `/api/auth/*`
@@ -33,5 +46,25 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async logout(@Body() dto: RefreshDto): Promise<void> {
     await this.authService.logout(dto.refreshToken);
+  }
+
+  /**
+   * Self-service password change for the currently authenticated admin
+   * (§14.3.6). 204 on success; revokes all refresh tokens for this admin so
+   * other sessions must re-login. See AuthService.changeAdminPassword.
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(['admin'])
+  @Post('admin/change-password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async changeAdminPassword(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: ChangePasswordDto,
+  ): Promise<void> {
+    await this.authService.changeAdminPassword(
+      user.sub,
+      dto.currentPassword,
+      dto.newPassword,
+    );
   }
 }

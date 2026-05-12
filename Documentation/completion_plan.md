@@ -250,7 +250,7 @@ refresh_tokens
 - [x] **7.1** _(Critical)_ Удалить захардкоженные `BASE_URL` flavors (`emulator` / `physical`) — URL только из runtime-настроек
 - [x] **7.2** _(Critical)_ Экран «Подключение к серверу» — ввод BASE_URL при первом запуске; хранение в EncryptedSharedPreferences
 - [x] **7.3** _(Critical)_ В Settings/Profile добавить «Сменить сервер» (logout + сброс URL)
-- [ ] **7.4** _(Critical)_ Адаптировать DTO под новый Nest-backend: UUID вместо int, новые поля, отсутствие `price` у курьера
+- [x] **7.4** _(Critical)_ Адаптировать DTO под новый Nest-backend: UUID вместо int, новые поля, отсутствие `price` у курьера
 - [ ] **7.5** _(High)_ Обработка состояния `is_paused` — баннер «Вы на паузе, новые заказы не назначаются»
 - [ ] **7.6** _(High)_ Socket.IO клиент: подписка на `orders:new`, автоматическое обновление списка
 - [ ] **7.7** _(High)_ Корректная обработка статуса `new` / `assigned` (раньше курьер видел только `assigned`)
@@ -430,7 +430,7 @@ volumes:
 > Подзадачи дублируют §7. По мере выполнения отмечайте чекбоксы и тут, и там.
 - [x] **4.1** Удалить flavors `emulator`/`physical`, BASE_URL → runtime config (= 7.1)
 - [x] **4.2** Экран «Подключение к серверу» (= 7.2, 7.3)
-- [ ] **4.3** Адаптировать DTO под Nest API (= 7.4)
+- [x] **4.3** Адаптировать DTO под Nest API (= 7.4)
 - [ ] **4.4** Обработка `is_paused` (= 7.5)
 - [ ] **4.5** Socket.IO Android-клиент (= 7.6, 7.7)
 - [ ] **4.6** Сборка signed release APK + keystore (= 7.9)

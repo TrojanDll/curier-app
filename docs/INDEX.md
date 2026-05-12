@@ -20,3 +20,4 @@ Project documentation cache. Each entry links to a detailed doc file.
 - [Admin Auth — BFF + HttpOnly Cookies](admin-auth.md) — Next BFF flow (login/logout/[...path]), cookie contract, auto-refresh on 401, useLogin/useLogout/useUser API (Stage 3.2)
 - [Admin Orders — API Integration](admin-orders.md) — orders/couriers hooks, query-key factories, filter mapping, debounced search, reassign UX (Stage 3.3)
 - [Admin Couriers — API Integration](admin-couriers.md) — couriers CRUD hooks (create/update/pause/resume/fire/reset-password), drawer-driven forms, filter mapping, three-state badge rationale (Stage 3.4)
+- [Admin Statistics — API Integration](admin-statistics.md) — overview + per-courier hooks, period→bucket→label mapping, KPI/charts/breakdown table layout, placeholderData strategy (Stage 3.5)

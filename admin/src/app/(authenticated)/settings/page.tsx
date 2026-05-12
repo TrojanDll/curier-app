@@ -7,8 +7,8 @@ export const metadata = {
 
 /**
  * TTL фото и смена пароля администратора.
- * Реальные API-запросы (PATCH /api/admin/settings,
- * POST /api/admin/auth/change-password) подключим в §14.3.6.
+ * §14.3.6 — реальные запросы `/api/admin/settings` (GET/PATCH) и
+ * `/api/auth/admin/change-password`.
  */
 export default function SettingsPage() {
     return (

@@ -1,22 +1,53 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/base/Button";
 import { Input } from "@/components/base/Input";
+import {
+    isApiError,
+    useChangeAdminPassword,
+    useSettings,
+    useUpdateSettings,
+} from "@/lib/api";
+import { useUser } from "@/lib/auth/use-auth";
 
 interface Toast {
     id: number;
     text: string;
 }
 
+const PHOTO_TTL_MIN = 1;
+const PHOTO_TTL_MAX = 365;
+const PASSWORD_MIN = 8;
+
+const UPDATED_AT_FMT = new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+});
+
 export function SettingsClient() {
-    const [photoTtl, setPhotoTtl] = useState<string>("30");
-    const [savingTtl, setSavingTtl] = useState(false);
+    const user = useUser();
+
+    const settingsQuery = useSettings();
+    const updateSettings = useUpdateSettings();
+    const changePassword = useChangeAdminPassword();
+
+    const settings = settingsQuery.data;
+
+    // Контролируемый input. Синхронизируется с свежими данными сервера
+    // (включая onSuccess после PATCH), но не затирает локальные правки
+    // пока пользователь печатает — поэтому держим в state, а не считаем из props.
+    const [photoTtl, setPhotoTtl] = useState<string>("");
+    useEffect(() => {
+        if (settings) setPhotoTtl(String(settings.photoTtlDays));
+    }, [settings]);
 
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
-    const [savingPassword, setSavingPassword] = useState(false);
     const [passwordError, setPasswordError] = useState<string | null>(null);
 
     const [toasts, setToasts] = useState<Toast[]>([]);
@@ -31,14 +62,20 @@ export function SettingsClient() {
     const handleSaveTtl = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         const days = Number(photoTtl);
-        if (!Number.isFinite(days) || days < 1 || days > 365) {
-            showToast("TTL должен быть от 1 до 365 дней");
+        if (!Number.isInteger(days) || days < PHOTO_TTL_MIN || days > PHOTO_TTL_MAX) {
+            showToast(`TTL должен быть целым числом от ${PHOTO_TTL_MIN} до ${PHOTO_TTL_MAX} дней`);
             return;
         }
-        setSavingTtl(true);
-        await new Promise((r) => setTimeout(r, 400));
-        setSavingTtl(false);
-        showToast(`TTL фото сохранён: ${days} дн.`);
+        if (settings && days === settings.photoTtlDays) {
+            showToast("TTL не изменился");
+            return;
+        }
+        try {
+            await updateSettings.mutateAsync({ photoTtlDays: days });
+            showToast(`TTL фото сохранён: ${days} дн.`);
+        } catch (error) {
+            showToast(extractMessage(error, "Не удалось сохранить TTL"));
+        }
     };
 
     const handleSavePassword = async (event: FormEvent<HTMLFormElement>) => {
@@ -49,8 +86,12 @@ export function SettingsClient() {
             setPasswordError("Заполните все поля");
             return;
         }
-        if (newPassword.length < 8) {
-            setPasswordError("Новый пароль должен быть минимум 8 символов");
+        if (newPassword.length < PASSWORD_MIN) {
+            setPasswordError(`Новый пароль должен быть минимум ${PASSWORD_MIN} символов`);
+            return;
+        }
+        if (newPassword === currentPassword) {
+            setPasswordError("Новый пароль должен отличаться от текущего");
             return;
         }
         if (newPassword !== confirmPassword) {
@@ -58,55 +99,72 @@ export function SettingsClient() {
             return;
         }
 
-        setSavingPassword(true);
-        await new Promise((r) => setTimeout(r, 500));
-        setSavingPassword(false);
-
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
-        showToast("Пароль обновлён (мок)");
+        try {
+            await changePassword.mutateAsync({ currentPassword, newPassword });
+            setCurrentPassword("");
+            setNewPassword("");
+            setConfirmPassword("");
+            showToast("Пароль обновлён. Другие сессии будут разлогинены автоматически.");
+        } catch (error) {
+            setPasswordError(extractMessage(error, "Не удалось сменить пароль"));
+        }
     };
 
     return (
         <div className="flex flex-col gap-6 px-8 py-6">
             <SettingSection
                 title="Текущий администратор"
-                description="Эти данные синхронизируются с backend на Этапе 3."
+                description="Имя и логин подставляются из активной сессии."
             >
                 <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <Field label="Логин" value="admin" />
-                    <Field label="Полное имя" value="Главный администратор" />
-                    <Field label="Создан" value="01.11.2025" />
-                    <Field label="Последний вход" value="25.04.2026 11:00" />
+                    <Field label="Логин" value={user?.username ?? "—"} />
+                    <Field label="Полное имя" value={user?.fullName ?? "—"} />
                 </dl>
             </SettingSection>
 
             <SettingSection
                 title="Хранение фото"
-                description="Через сколько дней автоматически удалять загруженные фото доставок."
+                description="Через сколько дней автоматически удалять загруженные фото доставок. Применяется к новым загрузкам — у уже сохранённых фото срок не пересчитывается."
             >
+                {settingsQuery.isError ? (
+                    <p
+                        role="alert"
+                        className="mb-4 rounded-md bg-error-primary px-3 py-2 text-sm text-error-primary"
+                    >
+                        {extractMessage(settingsQuery.error, "Не удалось загрузить настройки")}
+                    </p>
+                ) : null}
                 <form className="flex flex-col gap-4 sm:flex-row sm:items-end" onSubmit={handleSaveTtl}>
                     <div className="w-full sm:max-w-xs">
                         <Input
                             label="TTL фото (дней)"
                             type="number"
-                            min={1}
-                            max={365}
+                            min={PHOTO_TTL_MIN}
+                            max={PHOTO_TTL_MAX}
                             value={photoTtl}
                             onChange={(e) => setPhotoTtl(e.target.value)}
-                            hint="По умолчанию 30 дней. От 1 до 365."
+                            hint={`По умолчанию 30 дней. От ${PHOTO_TTL_MIN} до ${PHOTO_TTL_MAX}.`}
+                            disabled={!settings && settingsQuery.isLoading}
                         />
                     </div>
-                    <Button type="submit" isLoading={savingTtl}>
+                    <Button
+                        type="submit"
+                        isLoading={updateSettings.isPending}
+                        disabled={!settings}
+                    >
                         Сохранить
                     </Button>
                 </form>
+                {settings ? (
+                    <p className="mt-3 text-xs text-tertiary">
+                        Последнее обновление: {UPDATED_AT_FMT.format(new Date(settings.updatedAt))}
+                    </p>
+                ) : null}
             </SettingSection>
 
             <SettingSection
                 title="Смена пароля"
-                description="Минимум 8 символов. Поле текущего пароля валидируется backend-ом."
+                description={`Минимум ${PASSWORD_MIN} символов. Поле текущего пароля проверяется backend-ом.`}
             >
                 <form className="flex flex-col gap-4 sm:max-w-md" onSubmit={handleSavePassword}>
                     <Input
@@ -132,7 +190,7 @@ export function SettingsClient() {
                         error={passwordError ?? undefined}
                     />
                     <div>
-                        <Button type="submit" isLoading={savingPassword}>
+                        <Button type="submit" isLoading={changePassword.isPending}>
                             Обновить пароль
                         </Button>
                     </div>
@@ -151,6 +209,16 @@ export function SettingsClient() {
             </div>
         </div>
     );
+}
+
+function extractMessage(error: unknown, fallback: string): string {
+    if (isApiError(error)) {
+        const messages = error.messages();
+        const first = messages[0];
+        if (typeof first === "string" && first.length > 0) return first;
+    }
+    if (error instanceof Error && error.message) return error.message;
+    return fallback;
 }
 
 function SettingSection({

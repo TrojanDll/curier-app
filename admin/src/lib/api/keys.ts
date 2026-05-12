@@ -45,3 +45,13 @@ export const statisticsKeys = {
     overview: (query: unknown) => [...statisticsKeys.all, "overview", query] as const,
     couriers: (query: unknown) => [...statisticsKeys.all, "couriers", query] as const,
 };
+
+/**
+ * Settings — singleton resource. `current()` достаточно одного, но
+ * иерархия `["settings", "current"]` оставляет место для будущих
+ * подпунктов (например, истории изменений) без коллизии ключей.
+ */
+export const settingsKeys = {
+    all: ["settings"] as const,
+    current: () => [...settingsKeys.all, "current"] as const,
+};

@@ -1,7 +1,7 @@
 export { apiClient } from "./client";
 export { ApiError, isApiError, toApiError, type ApiErrorEnvelope } from "./errors";
 export { createQueryClient } from "./query-client";
-export { courierKeys, orderKeys, statisticsKeys } from "./keys";
+export { courierKeys, orderKeys, settingsKeys, statisticsKeys } from "./keys";
 export {
     useOrder,
     useOrders,
@@ -43,3 +43,12 @@ export {
     type StatisticsPeriod,
     type TopCourier,
 } from "./statistics";
+export {
+    useChangeAdminPassword,
+    useSettings,
+    useUpdateSettings,
+    type AppSettings,
+    type AppSettingsDto,
+    type ChangeAdminPasswordInput,
+    type UpdateSettingsInput,
+} from "./settings";

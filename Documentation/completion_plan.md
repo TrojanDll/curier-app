@@ -454,7 +454,7 @@ volumes:
 - [x] **6.7** Тестовая «прогонка» документации: пройти DEPLOYMENT.md по шагам _(шаги 4-7 фактически прогнаны end-to-end через Docker Desktop в §5.6 / §14.5.6 — compose поднялся, /health отвечает, login возвращает JWT; финальная валидация на чистой Linux VM остаётся на стороне владельца)_
 
 ### Этап 7 — Тесты
-- [ ] **7.1** Unit tests: ViewModels Android (по `test_plan.md`) _(in progress: 6 unit tests для `LoginViewModel` написаны и проходят — `./gradlew testDebugUnitTest`; ProfileViewModel / OrdersViewModel / OrderDetailsViewModel / HistoryViewModel / ServerConfigViewModel / RealtimeViewModel ожидают coverage)_
+- [x] **7.1** Unit tests: ViewModels Android (по `test_plan.md`) _(50 тестов проходят: Login + Orders + OrderDetails + Profile + History + ServerConfig — см. `docs/android-testing.md`. `RealtimeViewModel` отсутствует как отдельный класс — realtime-приём покрыт тестами Orders + OrderDetails. Запуск: `./gradlew testDebugUnitTest`)_
 - [ ] **7.2** Unit tests: Nest сервисы (auto-assign, status transitions, auth) _(in progress: 6 unit tests для `password.util` PASS; AssignmentService eligibility/ordering и OrdersService `COURIER_NEXT` transitions требуют сначала extract в pure-function module — поэтому отложено)_
 - [ ] **7.3** Integration tests Nest: Prisma + endpoints _(deferred: предыдущий `test/jest-e2e` skeleton, упомянутый в §14.2.14 как «30/30 PASS», удалён из репо; нужен новый scaffold с тестовой БД)_
 - [ ] **7.4** UI tests Android: Espresso для критических флоу _(deferred: требует emulator + AndroidJUnitRunner setup в CI)_

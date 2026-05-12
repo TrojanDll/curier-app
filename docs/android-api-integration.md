@@ -67,6 +67,16 @@ Forward-only transitions remain enforced both client-side
 `PUT /api/courier/profile` accepts `{ email?, phone? }` only —
 `dateOfBirth` is admin-edited.
 
+### Paused-courier banner (§7.5)
+
+`OrdersViewModel` reads `isPaused` from the profile during `init` and on
+every pull-to-refresh, exposing it as
+`OrdersUiState.isCurrentCourierPaused`. When `true`, the
+`pausedBanner` MaterialCardView at the top of `fragment_orders_list.xml`
+becomes visible — auto-assign on the backend is bypassing the courier,
+so the UI explains why no new orders show up. Profile-fetch errors are
+swallowed; the banner is advisory, not blocking.
+
 ## Statistics
 
 `StatisticsDto` mirrors `CourierSelfStatsResponse`:

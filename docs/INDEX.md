@@ -26,4 +26,4 @@ Project documentation cache. Each entry links to a detailed doc file.
 - [Admin Realtime — Socket.IO Integration](admin-realtime.md) — BFF token endpoint + RealtimeProvider, handshake flow, event→cache invalidation map, lifecycle/reconnect handling (Stage 3.7)
 - [Admin Order Photos — Drawer Integration](admin-order-photos.md) — PhotosSection + PhotoLightbox в drawer заказа, `<img>` через BFF-proxy, portal в body, fallback'ы загрузки (Stage 3.8)
 - [Android Server Config](android-server-config.md) — ServerConfigManager + runtime BASE_URL, ServerConfigFragment + health-check, Profile change-server flow, reset механика (Stage 4.1–4.2 / §7.1–7.3)
-- [Android API Integration](android-api-integration.md) — wire format (no envelope, camelCase, UUID), DTO ↔ NestJS endpoints, JwtUtils, Room v3, error mapping (Stage 4.3 / §7.4)
+- [Android API Integration](android-api-integration.md) — wire format (no envelope, camelCase, UUID), DTO ↔ NestJS endpoints, JwtUtils, Room v3, error mapping, paused-courier banner (Stage 4.3–4.4 / §7.4–7.5)

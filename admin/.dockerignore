@@ -1,0 +1,25 @@
+# Build / test artefacts
+node_modules
+.next
+out
+coverage
+
+# Local env / secrets — production receives env via docker-compose
+.env
+.env.local
+.env.*.local
+
+# Editor / OS
+.vscode
+.idea
+*.log
+.DS_Store
+
+# VCS
+.git
+.gitignore
+.gitattributes
+
+# Docs that don't ship to the image
+README.md
+*.md

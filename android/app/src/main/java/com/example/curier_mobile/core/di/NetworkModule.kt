@@ -1,7 +1,7 @@
 package com.example.curier_mobile.core.di
 
 import android.content.Context
-import com.example.curier_mobile.BuildConfig
+import com.example.curier_mobile.data.local.preferences.ServerConfigManager
 import com.example.curier_mobile.data.local.preferences.TokenManager
 import com.example.curier_mobile.data.remote.api.ApiService
 import com.example.curier_mobile.data.remote.interceptor.AuthInterceptor
@@ -14,56 +14,63 @@ import retrofit2.converter.moshi.MoshiConverterFactory
 import java.util.concurrent.TimeUnit
 
 /**
- * Simple singleton DI for Network dependencies
- * Replaces Hilt NetworkModule
+ * Simple singleton DI for Network dependencies.
+ *
+ * BASE_URL загружается из [ServerConfigManager] (runtime-конфиг). Если URL не задан,
+ * используется заглушка `http://0.0.0.0/` — Retrofit построится, но запросы упадут,
+ * пока пользователь не введёт URL на экране «Подключение к серверу».
  */
 object NetworkModule {
 
     private const val TIMEOUT_SECONDS = 30L
+    private const val PLACEHOLDER_BASE_URL = "http://0.0.0.0/"
 
     private var tokenManager: TokenManager? = null
+    private var serverConfigManager: ServerConfigManager? = null
     private var okHttpClient: OkHttpClient? = null
     private var retrofit: Retrofit? = null
     private var apiService: ApiService? = null
+    private var cachedBaseUrl: String? = null
 
     /**
-     * Initialize NetworkModule with application context
-     * Call this from Application.onCreate()
+     * Initialize NetworkModule with application context.
+     * Call this from Application.onCreate().
      */
     fun initialize(context: Context) {
         tokenManager = TokenManager.getInstance(context)
+        serverConfigManager = ServerConfigManager.getInstance(context)
     }
 
     /**
-     * Provide Moshi JSON converter
+     * Сбросить кэш Retrofit/OkHttpClient/ApiService.
+     * Вызывать после изменения BASE_URL — иначе старый Retrofit продолжит работать.
      */
+    @Synchronized
+    fun resetClients() {
+        retrofit = null
+        okHttpClient = null
+        apiService = null
+        cachedBaseUrl = null
+    }
+
     private fun provideMoshi(): Moshi {
         return Moshi.Builder()
             .add(KotlinJsonAdapterFactory())
             .build()
     }
 
-    /**
-     * Provide HttpLoggingInterceptor
-     */
     private fun provideLoggingInterceptor(): HttpLoggingInterceptor {
         return HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
     }
 
-    /**
-     * Provide AuthInterceptor
-     */
     private fun provideAuthInterceptor(): AuthInterceptor {
         return AuthInterceptor(
             tokenProvider = { tokenManager?.getAccessToken() }
         )
     }
 
-    /**
-     * Provide OkHttpClient
-     */
     private fun provideOkHttpClient(): OkHttpClient {
         return okHttpClient ?: synchronized(this) {
             okHttpClient ?: OkHttpClient.Builder()
@@ -77,23 +84,30 @@ object NetworkModule {
         }
     }
 
-    /**
-     * Provide Retrofit instance
-     */
     private fun provideRetrofit(): Retrofit {
-        return retrofit ?: synchronized(this) {
-            retrofit ?: Retrofit.Builder()
-                .baseUrl(BuildConfig.BASE_URL)
-                .client(provideOkHttpClient())
-                .addConverterFactory(MoshiConverterFactory.create(provideMoshi()))
-                .build()
-                .also { retrofit = it }
+        val baseUrl = serverConfigManager?.getBaseUrl() ?: PLACEHOLDER_BASE_URL
+        val cached = retrofit
+        if (cached != null && cachedBaseUrl == baseUrl) return cached
+
+        return synchronized(this) {
+            val current = retrofit
+            if (current != null && cachedBaseUrl == baseUrl) {
+                current
+            } else {
+                Retrofit.Builder()
+                    .baseUrl(baseUrl)
+                    .client(provideOkHttpClient())
+                    .addConverterFactory(MoshiConverterFactory.create(provideMoshi()))
+                    .build()
+                    .also {
+                        retrofit = it
+                        cachedBaseUrl = baseUrl
+                        apiService = null
+                    }
+            }
         }
     }
 
-    /**
-     * Provide ApiService
-     */
     fun provideApiService(): ApiService {
         return apiService ?: synchronized(this) {
             apiService ?: provideRetrofit().create(ApiService::class.java)
@@ -101,11 +115,13 @@ object NetworkModule {
         }
     }
 
-    /**
-     * Get TokenManager instance
-     */
     fun provideTokenManager(): TokenManager {
         return tokenManager
+            ?: throw IllegalStateException("NetworkModule not initialized. Call initialize(context) first.")
+    }
+
+    fun provideServerConfigManager(): ServerConfigManager {
+        return serverConfigManager
             ?: throw IllegalStateException("NetworkModule not initialized. Call initialize(context) first.")
     }
 }

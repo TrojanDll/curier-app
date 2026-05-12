@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- Allow cleartext traffic for localhost/emulator in debug builds -->
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">10.0.2.2</domain>
-        <domain includeSubdomains="true">localhost</domain>
-        <domain includeSubdomains="true">127.0.0.1</domain>
-        <!-- Allow cleartext traffic for physical device (local network IP) -->
-        <domain includeSubdomains="true">10.49.230.177</domain>
-    </domain-config>
+    <!--
+        BASE_URL вводится в runtime через экран «Подключение к серверу»,
+        поэтому разрешаем cleartext для всех адресов. В self-hosted-сценарии
+        backend обычно запущен в локальной сети (HTTP без сертификата).
+        TODO §7.9: для release-сборки добавить override с более строгими правилами.
+    -->
+    <base-config cleartextTrafficPermitted="true" />
 </network-security-config>

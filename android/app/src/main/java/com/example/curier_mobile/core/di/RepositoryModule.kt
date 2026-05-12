@@ -18,6 +18,17 @@ object RepositoryModule {
     private var orderRepository: OrderRepository? = null
 
     /**
+     * Сбросить кэш репозиториев. Вызывать после смены BASE_URL, чтобы
+     * repositories пересоздались с новым ApiService.
+     */
+    @Synchronized
+    fun resetCache() {
+        authRepository = null
+        profileRepository = null
+        orderRepository = null
+    }
+
+    /**
      * Provide AuthRepository
      */
     fun provideAuthRepository(): AuthRepository {

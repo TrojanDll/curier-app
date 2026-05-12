@@ -20,36 +20,17 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    flavorDimensions += "device"
-
-    productFlavors {
-        create("emulator") {
-            dimension = "device"
-            // For Android Emulator: Use special address to access host machine's localhost
-            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8081/\"")
-        }
-
-        create("physical") {
-            dimension = "device"
-            // For Physical Device: Use laptop's local network IP address
-            // Make sure your phone and laptop are on the same WiFi network
-            buildConfigField("String", "BASE_URL", "\"http://10.49.230.177:8081/\"")
-        }
-    }
-
     buildTypes {
         debug {
-            // BASE_URL configured in product flavors
+            // BASE_URL загружается в runtime через ServerConfigManager
         }
         release {
-            // BASE_URL configured in product flavors
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
-
     }
 
     compileOptions {

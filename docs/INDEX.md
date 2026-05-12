@@ -25,3 +25,4 @@ Project documentation cache. Each entry links to a detailed doc file.
 - [Admin Settings — API Integration](admin-settings.md) — settings GET/PATCH hooks, change-password mutation, TTL form behaviour + last-updated hint, password security flow (Stage 3.6)
 - [Admin Realtime — Socket.IO Integration](admin-realtime.md) — BFF token endpoint + RealtimeProvider, handshake flow, event→cache invalidation map, lifecycle/reconnect handling (Stage 3.7)
 - [Admin Order Photos — Drawer Integration](admin-order-photos.md) — PhotosSection + PhotoLightbox в drawer заказа, `<img>` через BFF-proxy, portal в body, fallback'ы загрузки (Stage 3.8)
+- [Android Server Config](android-server-config.md) — ServerConfigManager + runtime BASE_URL, reset flow для NetworkModule/RepositoryModule, network security config (Stage 4.1 / §7.1)

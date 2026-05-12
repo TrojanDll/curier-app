@@ -28,3 +28,6 @@ local.properties
 /android/keystore.properties
 /android/**/*.jks
 /android/**/*.keystore
+
+# Docker compose secrets (Stage 14.5.3+)
+/docker/.env

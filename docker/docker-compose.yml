@@ -1,0 +1,91 @@
+# Production stack for the Курьер SaaS (§14.5.3–14.5.5).
+#
+# Usage (from /docker/):
+#   cp .env.example .env       # then fill in real secrets
+#   docker compose up -d --build
+#
+# Services
+#   db       — Postgres 16-alpine, persisted in named volume `db_data`
+#   backend  — NestJS, applies pending Prisma migrations on start
+#   admin    — Next.js BFF, talks to backend over the compose network
+#
+# Volumes
+#   db_data  — Postgres data dir
+#   uploads  — courier photos (backend writes to /app/uploads)
+#
+# Network: a single default bridge network, services reach each other by
+# DNS name (`db`, `backend`, `admin`). Only backend (8081) and admin (3000)
+# are published on the host; the Postgres port stays internal.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      # pg_isready ships in the postgres image. Reference POSTGRES_USER /
+      # POSTGRES_DB (the in-container env names — postgres:alpine sets them
+      # from the docker-compose env above) so we exercise auth on the named
+      # DB. `$$VAR` keeps the literal for the in-container shell.
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 8081
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      # The DB host resolves via docker-compose DNS to the `db` service.
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-30d}
+      INITIAL_ADMIN_USERNAME: ${INITIAL_ADMIN_USERNAME}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
+      INITIAL_ADMIN_FULL_NAME: ${INITIAL_ADMIN_FULL_NAME:-Initial Admin}
+      # PHOTO_UPLOAD_DIR is baked into the image at /app/uploads.
+      PHOTO_TTL_DAYS: ${PHOTO_TTL_DAYS:-30}
+      PHOTO_MAX_SIZE_MB: ${PHOTO_MAX_SIZE_MB:-10}
+    volumes:
+      - uploads:/app/uploads
+    ports:
+      - "${BACKEND_PORT:-8081}:8081"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  admin:
+    build:
+      context: ../admin
+      dockerfile: Dockerfile
+      args:
+        # Captured during `next build` for any URL embedding it picks up
+        # via process.env. Runtime calls also use this — see admin BFF
+        # (lib/server) for the read site.
+        BACKEND_API_URL: http://backend:8081
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      BACKEND_API_URL: http://backend:8081
+    ports:
+      - "${ADMIN_PORT:-3000}:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  db_data:
+  uploads:

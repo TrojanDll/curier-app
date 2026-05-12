@@ -1,0 +1,29 @@
+# Build / test artefacts
+node_modules
+dist
+coverage
+*.tsbuildinfo
+
+# Local env / secrets — the image gets values via docker-compose env vars
+.env
+.env.local
+.env.*.local
+
+# Local volumes
+uploads
+
+# Editor / OS
+.vscode
+.idea
+*.log
+.DS_Store
+
+# VCS
+.git
+.gitignore
+.gitattributes
+
+# Tests / docs that don't ship to the image
+test
+README.md
+*.md

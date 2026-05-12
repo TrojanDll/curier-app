@@ -419,7 +419,7 @@ volumes:
 - [x] **3.1** API-клиент в admin (предпочтительно `tanstack/react-query` + `axios`)
 - [x] **3.2** Auth-флоу: login → JWT в HttpOnly cookie (через Next.js route handlers) или localStorage
 - [x] **3.3** Подменить моки на реальные запросы — Orders
-- [ ] **3.4** Подменить моки на реальные запросы — Couriers
+- [x] **3.4** Подменить моки на реальные запросы — Couriers
 - [ ] **3.5** Подменить моки на реальные запросы — Statistics
 - [ ] **3.6** Подменить моки на реальные запросы — Settings
 - [ ] **3.7** Socket.IO клиент в admin, обновление таблиц realtime

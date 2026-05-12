@@ -13,6 +13,7 @@ Project documentation cache. Each entry links to a detailed doc file.
 - [Statistics — Backend Reference](statistics.md) — admin overview/per-courier breakdown + courier self-stats, period resolution, bucket granularity, metric semantics (Stage 2.8)
 - [Realtime — Backend Reference](realtime.md) — Socket.IO `/realtime` namespace, JWT handshake, `admin` + `courier:<id>` rooms, event/trigger map (Stage 2.9)
 - [Seed — Backend Reference](seed.md) — bootstrap-time first-admin auto-seed, env vars, decision matrix, idempotency rules (Stage 2.11)
+- [Settings — Backend Reference](settings.md) — admin-editable runtime tunables (photo TTL), singleton `app_settings` row, bootstrap seeding, live read from PhotosService (Stage 2.15 / §14.3.6)
 - [Observability — Backend Reference](observability.md) — `/health` liveness probe, `x-request-id` correlation, per-status pino log levels, dev vs prod log shape (Stage 2.12)
 - [Exception Filter — Backend Reference](exceptions.md) — global error envelope, HttpException/Prisma/Multer mapping, logging policy, APP_FILTER vs useGlobalFilters (Stage 2.13)
 - [Input Validation — Backend Reference](validation.md) — global ValidationPipe options, DTO patterns (nullable PATCH, pagination, comma-split enum, ISO dates), service contract change, DTO inventory (Stage 2.14)
@@ -21,3 +22,4 @@ Project documentation cache. Each entry links to a detailed doc file.
 - [Admin Orders — API Integration](admin-orders.md) — orders/couriers hooks, query-key factories, filter mapping, debounced search, reassign UX (Stage 3.3)
 - [Admin Couriers — API Integration](admin-couriers.md) — couriers CRUD hooks (create/update/pause/resume/fire/reset-password), drawer-driven forms, filter mapping, three-state badge rationale (Stage 3.4)
 - [Admin Statistics — API Integration](admin-statistics.md) — overview + per-courier hooks, period→bucket→label mapping, KPI/charts/breakdown table layout, placeholderData strategy (Stage 3.5)
+- [Admin Settings — API Integration](admin-settings.md) — settings GET/PATCH hooks, change-password mutation, TTL form behaviour + last-updated hint, password security flow (Stage 3.6)

@@ -9,13 +9,24 @@ import { UpdateSettingsDto } from './dto/update-settings.dto';
 
 /**
  * Wire-shape exposed to admin consumers (`GET /api/admin/settings`,
- * `PATCH /api/admin/settings`) and to PhotosService for runtime TTL reads.
- * Decoupled from the Prisma row so adding internal-only columns (e.g. an
- * audit field) doesn't leak through the API.
+ * `PATCH /api/admin/settings`). Decoupled from the Prisma row so adding
+ * internal-only columns (e.g. an audit field) doesn't leak through the API.
  */
 export interface AppSettingsView {
   photoTtlDays: number;
+  supportContact: string | null;
   updatedAt: string;
+}
+
+/**
+ * Wire-shape exposed to couriers (`GET /api/courier/settings`). Strict
+ * subset of `AppSettingsView` — courier UI shows photo TTL info and the
+ * support contact on the Profile screen (§7.8). `updatedAt` and any
+ * future admin-internal fields stay out of this shape.
+ */
+export interface PublicAppSettingsView {
+  photoTtlDays: number;
+  supportContact: string | null;
 }
 
 /** Singleton row pkey — see schema.prisma comment. */
@@ -95,6 +106,9 @@ export class SettingsService implements OnApplicationBootstrap {
         ...(dto.photoTtlDays !== undefined
           ? { photoTtlDays: dto.photoTtlDays }
           : {}),
+        ...(dto.supportContact !== undefined
+          ? { supportContact: normaliseSupportContact(dto.supportContact) }
+          : {}),
       },
     });
     return toView(updated);
@@ -109,6 +123,15 @@ export class SettingsService implements OnApplicationBootstrap {
   async getPhotoTtlDays(): Promise<number> {
     const row = await this.ensureRow();
     return row.photoTtlDays;
+  }
+
+  /** Public DTO for `GET /api/courier/settings` (§7.8). */
+  async getForCourier(): Promise<PublicAppSettingsView> {
+    const row = await this.ensureRow();
+    return {
+      photoTtlDays: row.photoTtlDays,
+      supportContact: row.supportContact,
+    };
   }
 
   // ── Internal ───────────────────────────────────────────────────────────────
@@ -131,10 +154,23 @@ export class SettingsService implements OnApplicationBootstrap {
 
 function toView(row: {
   photoTtlDays: number;
+  supportContact: string | null;
   updatedAt: Date;
 }): AppSettingsView {
   return {
     photoTtlDays: row.photoTtlDays,
+    supportContact: row.supportContact,
     updatedAt: row.updatedAt.toISOString(),
   };
+}
+
+/**
+ * Whitespace-only strings would be indistinguishable from "set" but useless
+ * for the courier UI; collapse them to NULL so the courier-side hint kicks in.
+ * `null` passes through (explicit clear), as does a meaningful trimmed value.
+ */
+function normaliseSupportContact(raw: string | null): string | null {
+  if (raw === null) return null;
+  const trimmed = raw.trim();
+  return trimmed.length === 0 ? null : trimmed;
 }

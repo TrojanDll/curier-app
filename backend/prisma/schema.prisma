@@ -158,6 +158,10 @@ model AppSettings {
   /// the cleanup cron (§10). Only applies to *new* uploads — already-stored
   /// photos keep the expires_at written at upload time.
   photoTtlDays Int      @default(30) @map("photo_ttl_days")
+  /// Free-form support contact text shown to couriers on the Profile screen
+  /// (§7.8). Typically name + phone/email/Telegram of the dispatcher.
+  /// NULL means "not configured" — the courier UI then shows a generic hint.
+  supportContact String? @map("support_contact")
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("app_settings")

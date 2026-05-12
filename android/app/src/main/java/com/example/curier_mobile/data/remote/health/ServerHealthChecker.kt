@@ -11,6 +11,16 @@ import java.util.concurrent.TimeUnit
 /**
  * Проверяет, что по заданному BASE_URL действительно живёт наш backend.
  *
+ * Интерфейс выделен для тестируемости — `ServerConfigViewModel` принимает
+ * абстракцию, а в тестах мы подставляем mockk-моки без обхода final-методов.
+ */
+interface ServerHealthCheck {
+    suspend fun check(baseUrl: String): Result<Unit>
+}
+
+/**
+ * Реализация `ServerHealthCheck` поверх OkHttp.
+ *
  * Отдельный standalone-helper — намеренно не использует [com.example.curier_mobile.core.di.NetworkModule],
  * чтобы не модифицировать его глобальный кэш Retrofit/OkHttpClient до того, как пользователь
  * подтвердит ввод URL.
@@ -18,14 +28,14 @@ import java.util.concurrent.TimeUnit
  * Backend выставляет `GET /health` (вне `/api` префикса), ответ — 200 OK с
  * телом `{"status":"ok"}`. См. `docs/observability.md`.
  */
-class ServerHealthChecker {
+class ServerHealthChecker : ServerHealthCheck {
 
     private val client: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .build()
 
-    suspend fun check(baseUrl: String): Result<Unit> = withContext(Dispatchers.IO) {
+    override suspend fun check(baseUrl: String): Result<Unit> = withContext(Dispatchers.IO) {
         val normalized = baseUrl.trim().trimEnd('/')
         val healthUrl = "$normalized/health"
 

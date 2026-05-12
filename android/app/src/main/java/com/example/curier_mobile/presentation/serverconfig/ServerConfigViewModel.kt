@@ -1,12 +1,12 @@
 package com.example.curier_mobile.presentation.serverconfig
 
-import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.curier_mobile.core.di.NetworkModule
 import com.example.curier_mobile.core.di.RepositoryModule
 import com.example.curier_mobile.core.result.Result
 import com.example.curier_mobile.data.local.preferences.ServerConfigManager
+import com.example.curier_mobile.data.remote.health.ServerHealthCheck
 import com.example.curier_mobile.data.remote.health.ServerHealthChecker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 
 class ServerConfigViewModel(
     private val serverConfigManager: ServerConfigManager,
-    private val healthChecker: ServerHealthChecker = ServerHealthChecker()
+    private val healthChecker: ServerHealthCheck = ServerHealthChecker()
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -78,7 +78,9 @@ class ServerConfigViewModel(
             return "URL должен начинаться с http:// или https://"
         }
         return try {
-            val parsed = url.toUri()
+            // java.net.URI вместо androidx Uri — последний тянет Android-stub
+            // и в JVM-юнит-тестах падает с "Method ... not mocked".
+            val parsed = java.net.URI.create(url)
             if (parsed.host.isNullOrBlank()) "Некорректный URL" else null
         } catch (e: Exception) {
             "Некорректный URL"

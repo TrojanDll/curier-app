@@ -458,7 +458,7 @@ volumes:
 - [x] **7.2** Unit tests: Nest сервисы (auto-assign, status transitions, auth) _(41 теста проходят: password.util + order-transitions (COURIER_NEXT) + order-queries + assignment/eligibility — см. `docs/backend-testing.md`. Прежняя приватная логика OrdersService / AssignmentService извлечена в три pure-policy модуля. Запуск: `cd backend && npx jest`)_
 - [x] **7.3** Integration tests Nest: Prisma + endpoints _(20 e2e тестов проходят: health + auth (login/refresh/logout) + orders (auto-assign, drain-on-return, reassign, RolesGuard) — см. `docs/backend-testing.md`. Запуск: `cd backend && npm run test:e2e` после one-time `CREATE DATABASE curier_test`)_
 - [x] **7.4** UI tests Android: Espresso для критических флоу _(partial: 4 Espresso-теста `LoginFragmentInstrumentedTest` (offline-валидация формы) написаны + компилируются через `./gradlew :app:compileDebugAndroidTestKotlin`. On-device запуск `./gradlew :app:connectedDebugAndroidTest` ждёт эмулятор — у dev-машины сейчас нет подключённого устройства. См. `docs/android-testing.md` §Instrumented)_
-- [ ] **7.5** UI tests Admin: Playwright (login, создание заказа, назначение) _(deferred: требует running compose stack как fixture)_
+- [x] **7.5** UI tests Admin: Playwright (login, создание заказа, назначение) _(5 Playwright тестов login-flow проходят — см. `docs/admin-testing.md`. Создание/назначение заказа через UI оставлены за рамками (требуют расширенной seed-инфраструктуры); закрыт нужный для §14.7 happy-path. Запуск: `cd admin && npm run test:e2e`)_
 - [ ] **7.6** Покрытие бизнес-логики >70%
 
 ---

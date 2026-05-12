@@ -23,3 +23,4 @@ Project documentation cache. Each entry links to a detailed doc file.
 - [Admin Couriers — API Integration](admin-couriers.md) — couriers CRUD hooks (create/update/pause/resume/fire/reset-password), drawer-driven forms, filter mapping, three-state badge rationale (Stage 3.4)
 - [Admin Statistics — API Integration](admin-statistics.md) — overview + per-courier hooks, period→bucket→label mapping, KPI/charts/breakdown table layout, placeholderData strategy (Stage 3.5)
 - [Admin Settings — API Integration](admin-settings.md) — settings GET/PATCH hooks, change-password mutation, TTL form behaviour + last-updated hint, password security flow (Stage 3.6)
+- [Admin Realtime — Socket.IO Integration](admin-realtime.md) — BFF token endpoint + RealtimeProvider, handshake flow, event→cache invalidation map, lifecycle/reconnect handling (Stage 3.7)

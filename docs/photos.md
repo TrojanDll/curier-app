@@ -61,8 +61,18 @@ Rationale:
 
 ## TTL
 
-- `expires_at = uploaded_at + PHOTO_TTL_DAYS * 24h` (default 30 days).
-- TTL is **stored at upload time**, not derived dynamically. Changing `PHOTO_TTL_DAYS` later does not retroactively shift existing rows.
+- `expires_at = uploaded_at + photoTtlDays * 24h`.
+- `photoTtlDays` is read at upload time from `app_settings` (singleton
+  row managed by `SettingsService` — see [settings.md](settings.md)). On
+  a fresh deployment the row is seeded from the `PHOTO_TTL_DAYS` env var
+  if present and within `[1, 365]`, otherwise defaults to `30`.
+- After the first bootstrap, **PHOTO_TTL_DAYS env is ignored** — admins
+  change the value via `PATCH /api/admin/settings`. Edits take effect on
+  the very next upload (no restart needed).
+- TTL is **stored at upload time**, not derived dynamically. Lowering
+  `photoTtlDays` later does NOT retroactively shorten existing rows —
+  this is intentional so already-stored photos keep the lifetime the
+  admin committed to.
 - Expired rows + files are removed by the hourly cleanup cron — see **Cleanup cron** below.
 
 ## Cleanup cron

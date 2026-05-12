@@ -57,9 +57,50 @@ side a tiny switch.
 Run: `cd backend && npx jest --colors=false` (or `npm test`). Reports at
 `backend/coverage/` after `npm run test:cov`.
 
+## Integration / e2e (§14.7.3)
+
+Layered on top of unit tests, the e2e suite under `backend/test/`
+exercises the full HTTP stack against a real PostgreSQL.
+
+### Layout
+
+| File | Purpose |
+|---|---|
+| `jest-e2e.json` | Standalone Jest config; `maxWorkers: 1` to serialise DB writes |
+| `global-setup.ts` | `prisma migrate deploy` on `curier_test` once per run |
+| `setup-env.ts` | Pins `DATABASE_URL`, `JWT_SECRET`, silent pino, disables seed-on-boot |
+| `test-utils.ts` | `bootTestApp` (mirrors main.ts pipes + prefix), `resetDatabase` (TRUNCATE + sequence reset), `seedAdmin`/`seedCourier` |
+| `health.e2e-spec.ts` | `/health` liveness + `/api` prefix exemption |
+| `auth.e2e-spec.ts` | admin/courier login (happy + 401 + 400), refresh rotation, logout revocation |
+| `orders.e2e-spec.ts` | create + auto-assign, queued when none free, full transition chain, drain-on-return, 409s, RolesGuard, 401 unauth |
+
+### One-time setup
+
+The suite expects a database named `curier_test` on the dev Postgres
+container:
+
+```bash
+docker exec curier_db_dev psql -U curier -d curier \
+  -c "CREATE DATABASE curier_test"
+```
+
+After that, `global-setup.ts` keeps the schema migrated on every run.
+
+### Running
+
+```bash
+cd backend
+npm run test:e2e         # 20 tests, ~9s
+```
+
+Coverage: every secured controller is hit at least once with both a
+valid token and the wrong role; every multi-step flow (auto-assign,
+drain-on-return, reassign-409) is asserted end-to-end so a regression
+in OrdersService/AssignmentService cannot pass CI silently.
+
 ## What's intentionally NOT covered here
 
-Things that need a real DB or HTTP layer — `OrdersService.create`
-(allocates `order_number` via `nextval`), the advisory lock + CAS inside
-`AssignmentService`, validation pipe interplay with controllers. Those
-go in §14.7.3 (integration / e2e against a disposable Postgres).
+Photo upload + the cleanup cron are excluded for now — multer fixtures
+plus filesystem expectations doubled the spec size without buying much
+beyond what `photos.service` unit-level testing would. Photo coverage
+slots into a future §14.7.3 extension when needed.

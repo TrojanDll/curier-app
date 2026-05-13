@@ -13,10 +13,11 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-curier_dev}
       POSTGRES_DB: ${POSTGRES_DB:-curier}
     ports:
-      # 55432 on the host avoids the native Postgres install that often
-      # owns 5432 on Windows dev machines. Inside the container Postgres
-      # still listens on 5432 (production compose maps 5432:5432).
-      - "55432:5432"
+      # 5433 on the host avoids both the native Postgres install (5432)
+      # and Hyper-V's dynamic exclusion of 55000-56xxx that bites Windows
+      # dev machines on every reboot. Inside the container Postgres still
+      # listens on 5432 (production compose maps 5432:5432).
+      - "5433:5432"
     volumes:
       - db_data_dev:/var/lib/postgresql/data
     healthcheck:

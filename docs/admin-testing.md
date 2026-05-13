@@ -21,7 +21,7 @@ Config in `admin/playwright.config.ts`. Two `webServer` entries auto-start:
 
 ## Prerequisites
 
-The dev Postgres must be reachable on `localhost:55432`:
+The dev Postgres must be reachable on `localhost:5433`:
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d
@@ -30,7 +30,7 @@ docker compose -f docker-compose.dev.yml up -d
 `backend/.env` already pins:
 
 ```
-DATABASE_URL=postgresql://curier:curier_dev@localhost:55432/curier?schema=public
+DATABASE_URL=postgresql://curier:curier_dev@localhost:5433/curier?schema=public
 INITIAL_ADMIN_USERNAME=admin
 INITIAL_ADMIN_PASSWORD=admin
 ```

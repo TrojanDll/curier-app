@@ -6,7 +6,7 @@ Cross-cutting backend conventions that every feature module on Stage 2 follows. 
 
 | Command | Purpose |
 |---|---|
-| `docker compose -f docker-compose.dev.yml up -d` | Bring up dev Postgres on **port 55432** (not 5432). |
+| `docker compose -f docker-compose.dev.yml up -d` | Bring up dev Postgres on **port 5433** (not 5432 — avoids native installs; not 55432 — Windows Hyper-V dynamic exclusions). |
 | `docker compose -f docker-compose.dev.yml ps` | Verify container is `Up (healthy)`. |
 | `cd backend && npm run build` | TS compile via `nest build`. Must be clean before commit. |
 | `cd backend && npm run lint` | ESLint --fix. Must be clean before commit. |

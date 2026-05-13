@@ -9,7 +9,7 @@
 process.env.NODE_ENV = 'test';
 process.env.DATABASE_URL =
   process.env.DATABASE_URL_TEST ??
-  'postgresql://curier:curier_dev@localhost:55432/curier_test?schema=public';
+  'postgresql://curier:curier_dev@localhost:5433/curier_test?schema=public';
 process.env.JWT_SECRET =
   process.env.JWT_SECRET ?? 'e2e_only_jwt_secret_min_length_padding_padding_padding';
 process.env.JWT_ACCESS_TTL = process.env.JWT_ACCESS_TTL ?? '15m';

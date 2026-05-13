@@ -59,7 +59,9 @@ EXPOSE 3000
 # Same wget-spider pattern as backend. Next's standalone server handles "/"
 # fine for liveness; if you later want a dedicated probe, route a tiny
 # /api/health into the BFF and point HEALTHCHECK there.
+# Use 127.0.0.1 explicitly — `localhost` resolves to IPv6 ::1 on some
+# Alpine builds, but Next.js standalone binds only to IPv4 by default.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD wget --quiet --tries=1 --spider http://localhost:3000/ || exit 1
+  CMD wget --quiet --tries=1 --spider http://127.0.0.1:3000/ || exit 1
 
 CMD ["node", "server.js"]

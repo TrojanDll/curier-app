@@ -27,15 +27,21 @@ interface AuthTokens {
 }
 
 /**
- * Attaches `Set-Cookie` headers for both HttpOnly tokens. `secure: true`
- * only in production — dev runs over plain HTTP on localhost.
+ * Attaches `Set-Cookie` headers for both HttpOnly tokens.
+ *
+ * `Secure` is on by default in production — but it breaks plain-HTTP
+ * deploys (browsers silently drop Secure cookies over http://). Opt out
+ * with `INSECURE_COOKIES=1` on the admin container when the stack is
+ * fronted by HTTP only. Production with HTTPS leaves the flag unset
+ * and gets the secure default.
  */
 export function setAuthCookies(res: NextResponse, tokens: AuthTokens): void {
     const isProd = process.env.NODE_ENV === "production";
+    const insecureOptIn = process.env.INSECURE_COOKIES === "1";
     const base = {
         httpOnly: true,
         sameSite: "lax" as const,
-        secure: isProd,
+        secure: isProd && !insecureOptIn,
         path: "/",
         maxAge: COOKIE_MAX_AGE_SECONDS,
     };

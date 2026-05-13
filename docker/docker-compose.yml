@@ -80,6 +80,16 @@ services:
       NODE_ENV: production
       PORT: 3000
       BACKEND_API_URL: http://backend:8081
+      # Public URL the browser uses for the Socket.IO handshake (BFF cannot
+      # proxy WS). MUST be reachable from the client's network — typically
+      # `http://<public-host>:8081` for plain HTTP, or `https://api.example`
+      # behind a TLS-terminating reverse proxy. Falls back to localhost if
+      # unset, which only works for `npm run dev` on the same host.
+      BACKEND_REALTIME_URL: ${BACKEND_REALTIME_URL:-}
+      # Default OFF: HTTPS-fronted deployments keep the Secure flag on
+      # auth cookies. Set INSECURE_COOKIES=1 in .env for plain-HTTP
+      # stands where browsers would otherwise silently drop the cookie.
+      INSECURE_COOKIES: ${INSECURE_COOKIES:-0}
     ports:
       - "${ADMIN_PORT:-3000}:3000"
     depends_on:

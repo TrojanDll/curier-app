@@ -363,7 +363,7 @@ function CouriersBreakdownCard({
                                             <div className="flex flex-col">
                                                 <span>{row.fullName}</span>
                                                 {row.isPaused ? (
-                                                    <span className="text-xs text-tertiary">на паузе</span>
+                                                    <span className="text-xs text-tertiary">дома</span>
                                                 ) : null}
                                             </div>
                                         </td>

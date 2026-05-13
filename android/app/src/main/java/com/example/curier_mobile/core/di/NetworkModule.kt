@@ -4,11 +4,17 @@ import android.content.Context
 import com.example.curier_mobile.data.local.preferences.ServerConfigManager
 import com.example.curier_mobile.data.local.preferences.TokenManager
 import com.example.curier_mobile.data.remote.api.ApiService
+import com.example.curier_mobile.data.remote.dto.RefreshTokenRequest
+import com.example.curier_mobile.data.remote.dto.RefreshTokenResponse
 import com.example.curier_mobile.data.remote.interceptor.AuthInterceptor
+import com.example.curier_mobile.data.remote.interceptor.TokenAuthenticator
 import com.example.curier_mobile.data.remote.realtime.RealtimeManager
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
@@ -78,10 +84,64 @@ object NetworkModule {
         )
     }
 
+    /**
+     * Authenticator, который ловит 401 на любом запросе и прозрачно
+     * обменивает refresh-токен на свежий access. Refresh-вызов идёт через
+     * отдельный bare-OkHttp (`refreshHttpCall`), чтобы не словить
+     * бесконечную рекурсию через тот же Authenticator/Interceptor.
+     */
+    private fun provideTokenAuthenticator(): TokenAuthenticator {
+        return TokenAuthenticator(
+            tokenManager = tokenManager
+                ?: throw IllegalStateException("NetworkModule not initialized"),
+            refreshTokens = { refreshToken -> refreshHttpCall(refreshToken) },
+            onTokensRefreshed = {
+                // Realtime-сокет был открыт со старым access; форсим reconnect
+                // с новым. Сам менеджер тихо вернётся, если URL/токен пусты.
+                realtimeManager?.reconnectWithCurrentCredentials()
+            },
+        )
+    }
+
+    /**
+     * Прямой blocking-вызов `POST /api/auth/refresh` через отдельный OkHttp
+     * без интерсепторов и без Authenticator-а. Используется только из
+     * [TokenAuthenticator] — на основной стек нельзя, иначе при истёкшем
+     * access любой запрос (включая сам refresh) попал бы в Authenticator
+     * → ещё refresh → бесконечный цикл.
+     */
+    private fun refreshHttpCall(refreshToken: String): RefreshTokenResponse? {
+        val baseUrl = serverConfigManager?.getBaseUrl()?.trimEnd('/') ?: return null
+        val moshi = this.moshi ?: provideMoshi()
+        val requestAdapter = moshi.adapter(RefreshTokenRequest::class.java)
+        val responseAdapter = moshi.adapter(RefreshTokenResponse::class.java)
+
+        val client = OkHttpClient.Builder()
+            .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .build()
+        val body = requestAdapter.toJson(RefreshTokenRequest(refreshToken))
+            .toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url("$baseUrl/api/auth/refresh")
+            .post(body)
+            .build()
+
+        return try {
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return null
+                response.body?.string()?.let(responseAdapter::fromJson)
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     private fun provideOkHttpClient(): OkHttpClient {
         return okHttpClient ?: synchronized(this) {
             okHttpClient ?: OkHttpClient.Builder()
                 .addInterceptor(provideAuthInterceptor())
+                .authenticator(provideTokenAuthenticator())
                 .addInterceptor(provideLoggingInterceptor())
                 .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
                 .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)

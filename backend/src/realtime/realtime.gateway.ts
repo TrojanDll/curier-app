@@ -153,11 +153,17 @@ export class RealtimeGateway
   }
 
   /**
-   * "Admin reassigned an order" — admin sees `orders:updated`. Both the
-   * previous and the new courier receive `orders:reassigned` (UI removes
-   * from active list / adds to active list).
+   * "Admin reassigned an order" — admin sees `orders:updated`. The previous
+   * courier (if any) gets `orders:reassigned` so their UI drops the order
+   * from the active list. The new courier gets either:
+   * - `orders:reassigned` if the order was already on someone — UI swaps
+   *   it into the active list silently,
+   * - `orders:new` if the order had no courier before (`previousCourierId
+   *   === null`) — same shape as auto-assign / queue drain, so the
+   *   Android client surfaces the Snackbar.
    *
-   * Fired on POST /admin/orders/:id/reassign.
+   * Fired on POST /admin/orders/:id/reassign and the `auto-assign`
+   * endpoint (which routes through `reassign`).
    */
   emitOrderReassigned(order: Order, previousCourierId: string | null): void {
     this.server
@@ -170,9 +176,13 @@ export class RealtimeGateway
         .emit('orders:reassigned', courierPayload);
     }
     if (order.courierId) {
+      // No previous owner → this is a first-time assignment from the
+      // courier's perspective. Match the auto-assign event shape so the
+      // Android client treats it the same way.
+      const event = previousCourierId ? 'orders:reassigned' : 'orders:new';
       this.server
         .to(`courier:${order.courierId}`)
-        .emit('orders:reassigned', courierPayload);
+        .emit(event, courierPayload);
     }
   }
 

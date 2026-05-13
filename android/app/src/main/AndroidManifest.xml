@@ -8,6 +8,12 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
+    <!-- Heads-up уведомление + звук о новом заказе. POST_NOTIFICATIONS
+         требуется только на Android 13+ (API 33), runtime-разрешение
+         запрашивается в LoginFragment / MainFragment при первом запуске.
+         VIBRATE — для канала с importance=high. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application

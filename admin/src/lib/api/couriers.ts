@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "./client";
 import { courierKeys, orderKeys } from "./keys";
-import type { Courier } from "@/types/courier";
+import type { Courier, CourierDisplayStatus } from "@/types/courier";
 
 /**
  * Контракт `/api/admin/couriers` (см. docs/couriers.md).
@@ -31,6 +31,11 @@ export interface CourierAdminDto {
     isActive: boolean;
     isPaused: boolean;
     lastReturnedAt: string | null;
+    pausedAt: string | null;
+    lastResumedAt: string | null;
+    firedAt: string | null;
+    currentStatus: CourierDisplayStatus;
+    currentStatusSince: string | null;
     createdAt: string;
     updatedAt: string;
 }
@@ -93,6 +98,11 @@ function mapCourier(dto: CourierAdminDto): Courier {
         isActive: dto.isActive,
         isPaused: dto.isPaused,
         lastReturnedAt: dto.lastReturnedAt,
+        pausedAt: dto.pausedAt,
+        lastResumedAt: dto.lastResumedAt,
+        firedAt: dto.firedAt,
+        currentStatus: dto.currentStatus,
+        currentStatusSince: dto.currentStatusSince,
         createdAt: dto.createdAt,
         updatedAt: dto.updatedAt,
     };

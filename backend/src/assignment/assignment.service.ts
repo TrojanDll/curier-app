@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { OrderStatus, type Order } from '@prisma/client';
+import { OrderStatus, Prisma, type Courier, type Order } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { COURIER_BUSY_STATUSES } from './eligibility';
 
@@ -8,6 +8,39 @@ export class AssignmentService {
   private readonly logger = new Logger(AssignmentService.name);
 
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Return the longest-at-base eligible courier per §8 ordering, or null
+   * if none are free. Optionally excludes one courier id (used by admin
+   * "Назначить автоматически" to skip the currently assigned courier when
+   * reassigning).
+   *
+   * No advisory lock here — this is a read-only lookup used to suggest a
+   * candidate for a follow-up reassign call. If the candidate becomes
+   * ineligible by the time `reassign` runs, `OrdersService.reassign` will
+   * surface a 409 to the admin.
+   */
+  async findLongestAtBaseEligible(
+    excludeCourierId?: string | null,
+  ): Promise<Courier | null> {
+    const where: Prisma.CourierWhereInput = {
+      isActive: true,
+      isPaused: false,
+      orders: {
+        none: { status: { in: [...COURIER_BUSY_STATUSES] } },
+      },
+    };
+    if (excludeCourierId) {
+      where.id = { not: excludeCourierId };
+    }
+    return this.prisma.courier.findFirst({
+      where,
+      orderBy: [
+        { lastReturnedAt: { sort: 'asc', nulls: 'first' } },
+        { createdAt: 'asc' },
+      ],
+    });
+  }
 
   /**
    * Try to assign a freshly created `new` order to the longest-at-base

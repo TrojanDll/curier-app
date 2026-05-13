@@ -71,6 +71,18 @@ model Courier {
   /// "longest at base" tie-break (§8). NULL means "never returned yet";
   /// service treats it as createdAt for ordering.
   lastReturnedAt DateTime? @map("last_returned_at") @db.Timestamptz(6)
+  /// Stamp of the most recent `pause` (cleared on `resume`). Drives the
+  /// admin UI "сколько в статусе" counter — separate from `updated_at` so
+  /// profile edits don't reset it.
+  pausedAt       DateTime? @map("paused_at") @db.Timestamptz(6)
+  /// Stamp of the most recent `resume` (return to shift after pause). Used
+  /// alongside `last_returned_at` and `created_at` to compute the moment a
+  /// courier became `available` — so the counter resets on resume instead
+  /// of inheriting an old "last returned with order" timestamp.
+  lastResumedAt  DateTime? @map("last_resumed_at") @db.Timestamptz(6)
+  /// Stamp of the soft-delete (firing). Once set the courier can no longer
+  /// be edited via UI, so this also doubles as the "fired since" moment.
+  firedAt        DateTime? @map("fired_at") @db.Timestamptz(6)
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 

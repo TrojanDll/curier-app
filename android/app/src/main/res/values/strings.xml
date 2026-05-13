@@ -28,6 +28,13 @@
     <string name="get_new_order">Получить заказ</string>
     <string name="new_order_received">Новый заказ получен</string>
 
+    <!-- Notifications -->
+    <string name="notification_channel_new_orders">Новые заказы</string>
+    <string name="notification_channel_new_orders_desc">Звуковое уведомление о новом назначенном заказе</string>
+    <string name="notification_new_order_title">Новый заказ</string>
+    <string name="notification_new_order_body">%1$s · %2$s</string>
+    <string name="notification_permission_rationale">Разрешите уведомления, чтобы получать звуковой сигнал о новом заказе</string>
+
     <!-- Order Statuses -->
     <string name="status_picked_up">Забрал заказ</string>
     <string name="status_near_customer">Возле дома клиента</string>
@@ -78,9 +85,9 @@
     <string name="profile_updated_successfully">Профиль успешно обновлен</string>
     <string name="profile_update_failed">Не удалось обновить профиль</string>
 
-    <!-- Pause banner -->
-    <string name="paused_banner_title">Вы на паузе</string>
-    <string name="paused_banner_subtitle">Новые заказы не назначаются. Свяжитесь с администратором, чтобы вернуться в работу.</string>
+    <!-- Pause banner (UI-лейбл «Дома / Не на смене», поле is_paused в БД). -->
+    <string name="paused_banner_title">Вы не на смене</string>
+    <string name="paused_banner_subtitle">Новые заказы не назначаются. Свяжитесь с администратором, чтобы вернуться на смену.</string>
 
     <!-- Realtime -->
     <string name="new_order_snackbar">Новый заказ #%s</string>

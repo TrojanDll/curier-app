@@ -22,6 +22,15 @@ class OrderDetailsViewModel(
     private val _uiState = MutableStateFlow(OrderDetailsUiState())
     val uiState: StateFlow<OrderDetailsUiState> = _uiState.asStateFlow()
 
+    /**
+     * Гард от повторной загрузки фото при пересоздании fragment-а (например,
+     * после rotation). PhotoCaptureFragment возвращается на details через
+     * `popUpToInclusive=true` — каждый такой возврат создаёт новый Fragment +
+     * ViewModel, поэтому флаг привязан к жизни ViewModel-а и сбросится сам
+     * собой при следующем заходе на экран.
+     */
+    private var capturedPhotoConsumed = false
+
     init {
         loadOrderDetails()
         observeRealtime()
@@ -137,6 +146,18 @@ class OrderDetailsViewModel(
                 is Result.Loading -> Unit
             }
         }
+    }
+
+    /**
+     * Загружает фото, захваченное PhotoCaptureFragment-ом и пробрасываемое
+     * сюда через nav-аргумент `photoPath`. Идемпотентно в пределах жизни
+     * ViewModel-а — на повторных вызовах с тем же путём ничего не делает,
+     * чтобы rotation/recreation не приводили к двойному multipart-запросу.
+     */
+    fun consumeCapturedPhotoPath(photoPath: String?) {
+        if (photoPath.isNullOrBlank() || capturedPhotoConsumed) return
+        capturedPhotoConsumed = true
+        uploadPhoto(photoPath)
     }
 
     fun clearStatusUpdateSuccess() {

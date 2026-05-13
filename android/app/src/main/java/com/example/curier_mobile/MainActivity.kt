@@ -1,7 +1,12 @@
 package com.example.curier_mobile
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -23,6 +28,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var navController: NavController
     private lateinit var toolbar: MaterialToolbar
 
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {
+        // Игнорируем результат: на отказ нет смысла валить экран — нотификации
+        // просто не покажутся, но REST/realtime + UI в Snackbar-ах продолжат
+        // работать. Курьер при желании включит уведомления в настройках ОС.
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -33,6 +46,24 @@ class MainActivity : AppCompatActivity() {
 
         setupNavigation()
         setupWindowInsets()
+        requestNotificationPermissionIfNeeded()
+    }
+
+    /**
+     * Android 13+ требует runtime-разрешение POST_NOTIFICATIONS, иначе
+     * `NotificationManagerCompat.notify` тихо ничего не делает. Запрашиваем
+     * один раз на старте — системный диалог сам ничего не покажет, если
+     * пользователь уже разрешил или окончательно отказал.
+     */
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        val granted = ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.POST_NOTIFICATIONS,
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!granted) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
     }
 
     private fun setupNavigation() {

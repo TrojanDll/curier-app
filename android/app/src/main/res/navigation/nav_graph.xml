@@ -14,6 +14,13 @@
             app:destination="@id/loginFragment"
             app:popUpTo="@id/serverConfigFragment"
             app:popUpToInclusive="true" />
+        <!-- Прямой переход на основной экран — используется при автозапуске,
+             если сохранён URL и есть валидная пара токенов в TokenManager. -->
+        <action
+            android:id="@+id/action_serverConfig_to_main"
+            app:destination="@id/mainFragment"
+            app:popUpTo="@id/serverConfigFragment"
+            app:popUpToInclusive="true" />
     </fragment>
 
     <!-- Auth Navigation -->

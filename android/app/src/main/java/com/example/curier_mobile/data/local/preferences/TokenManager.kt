@@ -78,6 +78,18 @@ class TokenManager(context: Context) {
     }
 
     /**
+     * Есть ли в хранилище полная пара токенов (access + refresh) — независимо
+     * от того, протух access или нет. Используется при старте приложения,
+     * чтобы решить «можно ли восстановить сессию без логина»: даже если
+     * access-токен уже истёк, refresh ещё валиден ~30 дней и
+     * [TokenAuthenticator] прозрачно обменяет его на свежий access на
+     * первом 401.
+     */
+    fun hasTokens(): Boolean {
+        return !getAccessToken().isNullOrEmpty() && !getRefreshToken().isNullOrEmpty()
+    }
+
+    /**
      * Clear all tokens (logout)
      */
     fun clearTokens() {

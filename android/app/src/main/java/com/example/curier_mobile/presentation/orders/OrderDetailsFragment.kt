@@ -88,6 +88,12 @@ class OrderDetailsFragment : BaseFragment<FragmentOrderDetailsBinding>() {
         binding.btnTakePhoto.setOnClickListener {
             navigateToPhotoCapture()
         }
+
+        // Если этот fragment воссоздан после возврата из PhotoCaptureFragment
+        // (см. popUpToInclusive в nav_graph_main.xml), `args.photoPath` хранит
+        // путь к снятому файлу. ViewModel сам гарантирует, что upload запустится
+        // ровно один раз за свой жизненный цикл.
+        viewModel.consumeCapturedPhotoPath(args.photoPath)
     }
 
     override fun observeViewModel() {
@@ -277,10 +283,5 @@ class OrderDetailsFragment : BaseFragment<FragmentOrderDetailsBinding>() {
         val action = OrderDetailsFragmentDirections
             .actionOrderDetailsFragmentToPhotoCaptureFragment(orderId = args.orderId)
         findNavController().navigate(action)
-    }
-
-    private fun handleCapturedPhoto(photoPath: String) {
-        // Upload photo to server
-        viewModel.uploadPhoto(photoPath)
     }
 }

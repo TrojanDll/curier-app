@@ -162,3 +162,61 @@ export function useReassignOrder() {
         },
     });
 }
+
+/**
+ * Тело `POST /api/admin/orders` (см. docs/orders.md). `orderNumber`,
+ * `status`, `courierId`, `createdByAdminId` и timestamps backend выставляет
+ * сам; auto-assign (Stage 2.6) может вернуть уже `assigned` ответ.
+ *
+ * `price` — строка `"123.45"|null`, чтобы не терять точность Decimal(10,2)
+ * при JSON-сериализации (см. validation.md и mapOrder выше).
+ */
+export interface CreateOrderInput {
+    customerName: string;
+    customerPhone: string;
+    deliveryAddress: string;
+    productDescription: string;
+    comments?: string | null;
+    price?: string | null;
+    /**
+     * Если задан — заказ создаётся сразу в статусе `assigned` с этим курьером
+     * (auto-assign пропускается). Backend проверяет, что курьер существует,
+     * активен и не на паузе. Иначе ответит 404/409.
+     */
+    courierId?: string;
+}
+
+export function useCreateOrder() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (input: CreateOrderInput): Promise<Order> => {
+            const { data } = await apiClient.post<OrderAdminDto>("/admin/orders", input);
+            return mapOrder(data);
+        },
+        onSuccess: (order) => {
+            queryClient.invalidateQueries({ queryKey: orderKeys.lists() });
+            queryClient.setQueryData(orderKeys.detail(order.id), order);
+        },
+    });
+}
+
+/**
+ * Назначить заказ автоматически: backend выберет курьера, который дольше
+ * всех находится на базе (исключая текущего, если он есть). 409, если
+ * подходящего курьера нет.
+ */
+export function useAutoAssignOrder() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (orderId: string): Promise<Order> => {
+            const { data } = await apiClient.post<OrderAdminDto>(
+                `/admin/orders/${orderId}/auto-assign`,
+            );
+            return mapOrder(data);
+        },
+        onSuccess: (order) => {
+            queryClient.invalidateQueries({ queryKey: orderKeys.lists() });
+            queryClient.setQueryData(orderKeys.detail(order.id), order);
+        },
+    });
+}

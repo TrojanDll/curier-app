@@ -16,10 +16,16 @@ import com.example.curier_mobile.presentation.common.BaseFragment
 import kotlinx.coroutines.launch
 
 /**
- * Экран «Подключение к серверу». Стартовый destination в nav-графе —
- * если URL уже сохранён, сразу переходим на логин. Иначе пользователь
- * вводит BASE_URL, проверяем его через [com.example.curier_mobile.data.remote.health.ServerHealthChecker]
- * и сохраняем в [com.example.curier_mobile.data.local.preferences.ServerConfigManager].
+ * Экран «Подключение к серверу». Стартовый destination в nav-графе.
+ *
+ * Поведение при запуске:
+ *  - URL не сохранён → рендерим форму, пользователь вводит и подтверждает.
+ *  - URL сохранён, пары токенов нет → переход на экран логина.
+ *  - URL сохранён, пара токенов есть → переход сразу на основной экран
+ *    (Authenticator обменяет refresh на свежий access при первом 401).
+ *
+ * Решение принимает [ServerConfigViewModel] в `init`-блоке; фрагмент только
+ * читает поле `navigateTo` и вызывает соответствующий nav-action.
  */
 class ServerConfigFragment : BaseFragment<FragmentServerConfigBinding>() {
 
@@ -72,9 +78,16 @@ class ServerConfigFragment : BaseFragment<FragmentServerConfigBinding>() {
             binding.tvError.visibility = View.GONE
         }
 
-        if (state.isConnected) {
-            viewModel.clearNavigationFlag()
-            findNavController().navigate(R.id.action_serverConfig_to_login)
+        when (state.navigateTo) {
+            NavigationTarget.MAIN -> {
+                viewModel.clearNavigationFlag()
+                findNavController().navigate(R.id.action_serverConfig_to_main)
+            }
+            NavigationTarget.LOGIN -> {
+                viewModel.clearNavigationFlag()
+                findNavController().navigate(R.id.action_serverConfig_to_login)
+            }
+            null -> Unit
         }
     }
 }

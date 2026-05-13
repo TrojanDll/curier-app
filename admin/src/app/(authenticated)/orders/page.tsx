@@ -1,5 +1,5 @@
 import { Header } from "@/components/application/Header";
-import { CreateOrderButton, OrdersClient } from "./OrdersClient";
+import { OrdersClient } from "./OrdersClient";
 
 export const metadata = {
     title: "Заказы — Курьер",
@@ -7,8 +7,8 @@ export const metadata = {
 
 /**
  * Список заказов с фильтрами, поиском, пагинацией и drawer-ом деталей.
- * На Этапе 1 работает на моках; live-обновления по Socket.IO и реальные
- * API-запросы появятся в Этапе 3 (§14.3.3 / §14.3.7).
+ * Кнопка «Создать заказ» живёт в toolbar внутри OrdersClient, т.к.
+ * открытие drawer-а требует client-state (см. CouriersClient).
  */
 export default function OrdersPage() {
     return (
@@ -16,7 +16,6 @@ export default function OrdersPage() {
             <Header
                 title="Заказы"
                 description="Live-таблица всех заказов предприятия"
-                actions={<CreateOrderButton />}
             />
             <OrdersClient />
         </>

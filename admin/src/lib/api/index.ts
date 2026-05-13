@@ -3,9 +3,12 @@ export { ApiError, isApiError, toApiError, type ApiErrorEnvelope } from "./error
 export { createQueryClient } from "./query-client";
 export { courierKeys, orderKeys, settingsKeys, statisticsKeys } from "./keys";
 export {
+    useAutoAssignOrder,
+    useCreateOrder,
     useOrder,
     useOrders,
     useReassignOrder,
+    type CreateOrderInput,
     type OrderAdminDto,
     type OrdersListQuery,
     type OrdersListResponse,

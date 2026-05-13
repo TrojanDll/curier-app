@@ -57,7 +57,8 @@ class ViewModelFactory(
             }
             modelClass.isAssignableFrom(ServerConfigViewModel::class.java) -> {
                 ServerConfigViewModel(
-                    serverConfigManager = NetworkModule.provideServerConfigManager()
+                    serverConfigManager = NetworkModule.provideServerConfigManager(),
+                    tokenManager = NetworkModule.provideTokenManager(),
                 ) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")

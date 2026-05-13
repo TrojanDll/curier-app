@@ -12,6 +12,7 @@ import { createReadStream } from 'node:fs';
 import { mkdir, unlink, writeFile } from 'node:fs/promises';
 import { isAbsolute, join, resolve } from 'node:path';
 import { PrismaService } from '../prisma/prisma.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { SettingsService } from '../settings/settings.service';
 
 /** Wire-shape for embedding photo metadata in order detail responses. */
@@ -51,6 +52,7 @@ export class PhotosService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly settings: SettingsService,
+    private readonly realtime: RealtimeGateway,
     config: ConfigService,
   ) {
     const rawDir = config.get<string>('PHOTO_UPLOAD_DIR') ?? './uploads';
@@ -151,6 +153,20 @@ export class PhotosService {
       where: { id: placeholder.id },
       data: { filePath },
     });
+
+    // Любая открытая в admin drawer-е карточка заказа подписана на
+    // `orders:updated` через RealtimeProvider (см. docs/admin-realtime.md).
+    // Без этого emit-а админ продолжит видеть "Фото ещё не загружено" даже
+    // после успешной загрузки — пока вручную не переоткроет drawer. Фетчим
+    // запись отдельно: insert/update photo выше работал в неблокирующем
+    // относительно order стиле, лишних join-ов нет.
+    const orderRow = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
+    if (orderRow) {
+      this.realtime.emitOrderUpdated(orderRow);
+    }
+
     return toMeta(updated);
   }
 

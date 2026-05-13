@@ -10,23 +10,38 @@ import { useDebounce } from "@/hooks/use-debounce";
 import {
     isApiError,
     useActiveCouriers,
+    useAutoAssignOrder,
+    useCreateOrder,
     useOrder,
     useOrders,
     useReassignOrder,
+    type CreateOrderInput,
     type OrdersListQuery,
 } from "@/lib/api";
 import {
     ACTIVE_ORDER_STATUSES,
+    getOrderStatusSince,
     ORDER_STATUS_LABELS,
     type Order,
     type OrderStatus,
     type PhotoMeta,
 } from "@/types/order";
 import { cx } from "@/utils/cx";
-import { formatCurrency, formatDateTime, formatDuration } from "@/utils/format";
+import {
+    formatCurrency,
+    formatDateTime,
+    formatDuration,
+    formatTimeSince,
+} from "@/utils/format";
 
 type StatusFilter = "all" | "active" | OrderStatus;
 
+/**
+ * `delivered` в фильтре охватывает и `delivered`, и `returned` статусы.
+ * С точки зрения админа оба означают «заказ доставлен», и подпись бэйджа у
+ * них одинаковая (`ORDER_STATUS_LABELS`); отдельная кнопка «На базе» только
+ * запутывает. Точные моменты перехода видно в timeline drawer-а.
+ */
 const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
     { value: "all", label: "Все" },
     { value: "active", label: "Активные" },
@@ -35,11 +50,11 @@ const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
     { value: "picked_up", label: ORDER_STATUS_LABELS.picked_up },
     { value: "near_customer", label: ORDER_STATUS_LABELS.near_customer },
     { value: "delivered", label: ORDER_STATUS_LABELS.delivered },
-    { value: "returned", label: ORDER_STATUS_LABELS.returned },
 ];
 
 const PAGE_SIZE = 10;
 const ACTIVE_STATUSES_ARRAY: OrderStatus[] = Array.from(ACTIVE_ORDER_STATUSES);
+const COMPLETED_STATUSES: OrderStatus[] = ["delivered", "returned"];
 const REASSIGNABLE_STATUSES: ReadonlySet<OrderStatus> = new Set(["new", "assigned"]);
 
 function buildQuery(
@@ -56,6 +71,11 @@ function buildQuery(
     };
     if (statusFilter === "active") {
         q.status = ACTIVE_STATUSES_ARRAY;
+    } else if (statusFilter === "delivered") {
+        // Фильтр «Доставлен» охватывает оба терминальных состояния заказа —
+        // `delivered` (курьер передал клиенту) и `returned` (курьер вернулся
+        // на базу). Для админа это одно и то же завершение.
+        q.status = COMPLETED_STATUSES;
     } else if (statusFilter !== "all") {
         q.status = [statusFilter];
     }
@@ -65,6 +85,19 @@ function buildQuery(
     return q;
 }
 
+/**
+ * Тикающий `now` для счётчиков «сколько в статусе» в таблице заказов.
+ * 30s достаточно — гранулярность счётчика «минута», экономим перерендеры.
+ */
+function useNowTick(intervalMs: number = 30_000): number {
+    const [now, setNow] = useState(() => Date.now());
+    useEffect(() => {
+        const id = setInterval(() => setNow(Date.now()), intervalMs);
+        return () => clearInterval(id);
+    }, [intervalMs]);
+    return now;
+}
+
 export function OrdersClient() {
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
     const [courierFilter, setCourierFilter] = useState<string>("all");
@@ -72,6 +105,8 @@ export function OrdersClient() {
     const debouncedSearch = useDebounce(searchInput, 300);
     const [page, setPage] = useState(1);
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const now = useNowTick();
 
     // Дебаунс search и переключение фильтров требуют сброса на первую страницу.
     useEffect(() => {
@@ -152,6 +187,12 @@ export function OrdersClient() {
                             </option>
                         ))}
                     </select>
+                    <Button
+                        leftIcon={<Plus className="size-4" />}
+                        onClick={() => setIsCreateOpen(true)}
+                    >
+                        Создать заказ
+                    </Button>
                 </div>
             </div>
 
@@ -173,6 +214,7 @@ export function OrdersClient() {
                                 <th className="px-4 py-3">Адрес</th>
                                 <th className="px-4 py-3">Курьер</th>
                                 <th className="px-4 py-3">Статус</th>
+                                <th className="px-4 py-3">В статусе</th>
                                 <th className="px-4 py-3">Создан</th>
                                 <th className="px-4 py-3 text-right">Сумма</th>
                             </tr>
@@ -180,13 +222,13 @@ export function OrdersClient() {
                         <tbody className="divide-y divide-secondary">
                             {ordersQuery.isLoading && items.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-12 text-center text-sm text-tertiary">
+                                    <td colSpan={8} className="px-4 py-12 text-center text-sm text-tertiary">
                                         Загрузка…
                                     </td>
                                 </tr>
                             ) : items.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-12 text-center text-sm text-tertiary">
+                                    <td colSpan={8} className="px-4 py-12 text-center text-sm text-tertiary">
                                         По заданным фильтрам заказов нет.
                                     </td>
                                 </tr>
@@ -212,6 +254,9 @@ export function OrdersClient() {
                                             </td>
                                             <td className="px-4 py-3">
                                                 <OrderStatusBadge status={order.status} />
+                                            </td>
+                                            <td className="px-4 py-3 text-tertiary tabular-nums">
+                                                {formatTimeSince(getOrderStatusSince(order), now)}
                                             </td>
                                             <td className="px-4 py-3 text-tertiary">{formatDateTime(order.createdAt)}</td>
                                             <td className="px-4 py-3 text-right font-medium tabular-nums">
@@ -261,6 +306,13 @@ export function OrdersClient() {
                 order={selectedOrder}
                 onClose={() => setSelectedOrder(null)}
                 onOrderUpdated={(updated) => setSelectedOrder(updated)}
+            />
+
+            {/* Create order drawer */}
+            <CreateOrderDrawer
+                open={isCreateOpen}
+                onClose={() => setIsCreateOpen(false)}
+                onCreated={() => setIsCreateOpen(false)}
             />
         </div>
     );
@@ -513,6 +565,7 @@ function DrawerBody({ order }: { order: Order }) {
 function ReassignSection({ order, onSuccess }: { order: Order; onSuccess: (o: Order) => void }) {
     const couriersQuery = useActiveCouriers();
     const reassign = useReassignOrder();
+    const autoAssign = useAutoAssignOrder();
     // Сброс формы при смене заказа обеспечен key={order.id} у OrderDetailsDrawer.
     const [target, setTarget] = useState<string>("");
 
@@ -521,8 +574,17 @@ function ReassignSection({ order, onSuccess }: { order: Order; onSuccess: (o: Or
         () => (couriersQuery.data ?? []).filter((c) => !c.isPaused && c.id !== order.courierId),
         [couriersQuery.data, order.courierId],
     );
-    const errorMessage =
-        reassign.error && isApiError(reassign.error) ? reassign.error.messages().join(". ") : null;
+    // Один баннер для двух мутаций — обе пишут в одну и ту же секцию UI.
+    const errorMessage = reassign.error
+        ? isApiError(reassign.error)
+            ? reassign.error.messages().join(". ")
+            : "Не удалось переназначить заказ"
+        : autoAssign.error
+          ? isApiError(autoAssign.error)
+              ? autoAssign.error.messages().join(". ")
+              : "Не удалось назначить автоматически"
+          : null;
+    const busy = reassign.isPending || autoAssign.isPending;
 
     if (!canReassign) {
         return (
@@ -541,7 +603,7 @@ function ReassignSection({ order, onSuccess }: { order: Order; onSuccess: (o: Or
                 id="reassign-target"
                 value={target}
                 onChange={(e) => setTarget(e.target.value)}
-                disabled={couriersQuery.isLoading || reassign.isPending}
+                disabled={couriersQuery.isLoading || busy}
                 className="h-10 rounded-md border border-primary bg-primary px-3 text-sm text-primary shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-50"
             >
                 <option value="">— выберите курьера —</option>
@@ -552,23 +614,39 @@ function ReassignSection({ order, onSuccess }: { order: Order; onSuccess: (o: Or
                 ))}
             </select>
             {errorMessage ? <p className="text-xs text-error-primary">{errorMessage}</p> : null}
-            <Button
-                variant="primary"
-                disabled={!target || reassign.isPending}
-                onClick={() => {
-                    reassign.mutate(
-                        { orderId: order.id, courierId: target },
-                        {
+            <div className="flex flex-col gap-2 sm:flex-row">
+                <Button
+                    variant="primary"
+                    disabled={!target || busy}
+                    onClick={() => {
+                        reassign.mutate(
+                            { orderId: order.id, courierId: target },
+                            {
+                                onSuccess: (updated) => {
+                                    onSuccess(updated);
+                                    setTarget("");
+                                },
+                            },
+                        );
+                    }}
+                >
+                    {reassign.isPending ? "Назначаем…" : "Подтвердить"}
+                </Button>
+                <Button
+                    variant="secondary"
+                    disabled={busy}
+                    onClick={() => {
+                        autoAssign.mutate(order.id, {
                             onSuccess: (updated) => {
                                 onSuccess(updated);
                                 setTarget("");
                             },
-                        },
-                    );
-                }}
-            >
-                {reassign.isPending ? "Назначаем…" : "Подтвердить"}
-            </Button>
+                        });
+                    }}
+                >
+                    {autoAssign.isPending ? "Подбираем…" : "Назначить автоматически"}
+                </Button>
+            </div>
         </div>
     );
 }
@@ -582,14 +660,202 @@ function DrawerRow({ label, value }: { label: string; value: string }) {
     );
 }
 
-export function CreateOrderButton() {
+interface CreateOrderDrawerProps {
+    open: boolean;
+    onClose: () => void;
+    onCreated: (order: Order) => void;
+}
+
+function CreateOrderDrawer({ open, onClose, onCreated }: CreateOrderDrawerProps) {
+    useEffect(() => {
+        if (!open) return;
+        const handler = (e: KeyboardEvent) => {
+            if (e.key === "Escape") onClose();
+        };
+        window.addEventListener("keydown", handler);
+        return () => window.removeEventListener("keydown", handler);
+    }, [open, onClose]);
+
+    if (!open) return null;
+
     return (
-        <Button
-            leftIcon={<Plus className="size-4" />}
-            disabled
-            title="Будет доступно в следующей подзадаче"
+        <div
+            className="fixed inset-0 z-50 flex"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-order-drawer-title"
         >
-            Создать заказ
-        </Button>
+            <div className="flex-1 bg-overlay/40" onClick={onClose} aria-hidden />
+            <aside className="flex h-full w-full max-w-md flex-col overflow-y-auto bg-primary shadow-xl">
+                <div className="flex items-start justify-between border-b border-secondary px-6 py-5">
+                    <h2 id="create-order-drawer-title" className="text-lg font-semibold text-primary">
+                        Новый заказ
+                    </h2>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="rounded-md p-1 text-fg-quaternary transition-colors hover:bg-primary_hover hover:text-fg-primary"
+                        aria-label="Закрыть"
+                    >
+                        <X className="size-5" />
+                    </button>
+                </div>
+                {/* key сбрасывает state формы при повторном открытии. */}
+                <CreateOrderForm key={String(open)} onCancel={onClose} onCreated={onCreated} />
+            </aside>
+        </div>
+    );
+}
+
+function CreateOrderForm({
+    onCancel,
+    onCreated,
+}: {
+    onCancel: () => void;
+    onCreated: (order: Order) => void;
+}) {
+    const create = useCreateOrder();
+    const couriersQuery = useActiveCouriers();
+    const [customerName, setCustomerName] = useState("");
+    const [customerPhone, setCustomerPhone] = useState("");
+    const [deliveryAddress, setDeliveryAddress] = useState("");
+    const [productDescription, setProductDescription] = useState("");
+    const [comments, setComments] = useState("");
+    const [price, setPrice] = useState("");
+    const [priceError, setPriceError] = useState<string | null>(null);
+    // 'auto' = пустой courierId, backend сам выберет самого долго на базе.
+    // Конкретный id = ручное назначение (backend пропустит auto-assign).
+    const [assignMode, setAssignMode] = useState<"auto" | string>("auto");
+
+    const errorMessage =
+        create.error && isApiError(create.error) ? create.error.messages().join(". ") : null;
+    const eligibleCouriers = useMemo(
+        () => (couriersQuery.data ?? []).filter((c) => !c.isPaused),
+        [couriersQuery.data],
+    );
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        // Цена опциональна, но если введена — должна валидно парситься.
+        // Backend ожидает строку (`IsNumberString`); запятую заменяем на точку
+        // и нормализуем, чтобы не ловить 400 на "1 234,50".
+        let normalizedPrice: string | undefined;
+        const rawPrice = price.trim();
+        if (rawPrice) {
+            const candidate = rawPrice.replace(",", ".").replace(/\s+/g, "");
+            if (!/^\d+(\.\d{1,2})?$/.test(candidate)) {
+                setPriceError("Введите сумму в формате 1234.56");
+                return;
+            }
+            normalizedPrice = candidate;
+        }
+        setPriceError(null);
+
+        const input: CreateOrderInput = {
+            customerName: customerName.trim(),
+            customerPhone: customerPhone.trim(),
+            deliveryAddress: deliveryAddress.trim(),
+            productDescription: productDescription.trim(),
+        };
+        const trimmedComments = comments.trim();
+        if (trimmedComments) input.comments = trimmedComments;
+        if (normalizedPrice) input.price = normalizedPrice;
+        if (assignMode !== "auto") input.courierId = assignMode;
+
+        create.mutate(input, { onSuccess: onCreated });
+    };
+
+    const canSubmit =
+        !create.isPending &&
+        customerName.trim().length > 0 &&
+        customerPhone.trim().length > 0 &&
+        deliveryAddress.trim().length > 0 &&
+        productDescription.trim().length > 0;
+
+    return (
+        <form className="flex flex-1 flex-col" onSubmit={handleSubmit}>
+            <div className="flex flex-col gap-4 px-6 py-5">
+                <Input
+                    label="Имя клиента"
+                    required
+                    maxLength={256}
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                />
+                <Input
+                    label="Телефон клиента"
+                    type="tel"
+                    required
+                    maxLength={64}
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                />
+                <Input
+                    label="Адрес доставки"
+                    required
+                    maxLength={1024}
+                    value={deliveryAddress}
+                    onChange={(e) => setDeliveryAddress(e.target.value)}
+                />
+                <Input
+                    label="Описание товара"
+                    required
+                    maxLength={1024}
+                    value={productDescription}
+                    onChange={(e) => setProductDescription(e.target.value)}
+                />
+                <Input
+                    label="Комментарий"
+                    maxLength={2048}
+                    value={comments}
+                    onChange={(e) => setComments(e.target.value)}
+                    hint="Необязательно"
+                />
+                <Input
+                    label="Сумма заказа"
+                    inputMode="decimal"
+                    value={price}
+                    onChange={(e) => {
+                        setPrice(e.target.value);
+                        if (priceError) setPriceError(null);
+                    }}
+                    hint="Необязательно. Пример: 1234.56"
+                    error={priceError ?? undefined}
+                />
+                <div className="flex flex-col gap-1">
+                    <label
+                        htmlFor="create-order-assign"
+                        className="text-xs uppercase tracking-wide text-tertiary"
+                    >
+                        Назначение курьера
+                    </label>
+                    <select
+                        id="create-order-assign"
+                        value={assignMode}
+                        onChange={(e) => setAssignMode(e.target.value)}
+                        disabled={couriersQuery.isLoading || create.isPending}
+                        className="h-10 rounded-md border border-primary bg-primary px-3 text-sm text-primary shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-50"
+                    >
+                        <option value="auto">
+                            Назначить автоматически (самому долго на базе)
+                        </option>
+                        {eligibleCouriers.map((c) => (
+                            <option key={c.id} value={c.id}>
+                                {c.fullName}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                {errorMessage ? <p className="text-sm text-error-primary">{errorMessage}</p> : null}
+            </div>
+            <div className="mt-auto flex justify-end gap-2 border-t border-secondary px-6 py-4">
+                <Button type="button" variant="secondary" onClick={onCancel} disabled={create.isPending}>
+                    Отмена
+                </Button>
+                <Button type="submit" disabled={!canSubmit} isLoading={create.isPending}>
+                    Создать
+                </Button>
+            </div>
+        </form>
     );
 }

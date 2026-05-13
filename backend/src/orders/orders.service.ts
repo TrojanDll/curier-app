@@ -108,6 +108,24 @@ export class OrdersService {
     adminId: string,
     dto: CreateOrderDto,
   ): Promise<OrderAdminResponse> {
+    // If the admin handed the order to a specific courier in the create
+    // body, validate eligibility first so we don't insert a row only to
+    // fail the assign step. Eligibility rules mirror `reassign`: must
+    // exist, be active, and not paused.
+    if (dto.courierId) {
+      const courier = await this.prisma.courier.findUnique({
+        where: { id: dto.courierId },
+      });
+      if (!courier) {
+        throw new NotFoundException('Courier not found');
+      }
+      if (!courier.isActive || courier.isPaused) {
+        throw new ConflictException(
+          'Courier is not eligible (inactive or paused)',
+        );
+      }
+    }
+
     const orderNumber = await this.allocateOrderNumber();
     const order = await this.prisma.order.create({
       data: {
@@ -118,11 +136,26 @@ export class OrdersService {
         productDescription: dto.productDescription,
         comments: dto.comments ?? null,
         price: dto.price ?? null,
-        status: OrderStatus.new,
-        courierId: null,
+        // Manual assignment skips the auto-assign pass; we stamp the
+        // courier + assigned status straight away. Eligibility was just
+        // verified above so a race is the only failure mode left — and
+        // that surfaces as a 409 on subsequent reassign/status calls.
+        status: dto.courierId ? OrderStatus.assigned : OrderStatus.new,
+        courierId: dto.courierId ?? null,
+        assignedAt: dto.courierId ? new Date() : null,
         createdByAdminId: adminId,
       },
     });
+
+    if (dto.courierId) {
+      // Manual assignment path — same shape as a successful auto-assign:
+      // a brand-new order landing on a courier. Use `orders:new` so the
+      // Android client surfaces it via Snackbar instead of treating it
+      // as a silent reassign.
+      this.realtime.emitOrderAssigned(order);
+      return toOrderAdminResponse(order, []);
+    }
+
     // §8 trigger #1: try to hand the new order off immediately. Returns the
     // updated row on success or `null` if no eligible courier was free —
     // either way we surface the latest persisted state to the admin.
@@ -137,6 +170,33 @@ export class OrdersService {
     }
     // A brand-new order can't have photos yet — skip the lookup.
     return toOrderAdminResponse(finalOrder, []);
+  }
+
+  /**
+   * Admin "Назначить автоматически" on an existing order. Finds the
+   * longest-at-base eligible courier (excluding the one currently assigned,
+   * if any) and reassigns the order to them. 409 if no candidate exists.
+   *
+   * The order must be in a reassignable status (`new` or `assigned`); the
+   * underlying `reassign` call enforces this.
+   */
+  async autoAssign(id: string): Promise<OrderAdminResponse> {
+    const order = await this.prisma.order.findUnique({ where: { id } });
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+    if (!REASSIGNABLE_STATUSES.includes(order.status)) {
+      throw new ConflictException(
+        'Order can no longer be reassigned (courier already picked it up)',
+      );
+    }
+    const candidate = await this.assignment.findLongestAtBaseEligible(
+      order.courierId,
+    );
+    if (!candidate) {
+      throw new ConflictException('No eligible courier available');
+    }
+    return this.reassign(id, candidate.id);
   }
 
   async findOneAdmin(id: string): Promise<OrderAdminResponse> {

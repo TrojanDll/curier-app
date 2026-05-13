@@ -73,7 +73,11 @@
       "Bash(MSYS_NO_PATHCONV=1 docker exec curier_db_dev cat /var/lib/postgresql/data/pg_hba.conf)",
       "Bash(DATABASE_URL='postgresql://curier:curier_dev@127.0.0.1:5432/curier' npx prisma db execute --schema prisma/schema.prisma --stdin <<< \"SELECT 1;\")",
       "Bash(DEBUG=\"prisma:client*\" DATABASE_URL='postgresql://curier:curier_dev@127.0.0.1:5432/curier' npx prisma db execute --schema prisma/schema.prisma --stdin <<< \"SELECT 1;\")",
-      "Bash(PORT=18082 timeout 6 npm run start:prod)"
+      "Bash(PORT=18082 timeout 6 npm run start:prod)",
+      "Bash(scp -i '~/.ssh/curier_deploy' android/app/src/main/java/com/example/curier_mobile/core/notification/OrderNotificationManager.kt android/app/src/main/java/com/example/curier_mobile/core/notification/NewOrderNotifier.kt root@109.73.203.142:/opt/curier/android/app/src/main/java/com/example/curier_mobile/core/notification/)",
+      "Bash(scp -i '~/.ssh/curier_deploy' android/app/src/main/AndroidManifest.xml root@109.73.203.142:/opt/curier/android/app/src/main/AndroidManifest.xml)",
+      "Bash(scp -i '~/.ssh/curier_deploy' android/app/src/main/res/values/strings.xml root@109.73.203.142:/opt/curier/android/app/src/main/res/values/strings.xml)",
+      "Bash(scp -i '~/.ssh/curier_deploy' android/app/build/outputs/apk/debug/app-debug.apk root@109.73.203.142:/opt/curier/public/curier.apk)"
     ],
     "deny": [],
     "ask": []

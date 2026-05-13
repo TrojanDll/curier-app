@@ -48,3 +48,31 @@ export function formatDuration(fromIso: string | null, toIso: string | null): st
     const rest = minutes % 60;
     return rest === 0 ? `${hours}ч` : `${hours}ч ${rest}м`;
 }
+
+/**
+ * «Сколько прошло с момента fromIso» относительно `nowMs` (timestamp в мс).
+ *
+ *   < 1 минуты   → «только что»
+ *   < 1 часа     → «12 мин»
+ *   < 24 часов   → «3ч 14м»
+ *   ≥ 24 часов   → «2д 5ч»
+ *
+ * `nowMs` явный параметр — компонент держит общий `now` для всех строк
+ * таблицы и тикает интервалом, чтобы счётчик жил без re-fetch.
+ */
+export function formatTimeSince(fromIso: string | null, nowMs: number): string {
+    if (!fromIso) return "—";
+    const from = new Date(fromIso).getTime();
+    if (Number.isNaN(from)) return "—";
+    const totalMinutes = Math.max(0, Math.floor((nowMs - from) / 60000));
+    if (totalMinutes < 1) return "только что";
+    if (totalMinutes < 60) return `${totalMinutes} мин`;
+    const totalHours = Math.floor(totalMinutes / 60);
+    if (totalHours < 24) {
+        const restMin = totalMinutes % 60;
+        return restMin === 0 ? `${totalHours}ч` : `${totalHours}ч ${restMin}м`;
+    }
+    const days = Math.floor(totalHours / 24);
+    const restHours = totalHours % 24;
+    return restHours === 0 ? `${days}д` : `${days}д ${restHours}ч`;
+}

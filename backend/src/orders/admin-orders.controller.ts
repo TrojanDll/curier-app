@@ -65,6 +65,18 @@ export class AdminOrdersController {
   ) {
     return this.orders.reassign(id, dto.courierId);
   }
+
+  /**
+   * "Назначить автоматически" — pick the longest-at-base eligible courier
+   * and reassign to them. 409 if no courier is currently free. Excludes the
+   * order's existing courier so admins can rotate even when a particular
+   * courier was just assigned by the auto-pass.
+   */
+  @Post(':id/auto-assign')
+  @HttpCode(HttpStatus.OK)
+  autoAssign(@Param('id', ParseUUIDPipe) id: string) {
+    return this.orders.autoAssign(id);
+  }
 }
 
 function requireUserId(user: AuthenticatedUser | undefined): string {

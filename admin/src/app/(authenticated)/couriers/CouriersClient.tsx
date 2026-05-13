@@ -31,15 +31,16 @@ import {
     type CreateCourierInput,
     type UpdateCourierInput,
 } from "@/lib/api";
-import type { Courier, CourierDisplayStatus } from "@/types/courier";
+import type { Courier } from "@/types/courier";
 import { cx } from "@/utils/cx";
+import { formatTimeSince } from "@/utils/format";
 
 type StatusFilter = CouriersStatusFilter;
 
 const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
     { value: "all", label: "Все" },
     { value: "active", label: "На базе" },
-    { value: "paused", label: "На паузе" },
+    { value: "paused", label: "Дома" },
     { value: "disabled", label: "Уволенные" },
 ];
 
@@ -54,14 +55,18 @@ interface Toast {
 }
 
 /**
- * Локальный аналог `computeCourierStatus` без зависимости от orders[].
- * Per docs/couriers.md, "busy" статус потребует StatisticsModule
- * (§14.3.5); до этого "available" покрывает обе live-состояния.
+ * Тикающий `now` для расчёта «сколько в текущем статусе» в реальном времени.
+ * 30s интервала достаточно — счётчик имеет разрешение «минута», экономим
+ * перерендеры. setInterval работает только когда вкладка активна, что
+ * нам и нужно: пока вкладка скрыта, обновлять нечего.
  */
-function deriveStatus(courier: Courier): CourierDisplayStatus {
-    if (!courier.isActive) return "fired";
-    if (courier.isPaused) return "paused";
-    return "available";
+function useNowTick(intervalMs: number = 30_000): number {
+    const [now, setNow] = useState(() => Date.now());
+    useEffect(() => {
+        const id = setInterval(() => setNow(Date.now()), intervalMs);
+        return () => clearInterval(id);
+    }, [intervalMs]);
+    return now;
 }
 
 type DrawerState =
@@ -93,6 +98,7 @@ export function CouriersClient() {
     const debouncedSearch = useDebounce(searchInput, 300);
     const [page, setPage] = useState(1);
     const [drawer, setDrawer] = useState<DrawerState>(null);
+    const now = useNowTick();
 
     const [toasts, setToasts] = useState<Toast[]>([]);
     const toastIdRef = useRef(0);
@@ -140,8 +146,8 @@ export function CouriersClient() {
             onSuccess: (updated) => {
                 pushToast(
                     updated.isPaused
-                        ? `${updated.fullName} поставлен на паузу`
-                        : `${updated.fullName} снят с паузы`,
+                        ? `${updated.fullName} отправлен домой`
+                        : `${updated.fullName} вернулся на смену`,
                 );
             },
             onError: (err) => {
@@ -220,25 +226,31 @@ export function CouriersClient() {
                                 <th className="px-4 py-3">Email</th>
                                 <th className="px-4 py-3">Телефон</th>
                                 <th className="px-4 py-3">Статус</th>
+                                <th className="px-4 py-3">В статусе</th>
                                 <th className="px-4 py-3 text-right">Действия</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-secondary text-sm">
                             {couriersQuery.isLoading && items.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-12 text-center text-sm text-tertiary">
+                                    <td colSpan={7} className="px-4 py-12 text-center text-sm text-tertiary">
                                         Загрузка…
                                     </td>
                                 </tr>
                             ) : items.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-12 text-center text-sm text-tertiary">
+                                    <td colSpan={7} className="px-4 py-12 text-center text-sm text-tertiary">
                                         По заданным фильтрам курьеров нет.
                                     </td>
                                 </tr>
                             ) : (
                                 items.map((courier) => {
-                                    const status = deriveStatus(courier);
+                                    const status = courier.currentStatus;
+                                    // `available` без timestamp = «на базе с момента найма»;
+                                    // используем createdAt как fallback, иначе пометить нельзя.
+                                    const since =
+                                        courier.currentStatusSince ??
+                                        (status === "available" ? courier.createdAt : null);
                                     const togglePending =
                                         (pauseMutation.isPending && pauseMutation.variables === courier.id) ||
                                         (resumeMutation.isPending && resumeMutation.variables === courier.id);
@@ -254,6 +266,9 @@ export function CouriersClient() {
                                             <td className="px-4 py-3 text-tertiary">{courier.phone ?? "—"}</td>
                                             <td className="px-4 py-3">
                                                 <CourierStatusBadge status={status} />
+                                            </td>
+                                            <td className="px-4 py-3 text-tertiary tabular-nums">
+                                                {formatTimeSince(since, now)}
                                             </td>
                                             <td className="px-4 py-3 text-right">
                                                 <DropdownMenu
@@ -278,7 +293,7 @@ export function CouriersClient() {
                                                         onSelect={() => handleTogglePause(courier)}
                                                         disabled={!courier.isActive || togglePending}
                                                     >
-                                                        {courier.isPaused ? "Снять паузу" : "Поставить на паузу"}
+                                                        {courier.isPaused ? "Вернуть на смену" : "Отправить домой"}
                                                     </DropdownItem>
                                                     <DropdownItem
                                                         icon={<Key01 className="size-4" />}

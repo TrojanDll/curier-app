@@ -14,13 +14,22 @@ export type OrderStatus =
     | "delivered"
     | "returned";
 
+/**
+ * Подпись бэйджа статуса заказа в админке.
+ *
+ * Заметка про `delivered` vs `returned`: на бэкенде это два разных состояния
+ * (см. `docs/orders.md` → «Status flow»). `delivered` — курьер передал заказ
+ * клиенту; `returned` — курьер вернулся на базу, заказ закрыт. С точки зрения
+ * админа оба — «заказ доставлен», поэтому подпись одинаковая. Точные моменты
+ * перехода видны в timeline-секции drawer-а заказа.
+ */
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
     new: "Новый",
     assigned: "Назначен",
     picked_up: "Забран",
     near_customer: "Рядом с клиентом",
     delivered: "Доставлен",
-    returned: "На базе",
+    returned: "Доставлен",
 };
 
 /** Активные статусы — заказ в работе (виден в дефолтном фильтре). */
@@ -68,4 +77,28 @@ export interface Order {
      * `GET /api/admin/orders/:id` и transition/reassign-ответах.
      */
     photos: PhotoMeta[];
+}
+
+/**
+ * ISO-метка момента, когда заказ вошёл в свой текущий статус. Берётся из
+ * соответствующего timestamp-поля; для `new` — `createdAt`. Используется,
+ * чтобы показать «сколько времени заказ в текущем статусе» — счётчик
+ * сбрасывается при каждом переходе, потому что timestamp у нового статуса
+ * стампится бэкендом отдельным полем.
+ */
+export function getOrderStatusSince(order: Order): string {
+    switch (order.status) {
+        case "new":
+            return order.createdAt;
+        case "assigned":
+            return order.assignedAt ?? order.createdAt;
+        case "picked_up":
+            return order.pickedUpAt ?? order.createdAt;
+        case "near_customer":
+            return order.nearCustomerAt ?? order.createdAt;
+        case "delivered":
+            return order.deliveredAt ?? order.createdAt;
+        case "returned":
+            return order.returnedAt ?? order.createdAt;
+    }
 }

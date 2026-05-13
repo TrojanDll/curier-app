@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
+import { RealtimeModule } from '../realtime/realtime.module';
 import { SettingsModule } from '../settings/settings.module';
 import { AdminPhotosController } from './admin-photos.controller';
 import { CourierPhotosController } from './courier-photos.controller';
@@ -11,6 +12,9 @@ import { PhotosService } from './photos.service';
  * hourly cleanup of expired rows + files (Stage 2.10).
  *
  * AuthModule is imported so JwtAuthGuard / RolesGuard are resolvable.
+ * RealtimeModule is imported so PhotosService can emit `orders:updated`
+ * after a successful upload — without it the admin drawer keeps showing
+ * "Фото ещё не загружено" until manually re-opened.
  * PrismaService is global; ConfigService comes from the global ConfigModule
  * registered in AppModule. ScheduleModule.forRoot() in AppModule wires up the
  * @Cron decorator on PhotosCleanupService.
@@ -20,7 +24,7 @@ import { PhotosService } from './photos.service';
  * can call `cleanup()` directly through a standalone application context.
  */
 @Module({
-  imports: [AuthModule, SettingsModule],
+  imports: [AuthModule, RealtimeModule, SettingsModule],
   controllers: [AdminPhotosController, CourierPhotosController],
   providers: [PhotosService, PhotosCleanupService],
   exports: [PhotosService, PhotosCleanupService],

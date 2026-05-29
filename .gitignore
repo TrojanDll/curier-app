@@ -23,6 +23,9 @@ local.properties
 # Local scratch (data-seeding scripts etc.)
 .seed_tmp/
 
+# Thesis / ВКР — kept local, intentionally out of the open-source repo
+report/
+
 # Real env files with secrets — only *.env.example is tracked
 **/.env
 

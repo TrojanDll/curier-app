@@ -52,14 +52,4 @@
             app:popUpToInclusive="true" />
     </fragment>
 
-    <!-- Order Details (can be opened from Orders tab) -->
-    <fragment
-        android:id="@+id/orderDetailsFragment"
-        android:name="com.example.curier_mobile.presentation.orders.OrderDetailsFragment"
-        android:label="Детали заказа">
-        <argument
-            android:name="orderId"
-            app:argType="string" />
-    </fragment>
-
 </navigation>

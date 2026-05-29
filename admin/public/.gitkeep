@@ -1,0 +1,4 @@
+# Keeps admin/public/ in git. The Dockerfile does `COPY /app/public ./public`
+# (Next.js standalone), which fails if the directory is absent. Git does not
+# track empty dirs, so this placeholder guarantees public/ exists in the repo
+# and in the CI deploy rsync.

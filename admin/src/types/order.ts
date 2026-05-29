@@ -15,6 +15,18 @@ export type OrderStatus =
     | "returned";
 
 /**
+ * Приоритет (срочность) заказа. Управляет взвешенным авто-назначением и
+ * порядком разбора очереди на бэкенде (§8, docs/assignment.md).
+ */
+export type OrderPriority = "low" | "normal" | "high";
+
+export const ORDER_PRIORITY_LABELS: Record<OrderPriority, string> = {
+    low: "Низкий",
+    normal: "Обычный",
+    high: "Срочный",
+};
+
+/**
  * Подпись бэйджа статуса заказа в админке.
  *
  * Заметка про `delivered` vs `returned`: на бэкенде это два разных состояния
@@ -63,6 +75,7 @@ export interface Order {
     /** Курьер не видит цену, админ видит. На Этапе 1 — мок. */
     price: number | null;
     status: OrderStatus;
+    priority: OrderPriority;
     courierId: string | null;
     createdByAdminId: string;
     createdAt: string;

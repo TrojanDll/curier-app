@@ -37,6 +37,21 @@
             app:layout_constraintTop_toTopOf="@id/tvOrderNumber"
             tools:text="Забрал заказ" />
 
+        <!-- Priority Badge — виден только для срочных/низких заказов -->
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipPriority"
+            style="@style/Widget.Material3.Chip.Suggestion"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:visibility="gone"
+            app:chipMinHeight="28dp"
+            app:layout_constraintBottom_toBottomOf="@id/chipStatus"
+            app:layout_constraintStart_toEndOf="@id/chipStatus"
+            app:layout_constraintTop_toTopOf="@id/chipStatus"
+            tools:text="Срочный"
+            tools:visibility="visible" />
+
         <!-- Customer Name -->
         <TextView
             android:id="@+id/tvCustomerName"

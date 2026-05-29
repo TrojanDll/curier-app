@@ -1,4 +1,4 @@
-import type { Order, OrderStatus } from '@prisma/client';
+import type { Order, OrderPriority, OrderStatus } from '@prisma/client';
 import type { PhotoMeta } from '../photos/photos.service';
 
 /**
@@ -19,6 +19,7 @@ export interface OrderAdminResponse {
   /** Decimal serialised as "123.45" or null. Admin-only field per §15.1. */
   price: string | null;
   status: OrderStatus;
+  priority: OrderPriority;
   courierId: string | null;
   createdByAdminId: string;
   createdAt: string;
@@ -46,6 +47,7 @@ export interface OrderCourierResponse {
   productDescription: string;
   comments: string | null;
   status: OrderStatus;
+  priority: OrderPriority;
   courierId: string | null;
   createdAt: string;
   assignedAt: string | null;
@@ -75,6 +77,7 @@ export function toOrderAdminResponse(
     comments: o.comments,
     price: o.price ? o.price.toFixed(2) : null,
     status: o.status,
+    priority: o.priority,
     courierId: o.courierId,
     createdByAdminId: o.createdByAdminId,
     createdAt: o.createdAt.toISOString(),
@@ -100,6 +103,7 @@ export function toOrderCourierResponse(
     productDescription: o.productDescription,
     comments: o.comments,
     status: o.status,
+    priority: o.priority,
     courierId: o.courierId,
     createdAt: o.createdAt.toISOString(),
     assignedAt: o.assignedAt ? o.assignedAt.toISOString() : null,

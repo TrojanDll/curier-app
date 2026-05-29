@@ -1,4 +1,6 @@
+import { OrderPriority } from '@prisma/client';
 import {
+  IsEnum,
   IsNumberString,
   IsOptional,
   IsString,
@@ -51,6 +53,14 @@ export class CreateOrderDto {
   @IsOptional()
   @IsNumberString()
   price?: string | null;
+
+  /**
+   * Urgency tier. Omitted → server defaults to `normal`. Drives the weighted
+   * auto-assign scorer + queue ordering (§8).
+   */
+  @IsOptional()
+  @IsEnum(OrderPriority)
+  priority?: OrderPriority;
 
   @IsOptional()
   @IsUUID()

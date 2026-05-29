@@ -236,6 +236,7 @@ export const MOCK_ORDERS: Order[] = SCENARIOS.map((scenario, index) => {
         comments: seed % 3 === 0 ? "Позвонить за 15 минут до приезда" : null,
         price: 800 + (seed * 137) % 4200,
         status: scenario.status,
+        priority: seed % 5 === 0 ? "high" : seed % 7 === 0 ? "low" : "normal",
         courierId,
         createdByAdminId: ADMIN_ID,
         createdAt,

@@ -31,6 +31,17 @@ enum OrderStatus {
   @@map("order_status")
 }
 
+/// Order urgency. Feeds the weighted auto-assign scorer (§8): `high` shifts
+/// the factor weights toward courier speed + experience, and queued orders
+/// drain `priority DESC, created_at ASC` so urgent jobs jump the FIFO line.
+enum OrderPriority {
+  low
+  normal
+  high
+
+  @@map("order_priority")
+}
+
 /// Discriminator for refresh_tokens (and any future polymorphic auth tables).
 enum UserType {
   courier
@@ -107,6 +118,8 @@ model Order {
   /// Sale price. Visible to admins only — courier DTOs strip it (§15.1).
   price              Decimal?    @db.Decimal(10, 2)
   status             OrderStatus
+  /// Urgency tier driving the weighted auto-assign scorer + queue ordering (§8).
+  priority           OrderPriority @default(normal)
   courierId          String?     @map("courier_id") @db.Uuid
   createdByAdminId   String      @map("created_by_admin_id") @db.Uuid
   createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -126,6 +139,8 @@ model Order {
   @@index([createdAt])
   // Hot path: admin listing filters by status+date range.
   @@index([status, createdAt])
+  // Queue drain: WHERE status='new' ORDER BY priority DESC, created_at ASC (§8).
+  @@index([status, priority, createdAt])
   @@map("orders")
 }
 

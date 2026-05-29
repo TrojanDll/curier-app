@@ -3,6 +3,7 @@ package com.example.curier_mobile.data.mapper
 import com.example.curier_mobile.data.local.entity.OrderEntity
 import com.example.curier_mobile.data.remote.dto.OrderDto
 import com.example.curier_mobile.domain.model.Order
+import com.example.curier_mobile.domain.model.OrderPriority
 import com.example.curier_mobile.domain.model.OrderStatus
 
 // ==================== DTO → Domain ====================
@@ -17,6 +18,7 @@ fun OrderDto.toDomainModel(): Order {
         productDescription = productDescription,
         comments = comments,
         status = OrderStatus.fromValue(status),
+        priority = OrderPriority.fromValue(priority),
         courierId = courierId,
         createdAt = createdAt,
         assignedAt = assignedAt,
@@ -43,6 +45,7 @@ fun Order.toEntity(): OrderEntity {
         productDescription = productDescription,
         comments = comments,
         status = status.value,
+        priority = priority.value,
         courierId = courierId,
         createdAt = createdAt,
         assignedAt = assignedAt,
@@ -65,6 +68,7 @@ fun OrderEntity.toDomainModel(): Order {
         productDescription = productDescription,
         comments = comments,
         status = OrderStatus.fromValue(status),
+        priority = OrderPriority.fromValue(priority),
         courierId = courierId,
         createdAt = createdAt,
         assignedAt = assignedAt,

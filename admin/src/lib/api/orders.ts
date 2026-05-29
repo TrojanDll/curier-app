@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "./client";
 import { orderKeys } from "./keys";
-import type { Order, OrderStatus, PhotoMeta } from "@/types/order";
+import type { Order, OrderPriority, OrderStatus, PhotoMeta } from "@/types/order";
 
 /**
  * Контракт `GET /api/admin/orders` (см. docs/orders.md).
@@ -28,6 +28,7 @@ export interface OrderAdminDto {
     comments: string | null;
     price: string | null;
     status: OrderStatus;
+    priority: OrderPriority;
     courierId: string | null;
     createdByAdminId: string;
     createdAt: string;
@@ -86,6 +87,7 @@ function mapOrder(dto: OrderAdminDto): Order {
         comments: dto.comments,
         price: dto.price === null ? null : Number(dto.price),
         status: dto.status,
+        priority: dto.priority,
         courierId: dto.courierId,
         createdByAdminId: dto.createdByAdminId,
         createdAt: dto.createdAt,
@@ -178,6 +180,8 @@ export interface CreateOrderInput {
     productDescription: string;
     comments?: string | null;
     price?: string | null;
+    /** Срочность заказа. Не задан → backend подставит `normal`. */
+    priority?: OrderPriority;
     /**
      * Если задан — заказ создаётся сразу в статусе `assigned` с этим курьером
      * (auto-assign пропускается). Backend проверяет, что курьер существует,
@@ -201,9 +205,10 @@ export function useCreateOrder() {
 }
 
 /**
- * Назначить заказ автоматически: backend выберет курьера, который дольше
- * всех находится на базе (исключая текущего, если он есть). 409, если
- * подходящего курьера нет.
+ * Назначить заказ автоматически: backend через взвешенный скоринг выберет
+ * лучшего свободного курьера для приоритета заказа (простой + скорость +
+ * нагрузка + опыт; см. docs/assignment.md), исключая текущего, если он есть.
+ * 409, если подходящего курьера нет.
  */
 export function useAutoAssignOrder() {
     const queryClient = useQueryClient();

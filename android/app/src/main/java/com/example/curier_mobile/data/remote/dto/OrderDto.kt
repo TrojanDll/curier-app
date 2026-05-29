@@ -18,6 +18,7 @@ data class OrderDto(
     val productDescription: String? = null,
     val comments: String? = null,
     val status: String,
+    val priority: String = "normal",
     val courierId: String? = null,
     val createdAt: String,
     val assignedAt: String? = null,

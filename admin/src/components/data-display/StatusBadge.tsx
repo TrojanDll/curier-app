@@ -1,4 +1,9 @@
-import { ORDER_STATUS_LABELS, type OrderStatus } from "@/types/order";
+import {
+    ORDER_PRIORITY_LABELS,
+    ORDER_STATUS_LABELS,
+    type OrderPriority,
+    type OrderStatus,
+} from "@/types/order";
 import { COURIER_STATUS_LABELS, type CourierDisplayStatus } from "@/types/courier";
 import { cx } from "@/utils/cx";
 
@@ -24,6 +29,16 @@ const COURIER_STATUS_STYLES: Record<CourierDisplayStatus, string> = {
     fired: "bg-utility-neutral-100 text-utility-neutral-600 ring-utility-neutral-200",
 };
 
+/**
+ * Палитра бэйджей приоритета: `high` (срочный) — красный акцент, `normal` —
+ * нейтральный серый, `low` — спокойный синий. Подписи в `ORDER_PRIORITY_LABELS`.
+ */
+const ORDER_PRIORITY_STYLES: Record<OrderPriority, string> = {
+    high: "bg-utility-red-50 text-utility-red-700 ring-utility-red-200",
+    normal: "bg-utility-neutral-100 text-utility-neutral-600 ring-utility-neutral-200",
+    low: "bg-utility-blue-50 text-utility-blue-700 ring-utility-blue-200",
+};
+
 const BASE = "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset";
 
 export function OrderStatusBadge({ status }: { status: OrderStatus }) {
@@ -31,6 +46,15 @@ export function OrderStatusBadge({ status }: { status: OrderStatus }) {
         <span className={cx(BASE, ORDER_STATUS_STYLES[status])}>
             <span className="size-1.5 rounded-full bg-current" aria-hidden />
             {ORDER_STATUS_LABELS[status]}
+        </span>
+    );
+}
+
+export function OrderPriorityBadge({ priority }: { priority: OrderPriority }) {
+    return (
+        <span className={cx(BASE, ORDER_PRIORITY_STYLES[priority])}>
+            <span className="size-1.5 rounded-full bg-current" aria-hidden />
+            {ORDER_PRIORITY_LABELS[priority]}
         </span>
     );
 }

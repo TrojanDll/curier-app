@@ -2,12 +2,14 @@ package com.example.curier_mobile.presentation.orders
 
 import android.graphics.Color
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.curier_mobile.databinding.ItemOrderBinding
 import com.example.curier_mobile.domain.model.Order
+import com.example.curier_mobile.domain.model.OrderPriority
 import com.example.curier_mobile.domain.model.OrderStatus
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -49,6 +51,16 @@ class OrderAdapter(
                 chipStatus.text = order.status.displayName
                 chipStatus.setChipBackgroundColorResource(getStatusColor(order.status))
 
+                // Priority chip — показываем только не-обычный приоритет,
+                // чтобы не зашумлять список (большинство заказов «Обычный»).
+                if (order.priority == OrderPriority.NORMAL) {
+                    chipPriority.visibility = View.GONE
+                } else {
+                    chipPriority.visibility = View.VISIBLE
+                    chipPriority.text = order.priority.displayName
+                    chipPriority.setChipBackgroundColorResource(getPriorityColor(order.priority))
+                }
+
                 // Click listener
                 root.setOnClickListener {
                     onOrderClick(order)
@@ -75,6 +87,14 @@ class OrderAdapter(
                 OrderStatus.NEAR_CUSTOMER -> android.R.color.holo_orange_light
                 OrderStatus.DELIVERED -> android.R.color.holo_green_light
                 OrderStatus.RETURNED -> android.R.color.darker_gray
+            }
+        }
+
+        private fun getPriorityColor(priority: OrderPriority): Int {
+            return when (priority) {
+                OrderPriority.HIGH -> android.R.color.holo_red_light
+                OrderPriority.NORMAL -> android.R.color.darker_gray
+                OrderPriority.LOW -> android.R.color.holo_blue_light
             }
         }
     }

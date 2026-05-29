@@ -13,6 +13,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.example.curier_mobile.R
 import com.example.curier_mobile.databinding.FragmentOrderDetailsBinding
+import com.example.curier_mobile.domain.model.OrderPriority
 import com.example.curier_mobile.domain.model.OrderStatus
 import com.example.curier_mobile.presentation.common.BaseFragment
 import com.example.curier_mobile.presentation.ViewModelFactory
@@ -118,6 +119,9 @@ class OrderDetailsFragment : BaseFragment<FragmentOrderDetailsBinding>() {
             binding.chipStatus.text = order.status.displayName
             binding.chipStatus.setChipBackgroundColorResource(getStatusColor(order.status))
 
+            binding.chipPriority.text = order.priority.displayName
+            binding.chipPriority.setChipBackgroundColorResource(getPriorityColor(order.priority))
+
             binding.tvCustomerName.text = order.customerName
             binding.tvPhone.text = order.customerPhone ?: "Не указан"
             binding.tvDeliveryAddress.text = order.deliveryAddress
@@ -214,6 +218,14 @@ class OrderDetailsFragment : BaseFragment<FragmentOrderDetailsBinding>() {
             OrderStatus.NEAR_CUSTOMER -> android.R.color.holo_orange_light
             OrderStatus.DELIVERED -> android.R.color.holo_green_light
             OrderStatus.RETURNED -> android.R.color.darker_gray
+        }
+    }
+
+    private fun getPriorityColor(priority: OrderPriority): Int {
+        return when (priority) {
+            OrderPriority.HIGH -> android.R.color.holo_red_light
+            OrderPriority.NORMAL -> android.R.color.darker_gray
+            OrderPriority.LOW -> android.R.color.holo_blue_light
         }
     }
 

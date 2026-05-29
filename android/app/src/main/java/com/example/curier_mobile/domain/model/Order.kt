@@ -15,6 +15,7 @@ data class Order(
     val productDescription: String?,
     val comments: String?,
     val status: OrderStatus,
+    val priority: OrderPriority = OrderPriority.NORMAL,
     val courierId: String?,
     val createdAt: String,
     val assignedAt: String?,
@@ -64,5 +65,23 @@ enum class OrderStatus(val value: String, val displayName: String) {
         fun isValidTransition(from: OrderStatus, to: OrderStatus): Boolean {
             return getNextStatus(from) == to
         }
+    }
+}
+
+/**
+ * Приоритет заказа. Совпадает с `OrderPriority` на бэке. Курьер видит его
+ * бэйджем — срочные заказы бэк назначает быстрым/опытным курьерам и
+ * разбирает из очереди первыми (см. docs/assignment.md).
+ */
+enum class OrderPriority(val value: String, val displayName: String) {
+    LOW("low", "Низкий"),
+    NORMAL("normal", "Обычный"),
+    HIGH("high", "Срочный");
+
+    companion object {
+        /** Неизвестное/отсутствующее значение трактуем как NORMAL — приоритет
+         *  не критичен для работы курьера, падать из-за него не нужно. */
+        fun fromValue(value: String?): OrderPriority =
+            entries.find { it.value == value } ?: NORMAL
     }
 }

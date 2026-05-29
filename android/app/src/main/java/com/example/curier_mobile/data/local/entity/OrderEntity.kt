@@ -22,6 +22,7 @@ data class OrderEntity(
     val productDescription: String?,
     val comments: String?,
     val status: String,
+    val priority: String,
     val courierId: String?,
     val createdAt: String,
     val assignedAt: String?,

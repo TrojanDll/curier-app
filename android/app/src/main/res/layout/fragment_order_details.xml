@@ -50,6 +50,14 @@
                         android:layout_marginTop="8dp"
                         tools:text="Забрал заказ" />
 
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipPriority"
+                        style="@style/Widget.Material3.Chip.Suggestion"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        tools:text="Срочный" />
+
                     <TextView
                         android:id="@+id/tvAssignedAt"
                         android:layout_width="wrap_content"

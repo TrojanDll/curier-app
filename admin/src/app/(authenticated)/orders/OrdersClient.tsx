@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/base/Button";
 import { Input } from "@/components/base/Input";
-import { OrderStatusBadge } from "@/components/data-display/StatusBadge";
+import { OrderPriorityBadge, OrderStatusBadge } from "@/components/data-display/StatusBadge";
 import { useDebounce } from "@/hooks/use-debounce";
 import {
     isApiError,
@@ -21,8 +21,10 @@ import {
 import {
     ACTIVE_ORDER_STATUSES,
     getOrderStatusSince,
+    ORDER_PRIORITY_LABELS,
     ORDER_STATUS_LABELS,
     type Order,
+    type OrderPriority,
     type OrderStatus,
     type PhotoMeta,
 } from "@/types/order";
@@ -253,7 +255,12 @@ export function OrdersClient() {
                                                 {courierName ?? <span className="italic">не назначен</span>}
                                             </td>
                                             <td className="px-4 py-3">
-                                                <OrderStatusBadge status={order.status} />
+                                                <div className="flex flex-wrap items-center gap-1.5">
+                                                    <OrderStatusBadge status={order.status} />
+                                                    {order.priority !== "normal" ? (
+                                                        <OrderPriorityBadge priority={order.priority} />
+                                                    ) : null}
+                                                </div>
                                             </td>
                                             <td className="px-4 py-3 text-tertiary tabular-nums">
                                                 {formatTimeSince(getOrderStatusSince(order), now)}
@@ -367,8 +374,9 @@ function OrderDetailsDrawer({ order, onClose, onOrderUpdated }: DrawerProps) {
                         <h2 id="order-drawer-title" className="text-lg font-semibold text-primary">
                             Заказ {order.orderNumber}
                         </h2>
-                        <div className="mt-2">
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
                             <OrderStatusBadge status={order.status} />
+                            <OrderPriorityBadge priority={order.priority} />
                         </div>
                     </div>
                     <button
@@ -723,6 +731,7 @@ function CreateOrderForm({
     const [comments, setComments] = useState("");
     const [price, setPrice] = useState("");
     const [priceError, setPriceError] = useState<string | null>(null);
+    const [priority, setPriority] = useState<OrderPriority>("normal");
     // 'auto' = пустой courierId, backend сам выберет самого долго на базе.
     // Конкретный id = ручное назначение (backend пропустит auto-assign).
     const [assignMode, setAssignMode] = useState<"auto" | string>("auto");
@@ -760,6 +769,7 @@ function CreateOrderForm({
         const trimmedComments = comments.trim();
         if (trimmedComments) input.comments = trimmedComments;
         if (normalizedPrice) input.price = normalizedPrice;
+        input.priority = priority;
         if (assignMode !== "auto") input.courierId = assignMode;
 
         create.mutate(input, { onSuccess: onCreated });
@@ -824,6 +834,30 @@ function CreateOrderForm({
                 />
                 <div className="flex flex-col gap-1">
                     <label
+                        htmlFor="create-order-priority"
+                        className="text-xs uppercase tracking-wide text-tertiary"
+                    >
+                        Приоритет
+                    </label>
+                    <select
+                        id="create-order-priority"
+                        value={priority}
+                        onChange={(e) => setPriority(e.target.value as OrderPriority)}
+                        disabled={create.isPending}
+                        className="h-10 rounded-md border border-primary bg-primary px-3 text-sm text-primary shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-50"
+                    >
+                        {(["low", "normal", "high"] as OrderPriority[]).map((p) => (
+                            <option key={p} value={p}>
+                                {ORDER_PRIORITY_LABELS[p]}
+                            </option>
+                        ))}
+                    </select>
+                    <p className="text-xs text-tertiary">
+                        Срочные заказы уходят быстрым и опытным курьерам и разбираются из очереди первыми.
+                    </p>
+                </div>
+                <div className="flex flex-col gap-1">
+                    <label
                         htmlFor="create-order-assign"
                         className="text-xs uppercase tracking-wide text-tertiary"
                     >
@@ -837,7 +871,7 @@ function CreateOrderForm({
                         className="h-10 rounded-md border border-primary bg-primary px-3 text-sm text-primary shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-50"
                     >
                         <option value="auto">
-                            Назначить автоматически (самому долго на базе)
+                            Назначить автоматически (умный подбор курьера)
                         </option>
                         {eligibleCouriers.map((c) => (
                             <option key={c.id} value={c.id}>

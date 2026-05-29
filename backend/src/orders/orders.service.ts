@@ -5,7 +5,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { OrderStatus, Prisma } from '@prisma/client';
+import { OrderPriority, OrderStatus, Prisma } from '@prisma/client';
 import { AssignmentService } from '../assignment/assignment.service';
 import { PhotosService } from '../photos/photos.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -136,6 +136,7 @@ export class OrdersService {
         productDescription: dto.productDescription,
         comments: dto.comments ?? null,
         price: dto.price ?? null,
+        priority: dto.priority ?? OrderPriority.normal,
         // Manual assignment skips the auto-assign pass; we stamp the
         // courier + assigned status straight away. Eligibility was just
         // verified above so a race is the only failure mode left — and
@@ -190,13 +191,14 @@ export class OrdersService {
         'Order can no longer be reassigned (courier already picked it up)',
       );
     }
-    const candidate = await this.assignment.findLongestAtBaseEligible(
+    const candidateId = await this.assignment.findBestEligibleForOrder(
+      order.priority,
       order.courierId,
     );
-    if (!candidate) {
+    if (!candidateId) {
       throw new ConflictException('No eligible courier available');
     }
-    return this.reassign(id, candidate.id);
+    return this.reassign(id, candidateId);
   }
 
   async findOneAdmin(id: string): Promise<OrderAdminResponse> {

@@ -49,6 +49,10 @@ services:
       # Self-update: shared IPC dir + the public repo to check for new releases.
       UPDATE_IPC_DIR: /ipc
       GITHUB_REPO: ${GITHUB_REPO:-TrojanDll/curier-app}
+      # Force-update приложения: минимально совместимая versionCode (override
+      # дефолта в коде app-client.controller.ts). Пусто → дефолт. Поднять, чтобы
+      # принудительно обновить старые клиенты. См. docs/app-force-update.md.
+      MIN_APP_VERSION_CODE: ${MIN_APP_VERSION_CODE:-}
     volumes:
       - uploads:/app/uploads
       - updater_ipc:/ipc

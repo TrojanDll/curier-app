@@ -79,6 +79,12 @@ export function Sidebar() {
                                         )}
                                     />
                                     <span>{item.label}</span>
+                                    {item.href === "/system-update" && version.data?.updateAvailable ? (
+                                        <span
+                                            className="ml-auto size-2 shrink-0 rounded-full bg-fg-brand-primary"
+                                            aria-label="Доступно обновление"
+                                        />
+                                    ) : null}
                                 </Link>
                             </li>
                         );

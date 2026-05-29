@@ -25,9 +25,15 @@
 
 ## Android (`core/util/UpdateManager.kt`, `MainActivity.checkForUpdates`)
 
-При старте `MainActivity` всегда (независимо от настройки сервера) дёргает
-GitHub Releases через `AppUpdateRepository` → `GithubApiService`
-(`GET repos/TrojanDll/curier-app/releases/latest`). Отдельный Retrofit-клиент
+`MainActivity.onStart` (т.е. при каждом выходе приложения на передний план, а
+не только при холодном старте — приложение single-Activity) дёргает GitHub
+Releases через `AppUpdateRepository` → `GithubApiService`
+(`GET repos/TrojanDll/curier-app/releases/latest`), независимо от настройки
+сервера. **Троттлинг:** `checkForUpdatesThrottled()` проверяет не чаще раза в
+`UPDATE_CHECK_MIN_INTERVAL_MS` (6 ч); время последней УСПЕШНОЙ проверки лежит в
+SharedPreferences `app_update_prefs`, ошибки окно не «съедают» (повтор при
+следующем возврате). Это защищает от лимита анонимного GitHub API (60 req/ч/IP)
+и убирает повторные запросы при пересоздании Activity (поворот экрана). Отдельный Retrofit-клиент
 в `NetworkModule.provideGithubApiService()` — baseUrl `https://api.github.com/`,
 **без** JWT-интерсептора (чужой Bearer GitHub отверг бы 401).
 

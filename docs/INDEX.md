@@ -44,4 +44,5 @@ Project documentation cache. Each entry links to a detailed doc file.
 - [Backend Unit Testing](backend-testing.md) — Jest toolchain, extract-then-test pattern, pure-policy modules (transitions/queries/eligibility), coverage matrix (§14.7.2 + §14.7.3 e2e)
 - [Admin Playwright Testing](admin-testing.md) — Playwright config + webServer pair, login-flow coverage, locator-hygiene notes (§14.7.5)
 - [In-App Update (Android)](app-update.md) — Android проверяет GitHub Releases (UpdateManager/FileProvider), CI собирает подписанный APK → GitHub Release; secrets/keystore, подписи
+- [App Force-Update (min-version)](app-force-update.md) — серверный gate минимальной версии приложения: backend `/api/app/min-version`, mobile блокирующий экран, политика ручного бампа
 - [Server Stack Self-Update](self-update.md) — pull-модель: CI публикует GHCR-образы + stack-релиз, клиент обновляет backend+admin кнопкой в админке через sidecar `updater` (docker.sock + IPC); GHCR public, безопасность, миграция

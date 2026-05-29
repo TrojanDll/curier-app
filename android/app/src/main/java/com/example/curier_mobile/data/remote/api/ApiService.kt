@@ -1,5 +1,6 @@
 package com.example.curier_mobile.data.remote.api
 
+import com.example.curier_mobile.data.remote.dto.AppMinVersionDto
 import com.example.curier_mobile.data.remote.dto.AppSettingsDto
 import com.example.curier_mobile.data.remote.dto.LoginRequest
 import com.example.curier_mobile.data.remote.dto.LoginResponse
@@ -101,4 +102,14 @@ interface ApiService {
      */
     @GET("api/courier/settings")
     suspend fun getAppSettings(): Response<AppSettingsDto>
+
+    // ==================== App compatibility (public) ====================
+
+    /**
+     * Минимально совместимая версия приложения для этого сервера — публичный
+     * эндпоинт без авторизации. Старый клиент против обновлённого сервера →
+     * обязательное обновление. См. docs/app-force-update.md.
+     */
+    @GET("api/app/min-version")
+    suspend fun getMinAppVersion(): Response<AppMinVersionDto>
 }

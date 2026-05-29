@@ -92,7 +92,8 @@ object RepositoryModule {
     fun provideAppUpdateRepository(): AppUpdateRepository {
         return appUpdateRepository ?: synchronized(this) {
             appUpdateRepository ?: AppUpdateRepositoryImpl(
-                githubApiService = NetworkModule.provideGithubApiService()
+                githubApiService = NetworkModule.provideGithubApiService(),
+                apiService = NetworkModule.provideApiService(),
             ).also { appUpdateRepository = it }
         }
     }

@@ -16,10 +16,12 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupWithNavController
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
+import com.example.curier_mobile.core.di.NetworkModule
 import com.example.curier_mobile.core.di.RepositoryModule
 import com.example.curier_mobile.core.result.Result
 import com.example.curier_mobile.core.util.UpdateManager
 import com.example.curier_mobile.domain.model.AppUpdateInfo
+import com.example.curier_mobile.domain.repository.AppUpdateRepository
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
@@ -55,23 +57,76 @@ class MainActivity : AppCompatActivity() {
         setupNavigation()
         setupWindowInsets()
         requestNotificationPermissionIfNeeded()
-        checkForUpdates()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        checkAppVersion()
     }
 
     /**
-     * Проверяет наличие новой версии в GitHub Releases при старте и предлагает
-     * обновиться. Не зависит от настройки сервера — обновление приложения
-     * берётся напрямую из open-source репозитория. Тихо пропускается, если
-     * релизов нет или проверка не удалась — обновление не должно мешать работе.
+     * Две проверки версии при каждом выходе приложения на передний план (onStart;
+     * приложение single-Activity, поэтому onStart == «снова на экране»):
+     *  1) ЖЁСТКАЯ совместимость с сервером — backend сообщает минимально
+     *     совместимую versionCode; если приложение старше, показываем блокирующий
+     *     экран без «Позже» (старый клиент против обновлённого сервера). Делается
+     *     на каждый onStart, пока не удовлетворена.
+     *  2) МЯГКОЕ обновление — последний релиз в GitHub новее текущего → обычный
+     *     диалог с «Позже», но не чаще [UPDATE_CHECK_MIN_INTERVAL_MS] (лимит
+     *     анонимного GitHub API — 60 запросов/час/IP).
      */
-    private fun checkForUpdates() {
+    private fun checkAppVersion() {
         lifecycleScope.launch {
-            val result = RepositoryModule.provideAppUpdateRepository().getLatestVersion()
-            if (result is Result.Success) {
-                val info = result.data
-                if (info != null && info.versionCode > BuildConfig.VERSION_CODE) {
-                    showUpdateDialog(info)
-                }
+            val repo = RepositoryModule.provideAppUpdateRepository()
+            if (enforceServerMinVersion(repo)) return@launch
+            softUpdateCheck(repo)
+        }
+    }
+
+    /**
+     * Жёсткая проверка совместимости с настроенным сервером. Возвращает `true`,
+     * если показан блокирующий экран (дальше идти нельзя). Не блокирует, если
+     * сервер не задан, не отвечает или не сообщает минимум (старый backend).
+     */
+    private suspend fun enforceServerMinVersion(repo: AppUpdateRepository): Boolean {
+        if (!NetworkModule.provideServerConfigManager().hasBaseUrl()) return false
+        val min = (repo.getServerMinVersionCode() as? Result.Success)?.data ?: return false
+        if (BuildConfig.VERSION_CODE >= min) return false
+        // Источник APK — те же GitHub Releases, что и для мягкого апдейта.
+        val latest = (repo.getLatestVersion() as? Result.Success)?.data
+        if (latest != null) {
+            showUpdateDialog(latest.copy(isMandatory = true))
+        } else {
+            // APK ещё не доступен (нет сети / нет релиза) — всё равно блокируем.
+            MaterialAlertDialogBuilder(this)
+                .setTitle("Требуется обновление")
+                .setMessage(
+                    "Сервер обновлён и требует более новую версию приложения. " +
+                        "Проверьте подключение к интернету и нажмите «Повторить».",
+                )
+                .setCancelable(false)
+                .setPositiveButton("Повторить") { _, _ -> checkAppVersion() }
+                .show()
+        }
+        return true
+    }
+
+    /**
+     * Мягкая проверка GitHub Releases с троттлингом: отметка времени последней
+     * УСПЕШНОЙ проверки лежит в SharedPreferences, ошибки окно не «съедают».
+     * Не зависит от настройки сервера — APK берётся напрямую из open-source репо.
+     */
+    private suspend fun softUpdateCheck(repo: AppUpdateRepository) {
+        val prefs = getSharedPreferences(UPDATE_PREFS, MODE_PRIVATE)
+        val now = System.currentTimeMillis()
+        val last = prefs.getLong(KEY_LAST_UPDATE_CHECK, 0L)
+        if (last != 0L && now - last < UPDATE_CHECK_MIN_INTERVAL_MS) return
+        val result = repo.getLatestVersion()
+        if (result is Result.Success) {
+            prefs.edit().putLong(KEY_LAST_UPDATE_CHECK, now).apply()
+            val info = result.data
+            if (info != null && info.versionCode > BuildConfig.VERSION_CODE) {
+                showUpdateDialog(info)
             }
         }
     }
@@ -158,5 +213,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onSupportNavigateUp(): Boolean {
         return navController.navigateUp() || super.onSupportNavigateUp()
+    }
+
+    private companion object {
+        const val UPDATE_PREFS = "app_update_prefs"
+        const val KEY_LAST_UPDATE_CHECK = "last_update_check_ms"
+        // Минимум между проверками обновления. Защищает от лимита анонимного
+        // GitHub API при частых возвратах в приложение в течение дня.
+        const val UPDATE_CHECK_MIN_INTERVAL_MS = 6L * 60 * 60 * 1000
     }
 }

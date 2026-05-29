@@ -28,12 +28,11 @@ object UpdateManager {
     private const val MIME_APK = "application/vnd.android.package-archive"
 
     /**
-     * @param baseUrl    адрес сервера (с/без trailing slash).
-     * @param downloadUrl относительный путь APK ("/api/app/download/<code>").
+     * @param downloadUrl абсолютный URL APK (GitHub release asset).
      */
-    fun downloadAndInstall(context: Context, baseUrl: String, downloadUrl: String) {
+    fun downloadAndInstall(context: Context, downloadUrl: String) {
         val appContext = context.applicationContext
-        val url = baseUrl.trimEnd('/') + downloadUrl
+        val url = downloadUrl
 
         val dest = File(
             appContext.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),

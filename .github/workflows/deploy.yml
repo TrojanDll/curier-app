@@ -1,0 +1,69 @@
+name: Deploy backend + admin
+
+# Авто-деплой серверного стека на VPS при коммите в main. Админка
+# пересобирается ВМЕСТЕ с бэкендом, поэтому они всегда обновляются согласованно.
+# Prisma-миграции backend применяет сам при старте (CMD = prisma migrate deploy),
+# поэтому отдельного шага миграций здесь нет.
+#
+# Секреты репозитория (Settings → Secrets and variables → Actions):
+#   VPS_HOST    — IP/host VPS (например 109.73.203.142)
+#   VPS_USER    — пользователь SSH (например root)
+#   VPS_SSH_KEY — приватный SSH-ключ с доступом на VPS (содержимое curier_deploy)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "admin/**"
+      - "docker/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+# Не гоняем два деплоя одновременно — побеждает последний коммит.
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up SSH key
+        run: |
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > "$HOME/.ssh/deploy_key"
+          chmod 600 "$HOME/.ssh/deploy_key"
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> "$HOME/.ssh/known_hosts" 2>/dev/null
+
+      - name: Sync code to VPS
+        env:
+          TARGET: ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}
+        run: |
+          export RSYNC_RSH="ssh -i $HOME/.ssh/deploy_key -o IdentitiesOnly=yes"
+          # --delete держит сервер зеркалом репо (удаляет вырезанный код).
+          # Исключённые пути (.env, uploads, node_modules) rsync НЕ удаляет —
+          # реальные секреты и тома на проде защищены.
+          rsync -az --delete \
+            --exclude '.git' --exclude 'node_modules' --exclude '.next' \
+            --exclude 'dist' --exclude 'build' --exclude 'uploads' \
+            --exclude '.env' --exclude '.env.*' \
+            backend/ "$TARGET:/opt/curier/backend/"
+          rsync -az --delete \
+            --exclude '.git' --exclude 'node_modules' --exclude '.next' \
+            --exclude 'dist' --exclude 'build' --exclude 'uploads' \
+            --exclude '.env' --exclude '.env.*' \
+            admin/ "$TARGET:/opt/curier/admin/"
+          rsync -az --delete \
+            --exclude '.git' --exclude '.env' --exclude '.env.*' \
+            docker/ "$TARGET:/opt/curier/docker/"
+
+      - name: Rebuild stack
+        env:
+          TARGET: ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}
+        run: |
+          ssh -i "$HOME/.ssh/deploy_key" -o IdentitiesOnly=yes "$TARGET" \
+            'cd /opt/curier/docker && docker compose up -d --build backend admin && docker image prune -f'

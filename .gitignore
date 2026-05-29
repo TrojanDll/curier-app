@@ -16,8 +16,15 @@ local.properties
 /android/.idea/navEditor.xml
 /android/.idea/assetWizardSettings.xml
 
-# Claude Code local worktrees
+# Claude Code local worktrees + personal settings
 .claude/worktrees/
+.claude/settings.local.json
+
+# Local scratch (data-seeding scripts etc.)
+.seed_tmp/
+
+# Real env files with secrets — only *.env.example is tracked
+**/.env
 
 # Playwright MCP scratch (snapshots, console logs)
 .playwright-mcp/

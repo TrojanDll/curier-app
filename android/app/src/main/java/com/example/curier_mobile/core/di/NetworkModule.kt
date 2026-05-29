@@ -4,6 +4,7 @@ import android.content.Context
 import com.example.curier_mobile.data.local.preferences.ServerConfigManager
 import com.example.curier_mobile.data.local.preferences.TokenManager
 import com.example.curier_mobile.data.remote.api.ApiService
+import com.example.curier_mobile.data.remote.api.GithubApiService
 import com.example.curier_mobile.data.remote.dto.RefreshTokenRequest
 import com.example.curier_mobile.data.remote.dto.RefreshTokenResponse
 import com.example.curier_mobile.data.remote.interceptor.AuthInterceptor
@@ -31,6 +32,9 @@ object NetworkModule {
 
     private const val TIMEOUT_SECONDS = 30L
     private const val PLACEHOLDER_BASE_URL = "http://0.0.0.0/"
+    // In-app update проверяется напрямую в GitHub Releases open-source репо —
+    // независимо от настроенного сервера. Поэтому отдельный фиксированный baseUrl.
+    private const val GITHUB_API_BASE_URL = "https://api.github.com/"
 
     private var tokenManager: TokenManager? = null
     private var serverConfigManager: ServerConfigManager? = null
@@ -38,6 +42,7 @@ object NetworkModule {
     private var okHttpClient: OkHttpClient? = null
     private var retrofit: Retrofit? = null
     private var apiService: ApiService? = null
+    private var githubApiService: GithubApiService? = null
     private var realtimeManager: RealtimeManager? = null
     private var cachedBaseUrl: String? = null
 
@@ -179,6 +184,30 @@ object NetworkModule {
         return apiService ?: synchronized(this) {
             apiService ?: provideRetrofit().create(ApiService::class.java)
                 .also { apiService = it }
+        }
+    }
+
+    /**
+     * Клиент к GitHub Releases API для in-app обновления. Полностью отдельный
+     * от основного стека: фиксированный baseUrl и БЕЗ auth-интерсептора (иначе
+     * GitHub отверг бы курьерский Bearer как 401). Не зависит от настройки
+     * сервера — проверка обновления работает даже на первом запуске.
+     */
+    fun provideGithubApiService(): GithubApiService {
+        return githubApiService ?: synchronized(this) {
+            githubApiService ?: Retrofit.Builder()
+                .baseUrl(GITHUB_API_BASE_URL)
+                .client(
+                    OkHttpClient.Builder()
+                        .addInterceptor(provideLoggingInterceptor())
+                        .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                        .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                        .build(),
+                )
+                .addConverterFactory(MoshiConverterFactory.create(moshi ?: provideMoshi()))
+                .build()
+                .create(GithubApiService::class.java)
+                .also { githubApiService = it }
         }
     }
 

@@ -9,6 +9,7 @@ data class AppUpdateInfo(
     val versionName: String,
     val releaseNotes: String?,
     val isMandatory: Boolean,
+    /** Абсолютный URL APK (GitHub release asset). */
     val downloadUrl: String,
     val fileSize: Long
 )

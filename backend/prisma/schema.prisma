@@ -160,29 +160,6 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
-/// Published Android APK builds for the in-app update feature. One row per
-/// shipped versionCode; the file lives under APK_UPLOAD_DIR as "<id>.apk".
-/// The client polls GET /api/app/latest and compares versionCode against its
-/// own BuildConfig.VERSION_CODE.
-model AppRelease {
-  id           String   @id @default(uuid()) @db.Uuid
-  versionCode  Int      @unique @map("version_code")
-  versionName  String   @map("version_name")
-  releaseNotes String?  @map("release_notes")
-  /// Relative path inside APK_UPLOAD_DIR, e.g. "<id>.apk".
-  filePath     String   @map("file_path")
-  fileSize     Int      @map("file_size")
-  /// Hex SHA-256 of the APK bytes — the client can verify download integrity.
-  sha256       String
-  isMandatory  Boolean  @default(false) @map("is_mandatory")
-  /// Git commit (short hash) that produced this build; set by CI, NULL for
-  /// manual uploads.
-  gitCommit    String?  @map("git_commit")
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  @@map("app_releases")
-}
-
 /// Application-wide tunables editable by an admin at runtime (§14.3.6).
 /// Singleton row keyed by id=1 — SettingsService guarantees existence via
 /// upsert at bootstrap, seeding from PHOTO_TTL_DAYS env on first run.

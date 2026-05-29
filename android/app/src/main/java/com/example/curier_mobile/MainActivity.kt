@@ -16,7 +16,6 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupWithNavController
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
-import com.example.curier_mobile.core.di.NetworkModule
 import com.example.curier_mobile.core.di.RepositoryModule
 import com.example.curier_mobile.core.result.Result
 import com.example.curier_mobile.core.util.UpdateManager
@@ -60,30 +59,30 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Проверяет наличие новой версии при старте и предлагает обновиться.
-     * Тихо пропускается, если сервер ещё не настроен (первый запуск) или
-     * проверка не удалась — обновление не должно мешать работе.
+     * Проверяет наличие новой версии в GitHub Releases при старте и предлагает
+     * обновиться. Не зависит от настройки сервера — обновление приложения
+     * берётся напрямую из open-source репозитория. Тихо пропускается, если
+     * релизов нет или проверка не удалась — обновление не должно мешать работе.
      */
     private fun checkForUpdates() {
-        val baseUrl = NetworkModule.provideServerConfigManager().getBaseUrl() ?: return
         lifecycleScope.launch {
             val result = RepositoryModule.provideAppUpdateRepository().getLatestVersion()
             if (result is Result.Success) {
                 val info = result.data
                 if (info != null && info.versionCode > BuildConfig.VERSION_CODE) {
-                    showUpdateDialog(info, baseUrl)
+                    showUpdateDialog(info)
                 }
             }
         }
     }
 
-    private fun showUpdateDialog(info: AppUpdateInfo, baseUrl: String) {
+    private fun showUpdateDialog(info: AppUpdateInfo) {
         val notes = if (info.releaseNotes.isNullOrBlank()) "" else "\n\n${info.releaseNotes}"
         val builder = MaterialAlertDialogBuilder(this)
             .setTitle("Доступно обновление")
             .setMessage("Новая версия ${info.versionName}.$notes")
             .setPositiveButton("Обновить") { _, _ ->
-                UpdateManager.downloadAndInstall(this, baseUrl, info.downloadUrl)
+                UpdateManager.downloadAndInstall(this, info.downloadUrl)
                 Toast.makeText(this, "Загрузка обновления началась…", Toast.LENGTH_SHORT).show()
             }
         if (info.isMandatory) {

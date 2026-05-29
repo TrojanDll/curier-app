@@ -86,13 +86,13 @@ object RepositoryModule {
     }
 
     /**
-     * Provide AppUpdateRepository — проверка последней версии приложения
-     * для in-app обновления.
+     * Provide AppUpdateRepository — проверка последней версии приложения через
+     * GitHub Releases (in-app обновление). Не зависит от настройки сервера.
      */
     fun provideAppUpdateRepository(): AppUpdateRepository {
         return appUpdateRepository ?: synchronized(this) {
             appUpdateRepository ?: AppUpdateRepositoryImpl(
-                apiService = NetworkModule.provideApiService()
+                githubApiService = NetworkModule.provideGithubApiService()
             ).also { appUpdateRepository = it }
         }
     }

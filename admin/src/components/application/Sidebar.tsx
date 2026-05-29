@@ -8,7 +8,6 @@ import {
     LogOut01,
     Package,
     Settings01,
-    UploadCloud01,
     Users01,
 } from "@untitledui/icons";
 import { useLogout, useUser } from "@/lib/auth/use-auth";
@@ -27,7 +26,6 @@ const NAV_ITEMS: NavItem[] = [
     { href: "/orders", label: "Заказы", icon: Package },
     { href: "/couriers", label: "Курьеры", icon: Users01 },
     { href: "/statistics", label: "Статистика", icon: BarChart02 },
-    { href: "/app-updates", label: "Обновления", icon: UploadCloud01 },
     { href: "/settings", label: "Настройки", icon: Settings01 },
 ];
 

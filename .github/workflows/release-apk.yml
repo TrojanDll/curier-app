@@ -1,20 +1,18 @@
 name: Release APK
 
-# Сборка подписанного release-APK при появлении нового коммита в main и
-# публикация его на backend (через тот же admin API, что и ручная загрузка).
-# Курьеры получат предложение обновиться при следующем запуске приложения.
+# Собирает подписанный release-APK при коммите в main (или вручную) и публикует
+# его как GitHub Release. Приложение само проверяет последний релиз через
+# GitHub API (repos/<owner>/<repo>/releases/latest) и предлагает обновиться —
+# backend/админка в раздаче APK больше НЕ участвуют.
 #
 # Требует секретов репозитория (Settings → Secrets and variables → Actions):
-#   KEYSTORE_BASE64   — release.jks в base64 (`base64 -w0 release.jks`)
+#   KEYSTORE_BASE64   — release.keystore в base64 (`base64 -w0 release.keystore`)
 #   KEYSTORE_PASSWORD — пароль keystore
-#   KEY_ALIAS         — алиас ключа (например curier-release)
+#   KEY_ALIAS         — алиас ключа
 #   KEY_PASSWORD      — пароль ключа
-#   BACKEND_URL       — http://109.73.203.142:8081
-#   ADMIN_USERNAME    — логин админа для публикации
-#   ADMIN_PASSWORD    — пароль админа
 #
-# versionCode = номер запуска workflow (github.run_number) — монотонно растёт,
-# поэтому каждый коммит в main даёт версию выше предыдущей.
+# versionCode = github.run_number (монотонно растёт). Имя ассета
+# `curier-<run_number>.apk` — из него приложение читает versionCode.
 
 on:
   push:
@@ -24,8 +22,11 @@ on:
       - ".github/workflows/release-apk.yml"
   workflow_dispatch:
 
+permissions:
+  contents: write # нужно для создания Release и заливки ассета
+
 jobs:
-  build-and-publish:
+  build-and-release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -43,9 +44,9 @@ jobs:
       - name: Decode keystore + write keystore.properties
         working-directory: android
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.jks
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.keystore
           cat > keystore.properties <<EOF
-          storeFile=release.jks
+          storeFile=release.keystore
           storePassword=${{ secrets.KEYSTORE_PASSWORD }}
           keyAlias=${{ secrets.KEY_ALIAS }}
           keyPassword=${{ secrets.KEY_PASSWORD }}
@@ -59,26 +60,20 @@ jobs:
             -PappVersionCode=${{ github.run_number }} \
             -PappVersionName=1.0.${{ github.run_number }}
 
-      - name: Publish APK to backend
+      - name: Stage APK asset
         working-directory: android
-        env:
-          BACKEND_URL: ${{ secrets.BACKEND_URL }}
-          ADMIN_USERNAME: ${{ secrets.ADMIN_USERNAME }}
-          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
         run: |
-          APK=app/build/outputs/apk/release/app-release.apk
-          test -f "$APK" || { echo "APK not found at $APK"; exit 1; }
-          NOTES=$(git log -1 --pretty=%s)
-          TOKEN=$(curl -s -X POST "$BACKEND_URL/api/auth/admin/login" \
-            -H "Content-Type: application/json" \
-            -d "{\"username\":\"$ADMIN_USERNAME\",\"password\":\"$ADMIN_PASSWORD\"}" \
-            | python3 -c "import sys,json; print(json.load(sys.stdin)['accessToken'])")
-          test -n "$TOKEN" || { echo "Login failed"; exit 1; }
-          curl -s -f -X POST "$BACKEND_URL/api/admin/app-releases" \
-            -H "Authorization: Bearer $TOKEN" \
-            -F "apk=@$APK" \
-            -F "versionCode=${{ github.run_number }}" \
-            -F "versionName=1.0.${{ github.run_number }}" \
-            -F "gitCommit=${{ github.sha }}" \
-            -F "releaseNotes=$NOTES"
-          echo "Published version 1.0.${{ github.run_number }} (code ${{ github.run_number }})"
+          SRC=app/build/outputs/apk/release/app-release.apk
+          test -f "$SRC" || { echo "APK not found at $SRC"; exit 1; }
+          cp "$SRC" "curier-${{ github.run_number }}.apk"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: v1.0.${{ github.run_number }}
+          body: |
+            Автоматическая сборка из main.
+            ${{ github.event.head_commit.message }}
+          make_latest: true
+          files: android/curier-${{ github.run_number }}.apk

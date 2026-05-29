@@ -5,7 +5,6 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { LoggerModule } from 'nestjs-pino';
 import { randomUUID } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { AppReleasesModule } from './app-releases/app-releases.module';
 import { AuthModule } from './auth/auth.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { CouriersModule } from './couriers/couriers.module';
@@ -34,7 +33,6 @@ const isProduction = process.env['NODE_ENV'] === 'production';
     OrdersModule,
     HealthModule,
     PhotosModule,
-    AppReleasesModule,
     RealtimeModule,
     SeedModule,
     SettingsModule,

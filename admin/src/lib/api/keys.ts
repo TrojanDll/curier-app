@@ -55,13 +55,3 @@ export const settingsKeys = {
     all: ["settings"] as const,
     current: () => [...settingsKeys.all, "current"] as const,
 };
-
-/**
- * App releases — список загруженных APK-версий приложения. Простой список
- * без пагинации (релизов немного). `lists()` инвалидируется после
- * upload/delete.
- */
-export const appReleaseKeys = {
-    all: ["app-releases"] as const,
-    lists: () => [...appReleaseKeys.all, "list"] as const,
-};

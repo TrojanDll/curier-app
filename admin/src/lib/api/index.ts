@@ -1,7 +1,7 @@
 export { apiClient } from "./client";
 export { ApiError, isApiError, toApiError, type ApiErrorEnvelope } from "./errors";
 export { createQueryClient } from "./query-client";
-export { appReleaseKeys, courierKeys, orderKeys, settingsKeys, statisticsKeys } from "./keys";
+export { courierKeys, orderKeys, settingsKeys, statisticsKeys } from "./keys";
 export {
     useAutoAssignOrder,
     useCreateOrder,
@@ -55,10 +55,3 @@ export {
     type ChangeAdminPasswordInput,
     type UpdateSettingsInput,
 } from "./settings";
-export {
-    useAppReleases,
-    useDeleteAppRelease,
-    useUploadAppRelease,
-    type AppReleaseDto,
-    type UploadAppReleaseInput,
-} from "./releases";

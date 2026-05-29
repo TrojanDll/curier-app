@@ -1,10 +1,12 @@
 package com.example.curier_mobile.core.di
 
 import com.example.curier_mobile.data.repository.AppSettingsRepositoryImpl
+import com.example.curier_mobile.data.repository.AppUpdateRepositoryImpl
 import com.example.curier_mobile.data.repository.AuthRepositoryImpl
 import com.example.curier_mobile.data.repository.OrderRepositoryImpl
 import com.example.curier_mobile.data.repository.ProfileRepositoryImpl
 import com.example.curier_mobile.domain.repository.AppSettingsRepository
+import com.example.curier_mobile.domain.repository.AppUpdateRepository
 import com.example.curier_mobile.domain.repository.AuthRepository
 import com.example.curier_mobile.domain.repository.OrderRepository
 import com.example.curier_mobile.domain.repository.ProfileRepository
@@ -19,6 +21,7 @@ object RepositoryModule {
     private var profileRepository: ProfileRepository? = null
     private var orderRepository: OrderRepository? = null
     private var appSettingsRepository: AppSettingsRepository? = null
+    private var appUpdateRepository: AppUpdateRepository? = null
 
     /**
      * Сбросить кэш репозиториев. Вызывать после смены BASE_URL, чтобы
@@ -30,6 +33,7 @@ object RepositoryModule {
         profileRepository = null
         orderRepository = null
         appSettingsRepository = null
+        appUpdateRepository = null
     }
 
     /**
@@ -78,6 +82,18 @@ object RepositoryModule {
             appSettingsRepository ?: AppSettingsRepositoryImpl(
                 apiService = NetworkModule.provideApiService()
             ).also { appSettingsRepository = it }
+        }
+    }
+
+    /**
+     * Provide AppUpdateRepository — проверка последней версии приложения
+     * для in-app обновления.
+     */
+    fun provideAppUpdateRepository(): AppUpdateRepository {
+        return appUpdateRepository ?: synchronized(this) {
+            appUpdateRepository ?: AppUpdateRepositoryImpl(
+                apiService = NetworkModule.provideApiService()
+            ).also { appUpdateRepository = it }
         }
     }
 }

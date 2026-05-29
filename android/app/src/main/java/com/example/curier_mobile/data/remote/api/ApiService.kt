@@ -1,6 +1,7 @@
 package com.example.curier_mobile.data.remote.api
 
 import com.example.curier_mobile.data.remote.dto.AppSettingsDto
+import com.example.curier_mobile.data.remote.dto.AppVersionDto
 import com.example.curier_mobile.data.remote.dto.LoginRequest
 import com.example.curier_mobile.data.remote.dto.LoginResponse
 import com.example.curier_mobile.data.remote.dto.LogoutRequest
@@ -101,4 +102,13 @@ interface ApiService {
      */
     @GET("api/courier/settings")
     suspend fun getAppSettings(): Response<AppSettingsDto>
+
+    // ==================== App update (public, no auth) ====================
+
+    /**
+     * Последняя опубликованная версия приложения. Публичный эндпоинт —
+     * проверка обновления работает и до логина. 204 → релизов нет (body null).
+     */
+    @GET("api/app/latest")
+    suspend fun getLatestVersion(): Response<AppVersionDto>
 }

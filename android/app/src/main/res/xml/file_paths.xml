@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- APK обновления качается в getExternalFilesDir(DIRECTORY_DOWNLOADS),
+         откуда FileProvider отдаёт content:// URI установщику пакетов. -->
+    <external-files-path name="apk_downloads" path="Download/" />
+</paths>

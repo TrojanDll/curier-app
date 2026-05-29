@@ -1,0 +1,84 @@
+name: Release APK
+
+# Сборка подписанного release-APK при появлении нового коммита в main и
+# публикация его на backend (через тот же admin API, что и ручная загрузка).
+# Курьеры получат предложение обновиться при следующем запуске приложения.
+#
+# Требует секретов репозитория (Settings → Secrets and variables → Actions):
+#   KEYSTORE_BASE64   — release.jks в base64 (`base64 -w0 release.jks`)
+#   KEYSTORE_PASSWORD — пароль keystore
+#   KEY_ALIAS         — алиас ключа (например curier-release)
+#   KEY_PASSWORD      — пароль ключа
+#   BACKEND_URL       — http://109.73.203.142:8081
+#   ADMIN_USERNAME    — логин админа для публикации
+#   ADMIN_PASSWORD    — пароль админа
+#
+# versionCode = номер запуска workflow (github.run_number) — монотонно растёт,
+# поэтому каждый коммит в main даёт версию выше предыдущей.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "android/**"
+      - ".github/workflows/release-apk.yml"
+  workflow_dispatch:
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Decode keystore + write keystore.properties
+        working-directory: android
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.jks
+          cat > keystore.properties <<EOF
+          storeFile=release.jks
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          EOF
+
+      - name: Build signed release APK
+        working-directory: android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleRelease \
+            -PappVersionCode=${{ github.run_number }} \
+            -PappVersionName=1.0.${{ github.run_number }}
+
+      - name: Publish APK to backend
+        working-directory: android
+        env:
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
+          ADMIN_USERNAME: ${{ secrets.ADMIN_USERNAME }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: |
+          APK=app/build/outputs/apk/release/app-release.apk
+          test -f "$APK" || { echo "APK not found at $APK"; exit 1; }
+          NOTES=$(git log -1 --pretty=%s)
+          TOKEN=$(curl -s -X POST "$BACKEND_URL/api/auth/admin/login" \
+            -H "Content-Type: application/json" \
+            -d "{\"username\":\"$ADMIN_USERNAME\",\"password\":\"$ADMIN_PASSWORD\"}" \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['accessToken'])")
+          test -n "$TOKEN" || { echo "Login failed"; exit 1; }
+          curl -s -f -X POST "$BACKEND_URL/api/admin/app-releases" \
+            -H "Authorization: Bearer $TOKEN" \
+            -F "apk=@$APK" \
+            -F "versionCode=${{ github.run_number }}" \
+            -F "versionName=1.0.${{ github.run_number }}" \
+            -F "gitCommit=${{ github.sha }}" \
+            -F "releaseNotes=$NOTES"
+          echo "Published version 1.0.${{ github.run_number }} (code ${{ github.run_number }})"

@@ -43,3 +43,4 @@ Project documentation cache. Each entry links to a detailed doc file.
 - [Android Unit Testing](android-testing.md) — JVM test toolchain, ViewModel skeleton, realtime/SharedFlow mocking, Android-stub traps, current coverage matrix (§14.7.1)
 - [Backend Unit Testing](backend-testing.md) — Jest toolchain, extract-then-test pattern, pure-policy modules (transitions/queries/eligibility), coverage matrix (§14.7.2 + §14.7.3 e2e)
 - [Admin Playwright Testing](admin-testing.md) — Playwright config + webServer pair, login-flow coverage, locator-hygiene notes (§14.7.5)
+- [In-App Update](app-update.md) — backend AppReleases (latest/download/upload) + admin страница «Обновления» + Android UpdateChecker/FileProvider + GitHub Actions CI, версионирование, настройка secrets

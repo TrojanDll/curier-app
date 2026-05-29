@@ -14,7 +14,16 @@ import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupWithNavController
+import android.widget.Toast
+import androidx.lifecycle.lifecycleScope
+import com.example.curier_mobile.core.di.NetworkModule
+import com.example.curier_mobile.core.di.RepositoryModule
+import com.example.curier_mobile.core.result.Result
+import com.example.curier_mobile.core.util.UpdateManager
+import com.example.curier_mobile.domain.model.AppUpdateInfo
 import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import kotlinx.coroutines.launch
 // import dagger.hilt.android.AndroidEntryPoint
 
 /**
@@ -47,6 +56,43 @@ class MainActivity : AppCompatActivity() {
         setupNavigation()
         setupWindowInsets()
         requestNotificationPermissionIfNeeded()
+        checkForUpdates()
+    }
+
+    /**
+     * Проверяет наличие новой версии при старте и предлагает обновиться.
+     * Тихо пропускается, если сервер ещё не настроен (первый запуск) или
+     * проверка не удалась — обновление не должно мешать работе.
+     */
+    private fun checkForUpdates() {
+        val baseUrl = NetworkModule.provideServerConfigManager().getBaseUrl() ?: return
+        lifecycleScope.launch {
+            val result = RepositoryModule.provideAppUpdateRepository().getLatestVersion()
+            if (result is Result.Success) {
+                val info = result.data
+                if (info != null && info.versionCode > BuildConfig.VERSION_CODE) {
+                    showUpdateDialog(info, baseUrl)
+                }
+            }
+        }
+    }
+
+    private fun showUpdateDialog(info: AppUpdateInfo, baseUrl: String) {
+        val notes = if (info.releaseNotes.isNullOrBlank()) "" else "\n\n${info.releaseNotes}"
+        val builder = MaterialAlertDialogBuilder(this)
+            .setTitle("Доступно обновление")
+            .setMessage("Новая версия ${info.versionName}.$notes")
+            .setPositiveButton("Обновить") { _, _ ->
+                UpdateManager.downloadAndInstall(this, baseUrl, info.downloadUrl)
+                Toast.makeText(this, "Загрузка обновления началась…", Toast.LENGTH_SHORT).show()
+            }
+        if (info.isMandatory) {
+            // Обязательное обновление нельзя пропустить.
+            builder.setCancelable(false)
+        } else {
+            builder.setNegativeButton("Позже", null)
+        }
+        builder.show()
     }
 
     /**

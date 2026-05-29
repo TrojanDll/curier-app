@@ -55,3 +55,14 @@ export const settingsKeys = {
     all: ["settings"] as const,
     current: () => [...settingsKeys.all, "current"] as const,
 };
+
+/**
+ * System — self-update серверного стека. `version()` — текущая/доступная
+ * версия, `updateStatus()` — статус идущего обновления (опрашивается, пока
+ * обновление выполняется).
+ */
+export const systemKeys = {
+    all: ["system"] as const,
+    version: () => [...systemKeys.all, "version"] as const,
+    updateStatus: () => [...systemKeys.all, "update-status"] as const,
+};

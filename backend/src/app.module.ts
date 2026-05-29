@@ -16,6 +16,7 @@ import { RealtimeModule } from './realtime/realtime.module';
 import { SeedModule } from './seed/seed.module';
 import { SettingsModule } from './settings/settings.module';
 import { StatisticsModule } from './statistics/statistics.module';
+import { SystemModule } from './system/system.module';
 
 const isProduction = process.env['NODE_ENV'] === 'production';
 
@@ -37,6 +38,7 @@ const isProduction = process.env['NODE_ENV'] === 'production';
     SeedModule,
     SettingsModule,
     StatisticsModule,
+    SystemModule,
     LoggerModule.forRoot({
       pinoHttp: {
         level: process.env['LOG_LEVEL'] ?? (isProduction ? 'info' : 'debug'),

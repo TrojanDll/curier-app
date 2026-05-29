@@ -7,6 +7,7 @@ import {
     HomeLine,
     LogOut01,
     Package,
+    RefreshCw01,
     Settings01,
     Users01,
 } from "@untitledui/icons";
@@ -26,6 +27,7 @@ const NAV_ITEMS: NavItem[] = [
     { href: "/orders", label: "Заказы", icon: Package },
     { href: "/couriers", label: "Курьеры", icon: Users01 },
     { href: "/statistics", label: "Статистика", icon: BarChart02 },
+    { href: "/system-update", label: "Обновления сервера", icon: RefreshCw01 },
     { href: "/settings", label: "Настройки", icon: Settings01 },
 ];
 

@@ -1,0 +1,96 @@
+# Production stack from pre-built GHCR images (single source of releases).
+#
+# Clients run THIS file (not docker-compose.yml, which builds from source for
+# local dev). Updates are pulled, never pushed:
+#   admin → «Обновления сервера» → «Обновить»  ⇒  backend writes a trigger to the
+#   shared `updater_ipc` volume ⇒ the `updater` sidecar runs
+#   `docker compose -f docker-compose.prod.yml pull && up -d backend admin`.
+# See docs/self-update.md.
+#
+# `name: docker` keeps the compose project name stable so existing named volumes
+# (docker_db_data, docker_uploads) are reused across the migration from the
+# build-based compose — DO NOT change it on an existing deployment or the DB
+# volume would be orphaned.
+name: docker
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  backend:
+    image: ghcr.io/trojandll/curier-backend:${STACK_VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 8081
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-30d}
+      INITIAL_ADMIN_USERNAME: ${INITIAL_ADMIN_USERNAME}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
+      INITIAL_ADMIN_FULL_NAME: ${INITIAL_ADMIN_FULL_NAME:-Initial Admin}
+      PHOTO_TTL_DAYS: ${PHOTO_TTL_DAYS:-30}
+      PHOTO_MAX_SIZE_MB: ${PHOTO_MAX_SIZE_MB:-10}
+      # Self-update: shared IPC dir + the public repo to check for new releases.
+      UPDATE_IPC_DIR: /ipc
+      GITHUB_REPO: ${GITHUB_REPO:-TrojanDll/curier-app}
+    volumes:
+      - uploads:/app/uploads
+      - updater_ipc:/ipc
+    ports:
+      - "${BACKEND_PORT:-8081}:8081"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  admin:
+    image: ghcr.io/trojandll/curier-admin:${STACK_VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      BACKEND_API_URL: http://backend:8081
+      BACKEND_REALTIME_URL: ${BACKEND_REALTIME_URL:-}
+      INSECURE_COOKIES: ${INSECURE_COOKIES:-0}
+    ports:
+      - "${ADMIN_PORT:-3000}:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # Self-update sidecar. Holds the Docker socket (host-root-equivalent) but runs
+  # exactly ONE fixed action — `compose pull && up -d backend admin` — with no
+  # parameters from the app, so a compromised backend cannot inject commands.
+  # It is NOT part of the pull/up set, so it survives the stack restart.
+  updater:
+    image: ghcr.io/trojandll/curier-updater:${STACK_VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      UPDATE_IPC_DIR: /ipc
+      COMPOSE_PROJECT_DIR: /workspace
+      COMPOSE_FILE: docker-compose.prod.yml
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # The compose file + .env (for ${...} interpolation), read-only.
+      - ./:/workspace:ro
+      - updater_ipc:/ipc
+
+volumes:
+  db_data:
+  uploads:
+  updater_ipc:

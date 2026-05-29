@@ -30,8 +30,14 @@ FROM node:22-alpine AS runner
 
 WORKDIR /app
 
+# Stack version baked at build time (CI passes --build-arg STACK_VERSION=1.0.N).
+# The backend reports it via GET /api/admin/system/version so the admin UI can
+# compare against the latest published release. Defaults to "dev" for local builds.
+ARG STACK_VERSION=dev
+
 ENV NODE_ENV=production \
     PORT=8081 \
+    STACK_VERSION=$STACK_VERSION \
     # Mount-point for the photos volume (docker-compose maps a named volume here).
     PHOTO_UPLOAD_DIR=/app/uploads
 

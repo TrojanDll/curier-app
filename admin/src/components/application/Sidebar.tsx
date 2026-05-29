@@ -11,6 +11,7 @@ import {
     Settings01,
     Users01,
 } from "@untitledui/icons";
+import { useStackVersion } from "@/lib/api/system";
 import { useLogout, useUser } from "@/lib/auth/use-auth";
 import { cx } from "@/utils/cx";
 
@@ -39,6 +40,7 @@ export function Sidebar() {
     const pathname = usePathname();
     const logout = useLogout();
     const user = useUser();
+    const version = useStackVersion();
 
     const handleLogout = () => {
         if (logout.isPending) return;
@@ -101,6 +103,11 @@ export function Sidebar() {
                     <LogOut01 className="size-5 shrink-0 text-fg-quaternary" />
                     <span>{logout.isPending ? "Выходим…" : "Выйти"}</span>
                 </button>
+                {version.data ? (
+                    <p className="mt-2 truncate px-3 text-center text-xs text-tertiary">
+                        Курьер v{version.data.current}
+                    </p>
+                ) : null}
             </div>
         </aside>
     );

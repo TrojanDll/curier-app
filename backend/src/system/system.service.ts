@@ -55,8 +55,8 @@ export class SystemService {
 
   private latestCache: { at: number; data: LatestRelease | null } | null = null;
 
-  async getVersionInfo(): Promise<StackVersionInfo> {
-    const latest = await this.fetchLatestStackRelease();
+  async getVersionInfo(force = false): Promise<StackVersionInfo> {
+    const latest = await this.fetchLatestStackRelease(force);
     return {
       current: this.current,
       latest: latest?.version ?? null,
@@ -127,8 +127,17 @@ export class SystemService {
     }
   }
 
-  private async fetchLatestStackRelease(): Promise<LatestRelease | null> {
-    if (this.latestCache && Date.now() - this.latestCache.at < RELEASE_CACHE_MS) {
+  private async fetchLatestStackRelease(
+    force = false,
+  ): Promise<LatestRelease | null> {
+    // `force` — ручная кнопка «Проверить обновления» обходит кэш и всегда
+    // ходит в GitHub. Фоновый поллинг (каждые 15 мин) остаётся кэшированным,
+    // так лимит анонимного GitHub API (60 req/ч/IP) не страдает.
+    if (
+      !force &&
+      this.latestCache &&
+      Date.now() - this.latestCache.at < RELEASE_CACHE_MS
+    ) {
       return this.latestCache.data;
     }
     try {

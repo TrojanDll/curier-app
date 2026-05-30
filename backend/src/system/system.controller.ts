@@ -1,4 +1,11 @@
-import { Controller, Get, HttpCode, Post, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -16,8 +23,8 @@ export class SystemController {
   constructor(private readonly system: SystemService) {}
 
   @Get('version')
-  getVersion() {
-    return this.system.getVersionInfo();
+  getVersion(@Query('force') force?: string) {
+    return this.system.getVersionInfo(force === '1' || force === 'true');
   }
 
   @Post('update')

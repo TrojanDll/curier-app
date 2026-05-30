@@ -56,6 +56,7 @@ export {
     type UpdateSettingsInput,
 } from "./settings";
 export {
+    useCheckStackVersion,
     useStackUpdateStatus,
     useStackVersion,
     useTriggerStackUpdate,

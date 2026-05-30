@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/base/Button";
 import {
     isApiError,
+    useCheckStackVersion,
     useStackUpdateStatus,
     useStackVersion,
     useTriggerStackUpdate,
@@ -29,6 +30,7 @@ const DT_FMT = new Intl.DateTimeFormat("ru-RU", {
 
 export function SystemUpdateClient() {
     const versionQuery = useStackVersion();
+    const checkVersion = useCheckStackVersion();
     const triggerUpdate = useTriggerStackUpdate();
     const [updating, setUpdating] = useState(false);
     const statusQuery = useStackUpdateStatus(updating);
@@ -77,8 +79,8 @@ export function SystemUpdateClient() {
                 <div className="mt-5 flex flex-wrap items-center gap-3">
                     <Button
                         variant="secondary"
-                        onClick={() => versionQuery.refetch()}
-                        isLoading={versionQuery.isFetching}
+                        onClick={() => checkVersion.mutate()}
+                        isLoading={checkVersion.isPending}
                     >
                         Проверить обновления
                     </Button>

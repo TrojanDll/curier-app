@@ -43,6 +43,29 @@ export function useStackVersion() {
     });
 }
 
+/**
+ * Принудительная проверка обновлений по кнопке «Проверить обновления».
+ * Шлёт `?force=1` — backend обходит свой 5-минутный кэш и ходит в GitHub
+ * напрямую. Результат кладём в кэш `systemKeys.version()`, чтобы и страница,
+ * и бейдж в сайдбаре сразу увидели свежую версию. Фоновый поллинг
+ * (`useStackVersion`) при этом остаётся кэшированным — лимит API не страдает.
+ */
+export function useCheckStackVersion() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (): Promise<StackVersionInfo> => {
+            const { data } = await apiClient.get<StackVersionInfo>(
+                "/admin/system/version",
+                { params: { force: 1 } },
+            );
+            return data;
+        },
+        onSuccess: (data) => {
+            queryClient.setQueryData(systemKeys.version(), data);
+        },
+    });
+}
+
 export function useTriggerStackUpdate() {
     const queryClient = useQueryClient();
     return useMutation({

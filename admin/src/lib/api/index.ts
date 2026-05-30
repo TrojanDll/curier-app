@@ -1,7 +1,19 @@
 export { apiClient } from "./client";
 export { ApiError, isApiError, toApiError, type ApiErrorEnvelope } from "./errors";
 export { createQueryClient } from "./query-client";
-export { courierKeys, orderKeys, settingsKeys, statisticsKeys, systemKeys } from "./keys";
+export { backupKeys, courierKeys, orderKeys, settingsKeys, statisticsKeys, systemKeys } from "./keys";
+export {
+    backupDownloadUrl,
+    useBackups,
+    useCreateBackup,
+    useDeleteBackup,
+    useImportBackup,
+    useRestoreBackup,
+    type BackupCounts,
+    type BackupMeta,
+    type BackupOrigin,
+    type RestoreResult,
+} from "./backups";
 export {
     useAutoAssignOrder,
     useCreateOrder,

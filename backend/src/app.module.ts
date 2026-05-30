@@ -7,6 +7,7 @@ import { randomUUID } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { AppClientModule } from './app-client/app-client.module';
 import { AuthModule } from './auth/auth.module';
+import { BackupsModule } from './backups/backups.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { CouriersModule } from './couriers/couriers.module';
 import { HealthModule } from './health/health.module';
@@ -32,6 +33,7 @@ const isProduction = process.env['NODE_ENV'] === 'production';
     PrismaModule,
     AppClientModule,
     AuthModule,
+    BackupsModule,
     CouriersModule,
     OrdersModule,
     HealthModule,

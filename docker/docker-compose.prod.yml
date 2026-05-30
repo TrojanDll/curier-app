@@ -46,6 +46,8 @@ services:
       INITIAL_ADMIN_FULL_NAME: ${INITIAL_ADMIN_FULL_NAME:-Initial Admin}
       PHOTO_TTL_DAYS: ${PHOTO_TTL_DAYS:-30}
       PHOTO_MAX_SIZE_MB: ${PHOTO_MAX_SIZE_MB:-10}
+      # Max size (MB) of an imported backup ZIP. BACKUP_DIR is baked into the image.
+      BACKUP_MAX_IMPORT_MB: ${BACKUP_MAX_IMPORT_MB:-2048}
       # Self-update: shared IPC dir + the public repo to check for new releases.
       UPDATE_IPC_DIR: /ipc
       GITHUB_REPO: ${GITHUB_REPO:-TrojanDll/curier-app}
@@ -55,6 +57,7 @@ services:
       MIN_APP_VERSION_CODE: ${MIN_APP_VERSION_CODE:-}
     volumes:
       - uploads:/app/uploads
+      - backups:/app/backups
       - updater_ipc:/ipc
     ports:
       - "${BACKEND_PORT:-8081}:8081"
@@ -97,4 +100,5 @@ services:
 volumes:
   db_data:
   uploads:
+  backups:
   updater_ipc:

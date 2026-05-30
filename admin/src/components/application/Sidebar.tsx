@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
     BarChart02,
+    Database01,
     HomeLine,
     LogOut01,
     Package,
@@ -29,6 +30,7 @@ const NAV_ITEMS: NavItem[] = [
     { href: "/couriers", label: "Курьеры", icon: Users01 },
     { href: "/statistics", label: "Статистика", icon: BarChart02 },
     { href: "/system-update", label: "Обновления", icon: RefreshCw01 },
+    { href: "/backups", label: "Бэкапы", icon: Database01 },
     { href: "/settings", label: "Настройки", icon: Settings01 },
 ];
 

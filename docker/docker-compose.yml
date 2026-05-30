@@ -12,6 +12,7 @@
 # Volumes
 #   db_data  — Postgres data dir
 #   uploads  — courier photos (backend writes to /app/uploads)
+#   backups  — backup archive history (backend writes to /app/backups)
 #
 # Network: a single default bridge network, services reach each other by
 # DNS name (`db`, `backend`, `admin`). Only backend (8081) and admin (3000)
@@ -55,11 +56,14 @@ services:
       INITIAL_ADMIN_USERNAME: ${INITIAL_ADMIN_USERNAME}
       INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
       INITIAL_ADMIN_FULL_NAME: ${INITIAL_ADMIN_FULL_NAME:-Initial Admin}
-      # PHOTO_UPLOAD_DIR is baked into the image at /app/uploads.
+      # PHOTO_UPLOAD_DIR and BACKUP_DIR are baked into the image
+      # (/app/uploads, /app/backups).
       PHOTO_TTL_DAYS: ${PHOTO_TTL_DAYS:-30}
       PHOTO_MAX_SIZE_MB: ${PHOTO_MAX_SIZE_MB:-10}
+      BACKUP_MAX_IMPORT_MB: ${BACKUP_MAX_IMPORT_MB:-2048}
     volumes:
       - uploads:/app/uploads
+      - backups:/app/backups
     ports:
       - "${BACKEND_PORT:-8081}:8081"
     depends_on:
@@ -99,3 +103,4 @@ services:
 volumes:
   db_data:
   uploads:
+  backups:

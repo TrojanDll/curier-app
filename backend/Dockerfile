@@ -39,7 +39,9 @@ ENV NODE_ENV=production \
     PORT=8081 \
     STACK_VERSION=$STACK_VERSION \
     # Mount-point for the photos volume (docker-compose maps a named volume here).
-    PHOTO_UPLOAD_DIR=/app/uploads
+    PHOTO_UPLOAD_DIR=/app/uploads \
+    # Mount-point for the backups volume (backup archive history, see docs/backups.md).
+    BACKUP_DIR=/app/backups
 
 # All COPY/RUN below own files as `node` from the start. `chown -R /app` after
 # the fact would walk ~100k files in node_modules and add ~60s to the build.
@@ -59,9 +61,10 @@ COPY --from=builder --chown=node:node /app/node_modules/prisma ./node_modules/pr
 COPY --from=builder --chown=node:node /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
 COPY --from=builder --chown=node:node /app/dist ./dist
 
-# Uploads is a docker-compose volume mount-point — owning it as `node`
-# lets the running process write photos without a runtime chown.
-RUN mkdir -p /app/uploads && chown node:node /app/uploads
+# Uploads + backups are docker-compose volume mount-points — owning them as
+# `node` lets the running process write photos and backup archives without a
+# runtime chown.
+RUN mkdir -p /app/uploads /app/backups && chown node:node /app/uploads /app/backups
 
 USER node
 

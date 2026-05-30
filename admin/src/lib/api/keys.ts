@@ -66,3 +66,13 @@ export const systemKeys = {
     version: () => [...systemKeys.all, "version"] as const,
     updateStatus: () => [...systemKeys.all, "update-status"] as const,
 };
+
+/**
+ * Backups — история резервных копий. Один список; иерархия `["backups",
+ * "list"]` оставляет место под будущие подпункты (например, детали бэкапа)
+ * без коллизии ключей.
+ */
+export const backupKeys = {
+    all: ["backups"] as const,
+    list: () => [...backupKeys.all, "list"] as const,
+};

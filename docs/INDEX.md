@@ -46,3 +46,4 @@ Project documentation cache. Each entry links to a detailed doc file.
 - [In-App Update (Android)](app-update.md) — Android проверяет GitHub Releases (UpdateManager/FileProvider), CI собирает подписанный APK → GitHub Release; secrets/keystore, подписи
 - [App Force-Update (min-version)](app-force-update.md) — серверный gate минимальной версии приложения: backend `/api/app/min-version`, mobile блокирующий экран, политика ручного бампа
 - [Server Stack Self-Update](self-update.md) — pull-модель: CI публикует GHCR-образы + stack-релиз, клиент обновляет backend+admin кнопкой в админке через sidecar `updater` (docker.sock + IPC); GHCR public, безопасность, миграция
+- [Backups — Backend + Admin](backups.md) — бэкап/восстановление данных как портируемый ZIP (таблицы JSON + фото), история в файловой системе, restore с авто-снимком, импорт/экспорт; endpoints, формат архива, том `backups`

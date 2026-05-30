@@ -87,11 +87,12 @@ compose, update both.
 |---|---|---|---|
 | `db_data` | postgres user | Postgres data dir (tables, indexes, WAL) | **Critical.** Daily, off-box. |
 | `uploads` | backend `node:node` | Courier photo files under `/app/uploads/<order_id>/<photo_id>.jpg`. Filenames stay in `order_photos.file_path` in the DB. | Daily-ish; cheap to lose if you accept the missing-photo UX (`expires_at` cleanup eventually catches up). |
+| `backups` | backend `node:node` | App-level backup archives + their history sidecars under `/app/backups` (the admin "Бэкапы" feature, see `docs/backups.md`). | Copy off-box if you rely on in-app backups for disaster recovery. |
 
-Both are named volumes so `docker compose down` (without `-v`) keeps
-data; `down -v` wipes them. Production back-up: `docker run --rm -v
-docker_db_data:/data -v $PWD:/backup alpine tar czf /backup/db.tgz
--C /data .` (same recipe for `uploads`).
+All three are named volumes so `docker compose down` (without `-v`)
+keeps data; `down -v` wipes them. Production back-up: `docker run --rm
+-v docker_db_data:/data -v $PWD:/backup alpine tar czf /backup/db.tgz
+-C /data .` (same recipe for `uploads` and `backups`).
 
 ## Build commands
 
@@ -134,8 +135,10 @@ committed to the repo and ships in the image.
 - **HTTPS.** `§16` mandates plain HTTP for the SaaS — TLS termination
   is the responsibility of whatever fronts this box (Caddy, nginx,
   Traefik). The compose stack itself listens HTTP.
-- **Backups.** Volume backup recipe above is manual — wire it into
-  cron or a backup service per your ops standard.
+- **Scheduled backups.** App-level backup/restore now exists (admin
+  "Бэкапы" → `backups` volume, see `docs/backups.md`), but it is
+  *operator-triggered*. The volume `tar` recipe above is still the
+  off-box / unattended path — wire it into cron per your ops standard.
 - **Horizontal scaling.** Single-instance backend by design (§16). The
   `app_settings` cache is in-process; multi-pod would need a
   cache-invalidation channel (see `docs/settings.md` "What is NOT

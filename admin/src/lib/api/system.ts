@@ -82,6 +82,26 @@ export function useTriggerStackUpdate() {
 }
 
 /**
+ * Фоновое слежение за статусом обновления для сайдбара — работает на любой
+ * странице, чтобы показать «Производится обновление», даже если админ ушёл
+ * со страницы «Обновления». В покое опрашивает редко (30с), а пока идёт
+ * обновление — каждые 4с. `retry: false` + сохранение прошлых данных: во время
+ * перезапуска backend запросы падают, но мы продолжаем показывать `in_progress`.
+ */
+export function useStackUpdateWatch() {
+    return useQuery({
+        queryKey: systemKeys.updateStatus(),
+        queryFn: async (): Promise<UpdateStatus> => {
+            const { data } = await apiClient.get<UpdateStatus>("/admin/system/update/status");
+            return data;
+        },
+        refetchInterval: (query) =>
+            query.state.data?.status === "in_progress" ? 4000 : 30_000,
+        retry: false,
+    });
+}
+
+/**
  * Статус обновления. Опрашивается каждые 4с, пока `enabled`. `retry: false` —
  * во время апдейта backend/admin перезапускаются, запросы будут падать; это
  * ожидаемо, не нужно ретраить агрессивно.

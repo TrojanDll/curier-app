@@ -11,7 +11,7 @@ import {
     Settings01,
     Users01,
 } from "@untitledui/icons";
-import { useStackVersion } from "@/lib/api/system";
+import { useStackUpdateWatch, useStackVersion } from "@/lib/api/system";
 import { useLogout, useUser } from "@/lib/auth/use-auth";
 import { cx } from "@/utils/cx";
 
@@ -41,6 +41,8 @@ export function Sidebar() {
     const logout = useLogout();
     const user = useUser();
     const version = useStackVersion();
+    const updateWatch = useStackUpdateWatch();
+    const isUpdating = updateWatch.data?.status === "in_progress";
 
     const handleLogout = () => {
         if (logout.isPending) return;
@@ -94,6 +96,20 @@ export function Sidebar() {
 
             {/* User info + Logout снизу */}
             <div className="border-t border-secondary p-3">
+                {isUpdating ? (
+                    <div className="mb-2 flex items-center gap-2 rounded-md bg-bg-brand-solid/10 px-3 py-2 text-xs font-medium text-fg-brand-primary">
+                        <svg
+                            className="size-4 shrink-0 animate-spin"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            aria-hidden="true"
+                        >
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+                            <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                        </svg>
+                        <span>Производится обновление</span>
+                    </div>
+                ) : null}
                 {user ? (
                     <div className="mb-2 px-3 py-1">
                         <p className="truncate text-sm font-medium text-primary">{user.fullName}</p>

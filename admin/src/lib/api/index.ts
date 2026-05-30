@@ -58,6 +58,7 @@ export {
 export {
     useCheckStackVersion,
     useStackUpdateStatus,
+    useStackUpdateWatch,
     useStackVersion,
     useTriggerStackUpdate,
     type StackVersionInfo,

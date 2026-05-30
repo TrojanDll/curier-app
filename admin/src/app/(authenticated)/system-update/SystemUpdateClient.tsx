@@ -10,6 +10,15 @@ import {
     type UpdatePhase,
 } from "@/lib/api";
 
+/**
+ * Страница последнего релиза APK курьерского приложения на GitHub.
+ * Сюда CI публикует подписанный `curier-<N>.apk` (см. docs/app-update.md).
+ * GitHub сам редиректит `/releases/latest` на самый свежий релиз, где
+ * лежит актуальный APK-ассет — стабильной прямой ссылки на ассет нет,
+ * т.к. его имя меняется от сборки к сборке.
+ */
+const COURIER_APK_RELEASE_URL = "https://github.com/TrojanDll/curier-app/releases/latest";
+
 const DT_FMT = new Intl.DateTimeFormat("ru-RU", {
     day: "2-digit",
     month: "2-digit",
@@ -43,10 +52,7 @@ export function SystemUpdateClient() {
 
     return (
         <div className="flex flex-col gap-6 px-8 py-6">
-            <Section
-                title="Версия стека"
-                description="Backend + admin. Единый источник обновлений — GitHub-релизы проекта."
-            >
+            <Section title="Версия">
                 {versionQuery.isError ? (
                     <Alert>{extractMessage(versionQuery.error, "Не удалось получить версию")}</Alert>
                 ) : null}
@@ -126,6 +132,24 @@ export function SystemUpdateClient() {
                     ) : null}
                 </Section>
             ) : null}
+
+            <Section
+                title="Приложение курьера (APK)"
+                description="Актуальная сборка Android-приложения для курьеров. Скачайте APK и передайте курьеру для установки."
+            >
+                <a
+                    href={COURIER_APK_RELEASE_URL}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-bg-brand-solid px-4 text-sm font-semibold whitespace-nowrap text-white transition-colors hover:bg-bg-brand-solid_hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+                >
+                    Скачать APK для курьеров
+                </a>
+                <p className="mt-3 text-xs text-tertiary">
+                    Откроется страница последнего релиза на GitHub — скачайте файл{" "}
+                    <code>curier-&lt;номер&gt;.apk</code> из раздела Assets.
+                </p>
+            </Section>
 
             <Section title="Как это работает">
                 <ul className="list-disc pl-5 text-sm text-tertiary">

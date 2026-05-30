@@ -25,7 +25,7 @@ import type { Order, OrderStatus } from "@/types/order";
  * 3. KPI «Среднее время доставки» + «Выручка за сутки» —
  *    `GET /admin/statistics/overview?period=today`. Backend нормализует
  *    «today» под календарный день (UTC). См. `docs/statistics.md`.
- * 4. Панель «Последние заказы» — `GET /admin/orders?pageSize=5&sortBy=createdAt&order=desc`.
+ * 4. Панель «Последние заказы» — `GET /admin/orders?pageSize=15&sortBy=createdAt&order=desc`.
  *    Имя курьера резолвится через `lookup`, собранный из useActiveCouriers
  *    (заодно избегаем второго запроса под список).
  *
@@ -41,7 +41,7 @@ export function DashboardClient() {
 
     const activeOrdersQuery = useOrders({ status: activeStatuses, pageSize: 1, page: 1 });
     const recentOrdersQuery = useOrders({
-        pageSize: 5,
+        pageSize: 15,
         page: 1,
         sortBy: "createdAt",
         order: "desc",
@@ -133,7 +133,7 @@ function RecentOrdersPanel({
             <header className="flex items-center justify-between border-b border-secondary px-6 py-4">
                 <div>
                     <h2 className="text-md font-semibold text-primary">Последние заказы</h2>
-                    <p className="text-xs text-tertiary">5 свежих заказов вне зависимости от статуса</p>
+                    <p className="text-xs text-tertiary">15 свежих заказов вне зависимости от статуса</p>
                 </div>
                 <Link
                     href="/orders"

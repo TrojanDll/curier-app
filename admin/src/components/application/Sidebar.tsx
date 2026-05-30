@@ -28,7 +28,7 @@ const NAV_ITEMS: NavItem[] = [
     { href: "/orders", label: "Заказы", icon: Package },
     { href: "/couriers", label: "Курьеры", icon: Users01 },
     { href: "/statistics", label: "Статистика", icon: BarChart02 },
-    { href: "/system-update", label: "Обновления сервера", icon: RefreshCw01 },
+    { href: "/system-update", label: "Обновления", icon: RefreshCw01 },
     { href: "/settings", label: "Настройки", icon: Settings01 },
 ];
 
@@ -111,7 +111,7 @@ export function Sidebar() {
                 </button>
                 {version.data ? (
                     <p className="mt-2 truncate px-3 text-center text-xs text-tertiary">
-                        Курьер v{version.data.current}
+                        Версия {version.data.current}
                     </p>
                 ) : null}
             </div>

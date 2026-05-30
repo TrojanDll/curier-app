@@ -2,7 +2,7 @@ import { Header } from "@/components/application/Header";
 import { SystemUpdateClient } from "./SystemUpdateClient";
 
 export const metadata = {
-    title: "Обновления сервера — Курьер",
+    title: "Обновления — Курьер",
 };
 
 /**
@@ -13,10 +13,7 @@ export const metadata = {
 export default function SystemUpdatePage() {
     return (
         <>
-            <Header
-                title="Обновления сервера"
-                description="Версия backend + admin и обновление из GitHub"
-            />
+            <Header title="Обновления" />
             <SystemUpdateClient />
         </>
     );

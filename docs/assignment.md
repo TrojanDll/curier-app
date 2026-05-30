@@ -50,6 +50,31 @@ score(courier) = Σ wᵢ · factorᵢ        (each factorᵢ ∈ [0..1])
 `idle` alone reproduces the legacy behaviour, so the old algorithm is a
 special case of this one (weights `idle=1`, rest `0`).
 
+### Normalisation
+
+Each factor is min-max normalised **across the current candidate pool**, so a
+factor only ever measures a courier *relative to the others competing for this
+order* — absolute units (seconds, counts) never enter the weighted sum.
+
+```
+higher = better:   factor(v) = (v − min) / (max − min)
+lower  = better:   factor(v) = 1 − (v − min) / (max − min)
+```
+
+where `min`/`max` are taken over the non-null raw values in the pool. Three
+cases collapse to the neutral score **0.5** (the factor cannot separate the
+candidates, so it neither rewards nor punishes):
+
+- **`v` is null** — no data for that courier on that factor. Only `speed` can be
+  null (a courier with zero completed deliveries has no average duration);
+  `idle`/`fairness`/`experience` always have a value.
+- **`max == min`** — every present value is equal (e.g. nobody has taken an
+  order today → all `fairness` raw values are 0).
+- **pool of one** — a single eligible courier scores 0.5 on every factor, so
+  `score = 0.5 · Σwᵢ = 0.5`, and they win by default.
+
+This is `normalizeMinMax()` in `scoring.ts`; `NEUTRAL_SCORE = 0.5`.
+
 ### Priority-dependent weights
 
 The weight profile depends on the order's `priority` (`WEIGHTS_BY_PRIORITY`,
@@ -63,6 +88,49 @@ each profile sums to 1.0 → total score stays in `[0..1]`):
 
 Ties on the total break by `created_at asc` (earlier hire), preserving the
 legacy tie-break and keeping selection deterministic.
+
+### Worked example
+
+Three eligible couriers compete for one order. Raw metrics:
+
+| courier | idle (h) | avg delivery (min) | orders today | completed |
+|---|---|---|---|---|
+| A | 5 | 40 | 3 | 80 |
+| B | 1 | 20 | 1 | 120 |
+| C | 8 | 60 | 0 | 10 |
+
+Min-max normalised over the pool (`idle`/`experience` higher-better,
+`speed`/`fairness` lower-better):
+
+| courier | idle | speed | fairness | experience |
+|---|---|---|---|---|
+| A | 0.571 | 0.500 | 0.000 | 0.636 |
+| B | 0.000 | 1.000 | 0.667 | 1.000 |
+| C | 1.000 | 0.000 | 1.000 | 0.000 |
+
+Now the **same pool** resolves differently depending on the order's priority:
+
+**`high`** (idle .15 / speed .40 / fairness .10 / experience .35):
+
+```
+A = .15·.571 + .40·.500 + .10·.000 + .35·.636 = 0.51
+B = .15·.000 + .40·1.000 + .10·.667 + .35·1.000 = 0.82   ← winner
+C = .15·1.000 + .40·.000 + .10·1.000 + .35·.000 = 0.25
+```
+
+**`normal`** (idle .40 / speed .20 / fairness .30 / experience .10):
+
+```
+A = .40·.571 + .20·.500 + .30·.000 + .10·.636 = 0.39
+B = .40·.000 + .20·1.000 + .30·.667 + .10·1.000 = 0.50
+C = .40·1.000 + .20·.000 + .30·1.000 + .10·.000 = 0.70   ← winner
+```
+
+Same three couriers, opposite outcome. An **urgent** order goes to **B** — fast
+(20 min avg) and seasoned (120 deliveries) — even though they just got back and
+already carry today's load. A **normal** order goes to **C** — longest at base
+and zero load today — i.e. the fairness-driven rotation the legacy algorithm
+always did. That priority-driven branch is the whole point of the design.
 
 ### Why `experience`, not a success rate?
 
@@ -90,6 +158,34 @@ jobs jump the line, oldest-first within a tier. The composite index
 `(status, priority, created_at)` (migration `add_order_priority`) covers it.
 There is a single candidate courier here (the one that just freed up), so no
 courier scoring runs on this path — the priority decision is order-side.
+
+## How a full pass runs
+
+`tryAssignNewOrder(orderId)` — the new-order path, scoring couriers — step by
+step (all inside one Prisma transaction):
+
+1. **Lock.** `pg_advisory_xact_lock(hashtext('curier:assign'))` — serialise every
+   auto-assign pass instance-wide (Concurrency below).
+2. **Re-read the order.** If it is no longer `status='new'` (an admin grabbed it
+   first) → return `null`, leave it alone.
+3. **Load the eligible pool.** `couriers` where active, not paused, zero busy
+   orders. Empty pool → return `null`; the order stays queued.
+4. **Gather metrics.** `gatherCandidateMetrics`: delivered-order history
+   (durations → `speed`, count → `experience`) + today's order count
+   (`fairness`); `idle` comes off the courier row.
+5. **Score & rank.** Normalise each factor over the pool, apply the weight
+   profile for *this order's priority*, sum, sort best-first (ties → earliest
+   `created_at`).
+6. **CAS the winner.** `UPDATE … SET courier_id, status='assigned', assigned_at
+   WHERE id=$1 AND status='new'`. If the guarded update touched 0 rows (lost a
+   race) → return `null`.
+7. **Return** the updated order, which `OrdersService.create` surfaces in the
+   201 response.
+
+`tryAssignToFreeCourier(courierId)` — the queue-drain path — is the mirror
+image: lock → re-verify the courier is still eligible → pick the highest-priority
+queued order (`priority DESC, created_at ASC`) → CAS it onto the courier. No
+courier scoring (only one candidate); the decision is which *order* to hand over.
 
 ## Concurrency control
 

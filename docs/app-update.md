@@ -1,26 +1,31 @@
-# In-App Update & Deploy — Feature Reference
+# In-App Update (Android) — Feature Reference
 
-Два независимых, полностью автоматических потока по коммиту в `main`:
+Два независимых потока по коммиту в `main`:
 
 1. **Обновление Android-приложения** «по воздуху» из **GitHub Releases**
-   open-source репозитория. Backend/админка в раздаче APK НЕ участвуют.
-2. **Деплой серверного стека** (backend + admin) на VPS — оба сервиса
-   пересобираются вместе, поэтому всегда обновляются согласованно.
+   open-source репозитория. Полностью автоматический, **тема этого документа**.
+2. **Деплой серверного стека** (backend + admin) — **pull-модель** через GHCR:
+   CI публикует образы, оператор применяет обновление кнопкой в админке. CI ни
+   к одному серверу не подключается. Полное описание — **`docs/self-update.md`**;
+   ниже только краткая ветка для контраста с APK-потоком.
 
 ## Поток в двух словах
 
 ```
 коммит в main
-  ├─ изменения в android/**  → workflow «Release APK»
+  ├─ изменения в android/**  → workflow «Release APK» (release-apk.yml)
   │     собирает подписанный APK → создаёт GitHub Release
-  │     (tag v1.0.<run>, asset curier-<run>.apk)
+  │     (tag v1.0.<run>, asset curier-<run>.apk, make_latest)
   │        ↓
   │     приложение при старте: GET api.github.com/repos/<owner>/<repo>/releases/latest
   │        versionCode (из имени ассета) > BuildConfig.VERSION_CODE? → диалог → скачать → установить
   │
-  └─ изменения в backend/** | admin/** | docker/** → workflow «Deploy backend + admin»
-        rsync кода на VPS → docker compose up -d --build backend admin
-        (Prisma-миграции применяются сами при старте backend)
+  └─ изменения в backend/** | admin/** | docker/** → workflow «Release stack» (release-stack.yml)
+        build+push образов в GHCR (:1.0.N + :latest) + prerelease stack-v1.0.N
+           ↓
+        деплой НЕ автоматический: оператор в админке «Обновления сервера» →
+        sidecar `updater` делает docker compose pull && up -d backend admin →
+        backend стартует, prisma migrate deploy.   (подробности: self-update.md)
 ```
 
 ## Android (`core/util/UpdateManager.kt`, `MainActivity.checkForUpdates`)
@@ -71,18 +76,29 @@ assembleRelease -PappVersionCode=<run_number> -PappVersionName=1.0.<run_number>`
 `versionCode = github.run_number` — монотонно растёт. `build.gradle.kts`
 читает `appVersionCode`/`appVersionName` из `-P` свойств (fallback 1 / "1.0.0").
 
-## CI — Deploy backend + admin (`.github/workflows/deploy.yml`)
+## CI — Release stack (`.github/workflows/release-stack.yml`)
 
-Триггер: push в `main` (paths `backend/**`, `admin/**`, `docker/**`) или
-`workflow_dispatch`. SSH-ключом деплоя: `rsync` кода в `/opt/curier/{backend,admin,docker}`
-(исключая `node_modules/.next/dist/build/uploads/.env` — реальные секреты и тома
-на проде защищены, `--delete` их не трогает), затем по SSH
-`docker compose up -d --build backend admin`. `db` не пересоздаётся (том цел),
-Prisma-миграции применяются при старте backend (`CMD = prisma migrate deploy`).
+Триггер: push в `main` (paths `backend/**`, `admin/**`, `docker/**`,
+`.github/workflows/release-stack.yml`) или `workflow_dispatch`. Собирает и
+**пушит публичные образы в GHCR** (`curier-backend`, `-admin`, `-updater`;
+теги `1.0.<run>` + `latest`) и публикует prerelease `stack-v1.0.<run>`.
+**CI ни к одному серверу не подключается** (раньше была rsync/SSH push-модель —
+больше не используется). Деплой — pull-модель: оператор жмёт «Обновить» в
+админке («Обновления сервера»), backend пишет триггер в volume `updater_ipc`,
+sidecar `updater` выполняет `docker compose pull && up -d backend admin`;
+backend при старте применяет `prisma migrate deploy`.
+
+Полное описание (API `/api/admin/system/*`, updater-сайдкар, IPC, GHCR public,
+безопасность) — **`docs/self-update.md`**.
 
 ## Что нужно настроить один раз
 
 ### Secrets (Settings → Secrets and variables → Actions)
+
+Нужны только для подписи APK (`release-apk.yml`). Деплой стека
+(`release-stack.yml`) дополнительных секретов не требует — публикация в GHCR
+идёт через автоматический `secrets.GITHUB_TOKEN`; GHCR-пакеты нужно один раз
+сделать публичными (см. `docs/self-update.md`).
 
 | Secret | Назначение |
 |---|---|
@@ -90,9 +106,6 @@ Prisma-миграции применяются при старте backend (`CMD
 | `KEYSTORE_PASSWORD` | пароль keystore |
 | `KEY_ALIAS` | алиас ключа |
 | `KEY_PASSWORD` | пароль ключа |
-| `VPS_HOST` | IP/host VPS (напр. `109.73.203.142`) |
-| `VPS_USER` | пользователь SSH (напр. `root`) |
-| `VPS_SSH_KEY` | приватный SSH-ключ с доступом на VPS |
 
 ### Прочее
 
@@ -102,8 +115,9 @@ Prisma-миграции применяются при старте backend (`CMD
    подписан тем же ключом, что и установленный. Старые установки, подписанные
    **debug**-ключом, обновиться поверх release-подписи НЕ смогут — их нужно один
    раз переустановить (удалить debug-версию, поставить release из GitHub Release).
-3. Готово: коммит в `main` соберёт и опубликует APK / задеплоит сервер
-   автоматически.
+3. Готово: коммит в `main` соберёт и опубликует APK автоматически. Серверный
+   стек **не** деплоится автоматически — образы публикуются в GHCR, а
+   обновление применяется вручную из админки (см. `docs/self-update.md`).
 
 > Релизы можно делать и вручную: вкладка **Releases** репозитория → создать
 > релиз с тегом `v1.0.<N>` и приложить ассет `curier-<N>.apk`. Приложение его

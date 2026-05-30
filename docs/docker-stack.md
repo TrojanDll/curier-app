@@ -7,7 +7,8 @@ Stage 14.5. The shippable artifact per §1: one archive, one
 
 ```
 /docker/
-├── docker-compose.yml      # the stack (db, backend, admin)
+├── docker-compose.yml      # DEV stack — builds from source (db, backend, admin)
+├── docker-compose.prod.yml # PROD stack — pulls GHCR images + `updater` (see self-update.md)
 └── .env.example            # template (committed); real .env is gitignored
 /backend/
 ├── Dockerfile              # multi-stage NestJS image (§14.5.1)
@@ -139,6 +140,8 @@ committed to the repo and ships in the image.
   `app_settings` cache is in-process; multi-pod would need a
   cache-invalidation channel (see `docs/settings.md` "What is NOT
   here yet").
-- **CI builds.** `docker buildx bake` + GHCR push is straightforward
-  if it becomes useful, but every deploy currently re-builds from the
-  source archive on the target box.
+- **Production image delivery.** This doc covers the **dev** compose
+  (`docker-compose.yml`, builds from source). Production no longer builds on
+  the box: CI (`release-stack.yml`) publishes images to GHCR and the prod
+  stack (`docker-compose.prod.yml`) pulls them; one-click updates run via the
+  `updater` sidecar. See `docs/self-update.md`.

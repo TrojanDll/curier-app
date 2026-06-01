@@ -34,6 +34,7 @@ Project documentation cache. Each entry links to a detailed doc file.
 - [Admin Settings — API Integration](admin-settings.md) — settings GET/PATCH hooks, change-password mutation, TTL form behaviour + last-updated hint, password security flow (Stage 3.6)
 - [Admin Realtime — Socket.IO Integration](admin-realtime.md) — BFF token endpoint + RealtimeProvider, handshake flow, event→cache invalidation map, lifecycle/reconnect handling (Stage 3.7)
 - [Admin Order Photos — Drawer Integration](admin-order-photos.md) — PhotosSection + PhotoLightbox в drawer заказа, `<img>` через BFF-proxy, portal в body, fallback'ы загрузки (Stage 3.8)
+- [Admin — Вкладка «Приложение»](admin-courier-app.md) — раздатка для курьеров: автоопределение адреса сервера (window.location, localStorage override), скачивание APK, памятка; useSyncExternalStore SSR-паттерн
 - [Android Server Config](android-server-config.md) — ServerConfigManager + runtime BASE_URL, ServerConfigFragment + health-check, Profile change-server flow, reset механика (Stage 4.1–4.2 / §7.1–7.3)
 - [Android API Integration](android-api-integration.md) — wire format (no envelope, camelCase, UUID), DTO ↔ NestJS endpoints, JwtUtils, Room v3, error mapping, paused-courier banner (Stage 4.3–4.4 / §7.4–7.5)
 - [Android Realtime](android-realtime.md) — Socket.IO `/realtime` handshake, RealtimeManager singleton, event → ViewModel map, reconnect/lifecycle policy (Stage 4.5 / §7.6–7.7)

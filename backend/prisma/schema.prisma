@@ -27,6 +27,9 @@ enum OrderStatus {
   near_customer
   delivered
   returned
+  /// Terminal: delivery aborted (e.g. customer unreachable). Order returns to
+  /// base, its price is excluded from revenue (revenue counts delivered_at).
+  cancelled
 
   @@map("order_status")
 }
@@ -128,6 +131,10 @@ model Order {
   nearCustomerAt     DateTime?   @map("near_customer_at") @db.Timestamptz(6)
   deliveredAt        DateTime?   @map("delivered_at") @db.Timestamptz(6)
   returnedAt         DateTime?   @map("returned_at") @db.Timestamptz(6)
+  /// Set when the order is cancelled (courier or admin). Terminal state.
+  cancelledAt        DateTime?   @map("cancelled_at") @db.Timestamptz(6)
+  /// Free-form reason captured at cancellation time (required by the API).
+  cancellationReason String?     @map("cancellation_reason")
 
   // Relations
   courier        Courier?     @relation(fields: [courierId], references: [id], onDelete: SetNull)

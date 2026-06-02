@@ -167,9 +167,10 @@ export function StatisticsClient() {
             ) : overview ? (
                 <>
                     {/* KPI cards */}
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
                         <KpiCard label="Всего заказов" value={overview.totalOrders.toString()} />
                         <KpiCard label="Доставлено" value={overview.delivered.toString()} />
+                        <KpiCard label="Отменено" value={overview.cancelled.toString()} />
                         <KpiCard
                             label="Среднее время"
                             value={formatMinutes(overview.avgDeliveryMinutes)}
@@ -339,6 +340,7 @@ function CouriersBreakdownCard({
                                 <th className="px-4 py-3 text-right">Всего</th>
                                 <th className="px-4 py-3 text-right">Доставлено</th>
                                 <th className="px-4 py-3 text-right">На базу</th>
+                                <th className="px-4 py-3 text-right">Отмен</th>
                                 <th className="px-4 py-3 text-right">Среднее время</th>
                                 <th className="px-4 py-3 text-right">Выручка</th>
                             </tr>
@@ -346,13 +348,13 @@ function CouriersBreakdownCard({
                         <tbody className="divide-y divide-secondary text-sm">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-tertiary">
+                                    <td colSpan={7} className="px-4 py-8 text-center text-sm text-tertiary">
                                         Загрузка…
                                     </td>
                                 </tr>
                             ) : rows.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-tertiary">
+                                    <td colSpan={7} className="px-4 py-8 text-center text-sm text-tertiary">
                                         За период активных курьеров не найдено.
                                     </td>
                                 </tr>
@@ -375,6 +377,9 @@ function CouriersBreakdownCard({
                                         </td>
                                         <td className="px-4 py-3 text-right text-tertiary">
                                             {row.returned}
+                                        </td>
+                                        <td className="px-4 py-3 text-right text-tertiary">
+                                            {row.cancelled}
                                         </td>
                                         <td className="px-4 py-3 text-right text-tertiary">
                                             {formatMinutes(row.avgDeliveryMinutes)}

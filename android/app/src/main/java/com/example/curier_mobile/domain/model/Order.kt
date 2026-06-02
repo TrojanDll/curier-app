@@ -23,6 +23,8 @@ data class Order(
     val nearCustomerAt: String?,
     val deliveredAt: String?,
     val returnedAt: String?,
+    val cancelledAt: String? = null,
+    val cancellationReason: String? = null,
     val photos: List<Photo> = emptyList()
 )
 
@@ -38,7 +40,8 @@ enum class OrderStatus(val value: String, val displayName: String) {
     PICKED_UP("picked_up", "Забрал заказ"),
     NEAR_CUSTOMER("near_customer", "Возле дома клиента"),
     DELIVERED("delivered", "Передал заказ"),
-    RETURNED("returned", "Вернулся на предприятие");
+    RETURNED("returned", "Вернулся на предприятие"),
+    CANCELLED("cancelled", "Отменён");
 
     companion object {
         fun fromValue(value: String): OrderStatus {
@@ -59,6 +62,9 @@ enum class OrderStatus(val value: String, val displayName: String) {
                 NEAR_CUSTOMER -> DELIVERED
                 DELIVERED -> RETURNED
                 RETURNED -> null
+                // Отмена — терминальный «боковой» переход, не часть линейной
+                // цепочки; инициируется отдельным действием cancelOrder.
+                CANCELLED -> null
             }
         }
 

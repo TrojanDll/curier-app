@@ -53,7 +53,8 @@ class OrderDetailsViewModel(
                     _uiState.update {
                         it.copy(
                             order = updated,
-                            availableStatusTransitions = getAvailableStatusTransitions(updated.status)
+                            availableStatusTransitions = getAvailableStatusTransitions(updated.status),
+                            canCancel = isCancellable(updated.status)
                         )
                     }
                 }
@@ -73,7 +74,8 @@ class OrderDetailsViewModel(
                         it.copy(
                             order = order,
                             isLoading = false,
-                            availableStatusTransitions = availableTransitions
+                            availableStatusTransitions = availableTransitions,
+                            canCancel = isCancellable(order.status)
                         )
                     }
                 }
@@ -103,7 +105,8 @@ class OrderDetailsViewModel(
                             order = updatedOrder,
                             isUpdatingStatus = false,
                             statusUpdateSuccess = true,
-                            availableStatusTransitions = availableTransitions
+                            availableStatusTransitions = availableTransitions,
+                            canCancel = isCancellable(updatedOrder.status)
                         )
                     }
                 }
@@ -112,6 +115,40 @@ class OrderDetailsViewModel(
                         it.copy(
                             isUpdatingStatus = false,
                             error = result.exception.message ?: "Ошибка обновления статуса"
+                        )
+                    }
+                }
+                is Result.Loading -> Unit
+            }
+        }
+    }
+
+    /**
+     * Отменяет заказ с обязательной причиной (например, «клиент не отвечает»).
+     * Заказ переходит в терминальный `cancelled`, освобождая курьера на бэке.
+     */
+    fun cancelOrder(reason: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUpdatingStatus = true, error = null) }
+
+            when (val result = orderRepository.cancelOrder(orderId, reason)) {
+                is Result.Success -> {
+                    val updatedOrder = result.data
+                    _uiState.update {
+                        it.copy(
+                            order = updatedOrder,
+                            isUpdatingStatus = false,
+                            cancelSuccess = true,
+                            availableStatusTransitions = getAvailableStatusTransitions(updatedOrder.status),
+                            canCancel = isCancellable(updatedOrder.status)
+                        )
+                    }
+                }
+                is Result.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isUpdatingStatus = false,
+                            error = result.exception.message ?: "Ошибка отмены заказа"
                         )
                     }
                 }
@@ -164,6 +201,10 @@ class OrderDetailsViewModel(
         _uiState.update { it.copy(statusUpdateSuccess = false) }
     }
 
+    fun clearCancelSuccess() {
+        _uiState.update { it.copy(cancelSuccess = false) }
+    }
+
     fun clearPhotoUploadSuccess() {
         _uiState.update { it.copy(photoUploadSuccess = false) }
     }
@@ -180,6 +221,19 @@ class OrderDetailsViewModel(
             OrderStatus.NEAR_CUSTOMER -> listOf(OrderStatus.DELIVERED, OrderStatus.RETURNED)
             OrderStatus.DELIVERED -> listOf(OrderStatus.RETURNED)
             OrderStatus.RETURNED -> emptyList()
+            OrderStatus.CANCELLED -> emptyList()
         }
+    }
+
+    /** Отмена доступна, пока заказ не доставлен и не закрыт. Кнопка «Отменить»
+     *  показывается отдельно от forward-переходов. */
+    private fun isCancellable(status: OrderStatus): Boolean = status in CANCELLABLE_STATUSES
+
+    companion object {
+        private val CANCELLABLE_STATUSES = setOf(
+            OrderStatus.ASSIGNED,
+            OrderStatus.PICKED_UP,
+            OrderStatus.NEAR_CUSTOMER
+        )
     }
 }

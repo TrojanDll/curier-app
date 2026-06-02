@@ -28,6 +28,8 @@ export interface OrderAdminResponse {
   nearCustomerAt: string | null;
   deliveredAt: string | null;
   returnedAt: string | null;
+  cancelledAt: string | null;
+  cancellationReason: string | null;
   /**
    * Photo metadata. Populated only on detail/create responses
    * (`findOneAdmin`, `create`, `update`, `reassign`); list endpoints emit `[]`
@@ -55,6 +57,8 @@ export interface OrderCourierResponse {
   nearCustomerAt: string | null;
   deliveredAt: string | null;
   returnedAt: string | null;
+  cancelledAt: string | null;
+  cancellationReason: string | null;
   /**
    * Photo metadata. Populated only on detail/transition responses
    * (`findOneCourier`, `updateStatus`); list endpoints emit `[]`. Clients
@@ -86,6 +90,8 @@ export function toOrderAdminResponse(
     nearCustomerAt: o.nearCustomerAt ? o.nearCustomerAt.toISOString() : null,
     deliveredAt: o.deliveredAt ? o.deliveredAt.toISOString() : null,
     returnedAt: o.returnedAt ? o.returnedAt.toISOString() : null,
+    cancelledAt: o.cancelledAt ? o.cancelledAt.toISOString() : null,
+    cancellationReason: o.cancellationReason,
     photos,
   };
 }
@@ -111,6 +117,8 @@ export function toOrderCourierResponse(
     nearCustomerAt: o.nearCustomerAt ? o.nearCustomerAt.toISOString() : null,
     deliveredAt: o.deliveredAt ? o.deliveredAt.toISOString() : null,
     returnedAt: o.returnedAt ? o.returnedAt.toISOString() : null,
+    cancelledAt: o.cancelledAt ? o.cancelledAt.toISOString() : null,
+    cancellationReason: o.cancellationReason,
     photos,
   };
 }

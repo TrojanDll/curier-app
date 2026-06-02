@@ -11,6 +11,7 @@ import {
     isApiError,
     useActiveCouriers,
     useAutoAssignOrder,
+    useCancelOrder,
     useCreateOrder,
     useOrder,
     useOrders,
@@ -20,6 +21,7 @@ import {
 } from "@/lib/api";
 import {
     ACTIVE_ORDER_STATUSES,
+    CANCELLABLE_ORDER_STATUSES,
     getOrderStatusSince,
     ORDER_PRIORITY_LABELS,
     ORDER_STATUS_LABELS,
@@ -52,6 +54,7 @@ const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
     { value: "picked_up", label: ORDER_STATUS_LABELS.picked_up },
     { value: "near_customer", label: ORDER_STATUS_LABELS.near_customer },
     { value: "delivered", label: ORDER_STATUS_LABELS.delivered },
+    { value: "cancelled", label: ORDER_STATUS_LABELS.cancelled },
 ];
 
 const PAGE_SIZE = 10;
@@ -362,6 +365,7 @@ function OrderDetailsDrawer({ order, onClose, onOrderUpdated }: DrawerProps) {
         { label: "Рядом с клиентом", iso: order.nearCustomerAt },
         { label: "Доставлен", iso: order.deliveredAt },
         { label: "На базе", iso: order.returnedAt },
+        { label: "Отменён", iso: order.cancelledAt },
     ];
 
     return (
@@ -416,8 +420,9 @@ function OrderDetailsDrawer({ order, onClose, onOrderUpdated }: DrawerProps) {
                     </ol>
                 </div>
 
-                <div className="mt-auto border-t border-secondary px-6 py-5">
+                <div className="mt-auto flex flex-col gap-5 border-t border-secondary px-6 py-5">
                     <ReassignSection order={order} onSuccess={onOrderUpdated} />
+                    <CancelSection order={order} onSuccess={onOrderUpdated} />
                 </div>
             </aside>
         </div>
@@ -558,6 +563,9 @@ function DrawerBody({ order }: { order: Order }) {
             <DrawerRow label="Адрес" value={order.deliveryAddress} />
             <DrawerRow label="Товар" value={order.productDescription} />
             {order.comments ? <DrawerRow label="Комментарий" value={order.comments} /> : null}
+            {order.cancellationReason ? (
+                <DrawerRow label="Причина отмены" value={order.cancellationReason} />
+            ) : null}
             <DrawerRow label="Курьер" value={courierName} />
             <DrawerRow label="Сумма" value={formatCurrency(order.price)} />
             {order.deliveredAt ? (
@@ -655,6 +663,60 @@ function ReassignSection({ order, onSuccess }: { order: Order; onSuccess: (o: Or
                     {autoAssign.isPending ? "Подбираем…" : "Назначить автоматически"}
                 </Button>
             </div>
+        </div>
+    );
+}
+
+/**
+ * Отмена заказа с обязательной причиной. Видна только пока заказ можно
+ * отменить (до доставки — `CANCELLABLE_ORDER_STATUSES`); для завершённых
+ * возвращает null, чтобы не дублировать «недоступно» рядом с ReassignSection.
+ */
+function CancelSection({ order, onSuccess }: { order: Order; onSuccess: (o: Order) => void }) {
+    const cancel = useCancelOrder();
+    // Сброс формы при смене заказа обеспечен key={order.id} у OrderDetailsDrawer.
+    const [reason, setReason] = useState("");
+
+    if (!CANCELLABLE_ORDER_STATUSES.has(order.status)) {
+        return null;
+    }
+
+    const errorMessage = cancel.error
+        ? isApiError(cancel.error)
+            ? cancel.error.messages().join(". ")
+            : "Не удалось отменить заказ"
+        : null;
+    const trimmed = reason.trim();
+
+    return (
+        <div className="flex flex-col gap-3">
+            <Input
+                label="Отменить заказ"
+                placeholder="Причина отмены (например, клиент не отвечает)"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                maxLength={500}
+                disabled={cancel.isPending}
+                error={errorMessage ?? undefined}
+                hint="Заказ вернётся на предприятие, сумма не учитывается."
+            />
+            <Button
+                variant="destructive"
+                disabled={!trimmed || cancel.isPending}
+                onClick={() => {
+                    cancel.mutate(
+                        { orderId: order.id, reason: trimmed },
+                        {
+                            onSuccess: (updated) => {
+                                onSuccess(updated);
+                                setReason("");
+                            },
+                        },
+                    );
+                }}
+            >
+                {cancel.isPending ? "Отменяем…" : "Отменить заказ"}
+            </Button>
         </div>
     );
 }

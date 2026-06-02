@@ -52,6 +52,7 @@ export interface OverviewResponseDto {
     bucket: StatBucket;
     totalOrders: number;
     delivered: number;
+    cancelled: number;
     avgDeliveryMinutes: number | null;
     /** Decimal на проводе ("123.45" / "0.00"). */
     revenue: string;
@@ -67,6 +68,7 @@ export interface CourierStatsRowDto {
     totalOrders: number;
     delivered: number;
     returned: number;
+    cancelled: number;
     avgDeliveryMinutes: number | null;
     /** Decimal на проводе. */
     revenue: string;
@@ -106,6 +108,7 @@ export interface StatisticsOverview {
     bucket: StatBucket;
     totalOrders: number;
     delivered: number;
+    cancelled: number;
     avgDeliveryMinutes: number | null;
     revenue: number;
     ordersPerBucket: OverviewBucketPoint[];
@@ -120,6 +123,7 @@ export interface CourierStatsRow {
     totalOrders: number;
     delivered: number;
     returned: number;
+    cancelled: number;
     avgDeliveryMinutes: number | null;
     revenue: number;
 }
@@ -152,6 +156,7 @@ function mapOverview(dto: OverviewResponseDto): StatisticsOverview {
         bucket: dto.bucket,
         totalOrders: dto.totalOrders,
         delivered: dto.delivered,
+        cancelled: dto.cancelled,
         avgDeliveryMinutes: dto.avgDeliveryMinutes,
         revenue: Number(dto.revenue),
         ordersPerBucket: dto.ordersPerBucket.map((p) => ({
@@ -181,6 +186,7 @@ function mapCouriersStats(dto: CouriersStatsResponseDto): CouriersStats {
             totalOrders: c.totalOrders,
             delivered: c.delivered,
             returned: c.returned,
+            cancelled: c.cancelled,
             avgDeliveryMinutes: c.avgDeliveryMinutes,
             revenue: Number(c.revenue),
         })),

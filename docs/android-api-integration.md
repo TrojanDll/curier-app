@@ -45,9 +45,10 @@ nav graph.
 | `id` | UUID string. |
 | `orderNumber` | `ORD-2026-0001`-style human id from the order_number_seq. |
 | `customerName/Phone`, `deliveryAddress`, `productDescription?`, `comments?` | As on the wire. |
-| `status` | `OrderStatus` enum — now includes `NEW` for completeness, though couriers never see it (backend filters active list to `assigned+`). |
+| `status` | `OrderStatus` enum — includes `NEW` (couriers never see it) and `CANCELLED` (terminal, shown in history). |
 | `courierId?` | Always the caller's id; carried so realtime cache merges still work. |
-| `createdAt`, `assignedAt?`, `pickedUpAt?`, `nearCustomerAt?`, `deliveredAt?`, `returnedAt?` | Full timeline; nullable until the transition fires. |
+| `createdAt`, `assignedAt?`, `pickedUpAt?`, `nearCustomerAt?`, `deliveredAt?`, `returnedAt?`, `cancelledAt?` | Full timeline; nullable until the transition fires. |
+| `cancellationReason?` | Set when `status == CANCELLED`; shown on the details screen and surfaced in history. |
 | `photos: List<PhotoMetaDto>` | Embedded on detail / transition responses, empty on lists (see `docs/photos.md`). |
 
 | Endpoint | Method |
@@ -55,11 +56,17 @@ nav graph.
 | `GET /api/courier/orders/active` | `getActiveOrders()` → `List<OrderDto>` |
 | `GET /api/courier/orders/history?from&to` | `getOrderHistory(from, to)` |
 | `GET /api/courier/orders/:id` | `getOrderById(id)` |
-| `PUT /api/courier/orders/:id/status` | body `{ status }` (no client-side timestamp) |
+| `PUT /api/courier/orders/:id/status` | body `{ status, cancellationReason? }` (no client-side timestamp) |
 
 Forward-only transitions remain enforced both client-side
 (`OrderStatus.isValidTransition` against the cached row) and server-side
 (409 otherwise).
+
+**Cancellation** is a side-transition, exposed via a dedicated repository method
+`cancelOrder(orderId, reason)` (not the forward `updateOrderStatus`). It sends
+`{ status: "cancelled", cancellationReason }` and is offered from
+`assigned/picked_up/near_customer` only. The active-orders Room query excludes
+`cancelled`; history includes it (ordered by `COALESCE(returnedAt, cancelledAt)`).
 
 ## Profile
 
@@ -107,10 +114,11 @@ by the auth-checked streaming endpoint
 `PhotoFileManager.createPhotoFile(context, orderId: String)` sanitises
 the UUID (`[^A-Za-z0-9_-]` → `_`) before composing the local filename.
 
-## Room schema (v3)
+## Room schema (v5)
 
-Destructive migration is on (`fallbackToDestructiveMigration`), so the
-v2 → v3 jump simply rebuilds the cache:
+Destructive migration is on (`fallbackToDestructiveMigration`), so each bump
+simply rebuilds the cache (v4 added `priority`; v5 added `cancelledAt` +
+`cancellationReason`):
 
 | Entity | Change |
 |---|---|

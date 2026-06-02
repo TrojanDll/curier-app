@@ -13,15 +13,16 @@ NestJS `OrdersModule` (Stage 2.5). Source: `backend/src/orders/`.
 | GET | `/api/admin/orders/:id` | 200 / 400 / 404 | 400 on malformed UUID (ParseUUIDPipe). |
 | PATCH | `/api/admin/orders/:id` | 200 / 400 / 404 / 409 | 409 if `status != 'new'` (only editable while unassigned). |
 | POST | `/api/admin/orders/:id/reassign` | 200 / 400 / 404 / 409 | Body `{ courierId }`. See "Reassign rules" below. |
+| POST | `/api/admin/orders/:id/cancel` | 200 / 400 / 404 / 409 | Body `{ reason }` (non-empty `CancelOrderDto`). 409 if status ∉ `{new, assigned, picked_up, near_customer}`. See "Cancellation". |
 
 ### Courier (require `@Roles(['courier'])`)
 
 | Method | Path | Status | Notes |
 |---|---|---|---|
 | GET | `/api/courier/orders/active` | 200 | Caller's orders in `{assigned, picked_up, near_customer, delivered}`. No pagination. |
-| GET | `/api/courier/orders/history` | 200 | Caller's orders in `{delivered, returned}`. Optional `from`/`to` over `createdAt`. |
+| GET | `/api/courier/orders/history` | 200 | Caller's orders in `{delivered, returned, cancelled}`. Optional `from`/`to` over `createdAt`. |
 | GET | `/api/courier/orders/:id` | 200 / 400 / 404 | **404** (not 403) for foreign orders to hide existence. |
-| PUT | `/api/courier/orders/:id/status` | 200 / 400 / 404 / 409 | Body `{ status: OrderStatus }`. Forward-only transitions; see "Status flow". |
+| PUT | `/api/courier/orders/:id/status` | 200 / 400 / 404 / 409 | Body `{ status: OrderStatus, cancellationReason? }`. Forward-only transitions; `status: 'cancelled'` is a side-transition needing a non-empty `cancellationReason`. See "Status flow" + "Cancellation". |
 
 Courier id is always read from `req.user.sub` (the JWT) — never URL/body — so a courier can only ever read or modify their own orders. The static segments `/active` and `/history` are declared before `:id` so Nest matches them first.
 
@@ -80,6 +81,17 @@ assigned → picked_up → near_customer → delivered → returned
 - The matching audit timestamp is stamped on success: `pickedUpAt`, `nearCustomerAt`, `deliveredAt`, `returnedAt`.
 - On `returned` only: in the same `$transaction`, `couriers.last_returned_at = now()`. This drives the "longest at base" auto-assign tie-break. Immediately after the transaction commits, `AssignmentService.tryAssignToFreeCourier` is awaited — see `assignment.md` for trigger semantics.
 
+## Cancellation
+
+`cancelled` is a **terminal side-transition** (not part of `COURIER_NEXT`). Triggered two ways, both routed through the shared `OrdersService.applyCancellation`:
+
+- **Courier** — `PUT /api/courier/orders/:id/status` with `{ status: 'cancelled', cancellationReason }`. Allowed from `COURIER_CANCELLABLE_STATUSES = {assigned, picked_up, near_customer}`. 409 otherwise; 400 if `cancellationReason` is empty.
+- **Admin** — `POST /api/admin/orders/:id/cancel` with `{ reason }`. Allowed from `ADMIN_CANCELLABLE_STATUSES = {new, assigned, picked_up, near_customer}` (admin can also drop an unassigned `new` order). 409 otherwise.
+
+On success: `status='cancelled'`, `cancelledAt=now()`, `cancellationReason=<reason>`. If the order had a courier, the same `$transaction` stamps `couriers.last_returned_at=now()` (the courier brings the goods back to base), then `AssignmentService.tryAssignToFreeCourier` drains the next queued order to them — identical to the `returned` path. Realtime: admin gets `orders:updated`, the freed courier gets `orders:cancelled` (see `realtime.md`).
+
+Revenue is unaffected: it counts `delivered_at IS NOT NULL`, which a cancelled order never has (see `statistics.md`).
+
 ## Response shapes
 
 ### `OrderAdminResponse`
@@ -98,12 +110,14 @@ assigned → picked_up → near_customer → delivered → returned
   nearCustomerAt: ISOString|null,
   deliveredAt: ISOString|null,
   returnedAt: ISOString|null,
+  cancelledAt: ISOString|null,
+  cancellationReason: string|null,
   photos: PhotoMeta[],          // [] on list endpoints; populated on detail / transition (see assignment.md, photos.md)
 }
 ```
 
 ### `OrderCourierResponse`
-Same as admin **minus** `price` and `createdByAdminId` per §15.1. `photos: PhotoMeta[]` is included with the same population rule (empty on list, full on detail / transition).
+Same as admin **minus** `price` and `createdByAdminId` per §15.1 (so it includes `cancelledAt` + `cancellationReason`). `photos: PhotoMeta[]` is included with the same population rule (empty on list, full on detail / transition).
 
 ## DTOs
 
@@ -111,7 +125,8 @@ class-validator decorators per `validation.md`:
 - `CreateOrderDto` — `customerName, customerPhone, deliveryAddress, productDescription, comments?, price? (IsNumberString)`. `status`, `courierId`, `orderNumber`, `createdByAdminId`, audit timestamps are all server-set.
 - `UpdateOrderDto` — every non-system field optional; sending `comments: null` / `price: null` clears, omitting leaves as-is.
 - `ReassignOrderDto` — `{ courierId (IsUUID) }`.
-- `UpdateStatusDto` — `{ status: OrderStatus (IsEnum) }`. Explicit target (not "next") so client and server agree on the intended transition.
+- `UpdateStatusDto` — `{ status: OrderStatus (IsEnum), cancellationReason? (IsString, MaxLength 500) }`. Explicit target (not "next") so client and server agree on the intended transition. `cancellationReason` is required by the service only when `status='cancelled'`.
+- `CancelOrderDto` — `{ reason (IsString, IsNotEmpty, MaxLength 500) }` for the admin `POST /:id/cancel`.
 - `ListOrdersQueryDto` — typed numbers + status array split from comma-separated and validated per element. `CourierHistoryQueryDto` — `from`/`to` IsISO8601, both optional.
 
 ## Behaviour notes

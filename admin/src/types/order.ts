@@ -12,7 +12,8 @@ export type OrderStatus =
     | "picked_up"
     | "near_customer"
     | "delivered"
-    | "returned";
+    | "returned"
+    | "cancelled";
 
 /**
  * Приоритет (срочность) заказа. Управляет взвешенным авто-назначением и
@@ -42,7 +43,20 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
     near_customer: "Рядом с клиентом",
     delivered: "Доставлен",
     returned: "Доставлен",
+    cancelled: "Отменён",
 };
+
+/**
+ * Статусы, из которых заказ можно отменить (до доставки). Зеркалит
+ * `ADMIN_CANCELLABLE_STATUSES` на бэке. `delivered`/`returned`/`cancelled`
+ * отменить нельзя.
+ */
+export const CANCELLABLE_ORDER_STATUSES: ReadonlySet<OrderStatus> = new Set([
+    "new",
+    "assigned",
+    "picked_up",
+    "near_customer",
+]);
 
 /** Активные статусы — заказ в работе (виден в дефолтном фильтре). */
 export const ACTIVE_ORDER_STATUSES: ReadonlySet<OrderStatus> = new Set([
@@ -84,6 +98,9 @@ export interface Order {
     nearCustomerAt: string | null;
     deliveredAt: string | null;
     returnedAt: string | null;
+    cancelledAt: string | null;
+    /** Причина отмены (заполнена при `status === "cancelled"`). */
+    cancellationReason: string | null;
     /**
      * Метаданные фото. На list-эндпоинтах backend всегда отдаёт `[]`
      * (см. docs/photos.md): реальный список приходит только на
@@ -113,5 +130,7 @@ export function getOrderStatusSince(order: Order): string {
             return order.deliveredAt ?? order.createdAt;
         case "returned":
             return order.returnedAt ?? order.createdAt;
+        case "cancelled":
+            return order.cancelledAt ?? order.createdAt;
     }
 }

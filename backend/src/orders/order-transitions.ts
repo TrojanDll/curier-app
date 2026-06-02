@@ -19,16 +19,37 @@ export const COURIER_ACTIVE_STATUSES: readonly OrderStatus[] = [
   OrderStatus.delivered,
 ];
 
-/** History = finished (handed off or back at base). */
+/** History = finished (handed off, back at base, or cancelled). */
 export const COURIER_HISTORY_STATUSES: readonly OrderStatus[] = [
   OrderStatus.delivered,
   OrderStatus.returned,
+  OrderStatus.cancelled,
 ];
 
 /** Reassign is only meaningful before the courier has physically picked up. */
 export const REASSIGNABLE_STATUSES: readonly OrderStatus[] = [
   OrderStatus.new,
   OrderStatus.assigned,
+];
+
+/**
+ * Cancellation is a side-transition into the terminal `cancelled` state — not
+ * part of the forward-only `COURIER_NEXT` chain. A courier may abort any order
+ * they physically hold but haven't delivered yet.
+ */
+export const COURIER_CANCELLABLE_STATUSES: readonly OrderStatus[] = [
+  OrderStatus.assigned,
+  OrderStatus.picked_up,
+  OrderStatus.near_customer,
+];
+
+/**
+ * Admins may additionally cancel an unassigned `new` order (the courier set
+ * never includes `new` — couriers don't see unassigned orders).
+ */
+export const ADMIN_CANCELLABLE_STATUSES: readonly OrderStatus[] = [
+  OrderStatus.new,
+  ...COURIER_CANCELLABLE_STATUSES,
 ];
 
 /** Forward-only courier transitions enforced by OrdersService.updateStatus. */
@@ -47,6 +68,7 @@ export const STATUS_TIMESTAMP_FIELD: Record<OrderStatus, keyof Order | null> = {
   [OrderStatus.near_customer]: 'nearCustomerAt',
   [OrderStatus.delivered]: 'deliveredAt',
   [OrderStatus.returned]: 'returnedAt',
+  [OrderStatus.cancelled]: 'cancelledAt',
 };
 
 /** Result of evaluating a courier-requested transition. */

@@ -40,6 +40,8 @@ export interface OverviewResponse {
   bucket: Bucket;
   totalOrders: number;
   delivered: number;
+  /** Orders cancelled in window (`status = 'cancelled'`). Excluded from revenue. */
+  cancelled: number;
   /** Whole minutes; `null` if there were no completed deliveries in window. */
   avgDeliveryMinutes: number | null;
   /** Decimal serialised as `"123.45"`. `"0.00"` if no revenue. */
@@ -56,6 +58,7 @@ export interface CourierStatsRow {
   totalOrders: number;
   delivered: number;
   returned: number;
+  cancelled: number;
   avgDeliveryMinutes: number | null;
   revenue: string;
 }
@@ -72,6 +75,8 @@ export interface CourierSelfStatsResponse {
   successfulDeliveries: number;
   /** Reached `returned` (full cycle complete). */
   returnedOrders: number;
+  /** Reached `cancelled` (delivery aborted). Not counted as successful. */
+  cancelledOrders: number;
   avgDeliveryTimeMinutes: number | null;
 }
 
@@ -110,6 +115,7 @@ interface CourierStatsRawRow {
   totalOrders: number;
   delivered: number;
   returned: number;
+  cancelled: number;
   avgDeliveryMinutes: number | null;
   revenue: Prisma.Decimal;
 }
@@ -118,6 +124,7 @@ interface CourierSelfRawRow {
   totalDeliveries: number;
   successfulDeliveries: number;
   returnedOrders: number;
+  cancelledOrders: number;
   avgDeliveryTimeMinutes: number | null;
 }
 
@@ -150,8 +157,8 @@ export class StatisticsService {
     const topLimit = query.topLimit ?? DEFAULT_TOP_LIMIT;
     const interval = BUCKET_INTERVAL[bucket];
 
-    // ── Scalar KPIs (4 parallel queries) ─────────────────────────────────────
-    const [totalOrders, deliveredCount, avgRows, revenueRows] =
+    // ── Scalar KPIs (5 parallel queries) ─────────────────────────────────────
+    const [totalOrders, deliveredCount, cancelledCount, avgRows, revenueRows] =
       await this.prisma.$transaction([
         this.prisma.order.count({
           where: { createdAt: { gte: from, lte: to } },
@@ -160,6 +167,12 @@ export class StatisticsService {
           where: {
             createdAt: { gte: from, lte: to },
             status: OrderStatus.delivered,
+          },
+        }),
+        this.prisma.order.count({
+          where: {
+            createdAt: { gte: from, lte: to },
+            status: OrderStatus.cancelled,
           },
         }),
         this.prisma.$queryRaw<AvgRow[]>`
@@ -235,6 +248,7 @@ export class StatisticsService {
       bucket,
       totalOrders,
       delivered: deliveredCount,
+      cancelled: cancelledCount,
       avgDeliveryMinutes: roundOrNull(avgRows[0]?.minutes ?? null),
       revenue: decimalToString(revenueRows[0]?.revenue),
       ordersPerBucket: ordersBucketRows.map((r) => ({
@@ -270,6 +284,7 @@ export class StatisticsService {
         COALESCE(COUNT(o.id), 0)::int AS "totalOrders",
         COALESCE(COUNT(*) FILTER (WHERE o.status = 'delivered'), 0)::int AS delivered,
         COALESCE(COUNT(*) FILTER (WHERE o.status = 'returned'), 0)::int AS returned,
+        COALESCE(COUNT(*) FILTER (WHERE o.status = 'cancelled'), 0)::int AS cancelled,
         AVG(EXTRACT(EPOCH FROM (o.delivered_at - o.assigned_at)) / 60.0)
           FILTER (WHERE o.delivered_at IS NOT NULL AND o.assigned_at IS NOT NULL)::float8 AS "avgDeliveryMinutes",
         COALESCE(SUM(o.price) FILTER (WHERE o.delivered_at IS NOT NULL), 0)::numeric AS revenue
@@ -291,6 +306,7 @@ export class StatisticsService {
         totalOrders: r.totalOrders,
         delivered: r.delivered,
         returned: r.returned,
+        cancelled: r.cancelled,
         avgDeliveryMinutes: roundOrNull(r.avgDeliveryMinutes),
         revenue: decimalToString(r.revenue),
       })),
@@ -314,6 +330,7 @@ export class StatisticsService {
         COALESCE(COUNT(*), 0)::int AS "totalDeliveries",
         COALESCE(COUNT(*) FILTER (WHERE status IN ('delivered', 'returned')), 0)::int AS "successfulDeliveries",
         COALESCE(COUNT(*) FILTER (WHERE status = 'returned'), 0)::int AS "returnedOrders",
+        COALESCE(COUNT(*) FILTER (WHERE status = 'cancelled'), 0)::int AS "cancelledOrders",
         AVG(EXTRACT(EPOCH FROM (delivered_at - assigned_at)) / 60.0)
           FILTER (WHERE delivered_at IS NOT NULL AND assigned_at IS NOT NULL)::float8 AS "avgDeliveryTimeMinutes"
       FROM orders
@@ -327,6 +344,7 @@ export class StatisticsService {
       totalDeliveries: row?.totalDeliveries ?? 0,
       successfulDeliveries: row?.successfulDeliveries ?? 0,
       returnedOrders: row?.returnedOrders ?? 0,
+      cancelledOrders: row?.cancelledOrders ?? 0,
       avgDeliveryTimeMinutes: roundOrNull(row?.avgDeliveryTimeMinutes ?? null),
     };
   }

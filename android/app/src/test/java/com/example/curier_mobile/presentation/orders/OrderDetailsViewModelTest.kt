@@ -139,6 +139,63 @@ class OrderDetailsViewModelTest {
     }
 
     @Test
+    fun `cancellable order exposes canCancel flag`() = runTest(testDispatcher) {
+        coEvery { orderRepository.getOrderById(orderId) } returns
+            Result.Success(sampleOrder(status = OrderStatus.NEAR_CUSTOMER))
+
+        val vm = OrderDetailsViewModel(orderRepository, realtimeManager, orderId)
+        advanceUntilIdle()
+
+        assertThat(vm.uiState.value.canCancel).isTrue()
+    }
+
+    @Test
+    fun `cancelOrder success flips cancel flag and clears canCancel`() =
+        runTest(testDispatcher) {
+            val initial = sampleOrder(status = OrderStatus.NEAR_CUSTOMER)
+            val cancelled = initial.copy(
+                status = OrderStatus.CANCELLED,
+                cancellationReason = "Клиент не отвечает",
+            )
+            coEvery { orderRepository.getOrderById(orderId) } returns Result.Success(initial)
+            coEvery {
+                orderRepository.cancelOrder(orderId, "Клиент не отвечает")
+            } returns Result.Success(cancelled)
+
+            val vm = OrderDetailsViewModel(orderRepository, realtimeManager, orderId)
+            advanceUntilIdle()
+
+            vm.cancelOrder("Клиент не отвечает")
+            advanceUntilIdle()
+
+            val state = vm.uiState.value
+            assertThat(state.order).isEqualTo(cancelled)
+            assertThat(state.cancelSuccess).isTrue()
+            assertThat(state.canCancel).isFalse()
+            assertThat(state.availableStatusTransitions).isEmpty()
+            assertThat(state.isUpdatingStatus).isFalse()
+            coVerify { orderRepository.cancelOrder(orderId, "Клиент не отвечает") }
+        }
+
+    @Test
+    fun `cancelOrder error surfaces error message`() = runTest(testDispatcher) {
+        coEvery { orderRepository.getOrderById(orderId) } returns
+            Result.Success(sampleOrder(status = OrderStatus.NEAR_CUSTOMER))
+        coEvery { orderRepository.cancelOrder(orderId, any()) } returns
+            Result.Error(RuntimeException("409"))
+
+        val vm = OrderDetailsViewModel(orderRepository, realtimeManager, orderId)
+        advanceUntilIdle()
+
+        vm.cancelOrder("Клиент не отвечает")
+        advanceUntilIdle()
+
+        assertThat(vm.uiState.value.error).isEqualTo("409")
+        assertThat(vm.uiState.value.cancelSuccess).isFalse()
+        assertThat(vm.uiState.value.isUpdatingStatus).isFalse()
+    }
+
+    @Test
     fun `uploadPhoto success stores photo id and flips success flag`() = runTest(testDispatcher) {
         coEvery { orderRepository.getOrderById(orderId) } returns
             Result.Success(sampleOrder(status = OrderStatus.NEAR_CUSTOMER))

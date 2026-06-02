@@ -118,6 +118,41 @@ class OrderRepositoryImpl(
         }
     }
 
+    override suspend fun cancelOrder(
+        orderId: String,
+        reason: String
+    ): Result<Order> {
+        return try {
+            // Отмена — «боковой» переход, поэтому не используем isValidTransition
+            // (она про forward-only). Проверяем лишь, что заказ ещё не завершён.
+            val cached = orderDao.getOrderById(orderId)
+            if (cached != null) {
+                val currentStatus = OrderStatus.fromValue(cached.status)
+                if (currentStatus !in CANCELLABLE_STATUSES) {
+                    return Result.Error(
+                        Exception("Нельзя отменить заказ в статусе «${currentStatus.displayName}»")
+                    )
+                }
+            }
+
+            val response = apiService.updateOrderStatus(
+                orderId,
+                UpdateStatusRequest(OrderStatus.CANCELLED.value, reason)
+            )
+            val body = response.body()
+
+            if (response.isSuccessful && body != null) {
+                val order = body.toDomainModel()
+                orderDao.insertOrder(order.toEntity())
+                Result.Success(order)
+            } else {
+                Result.Error(Exception("Не удалось отменить заказ (HTTP ${response.code()})"))
+            }
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
     override suspend fun uploadPhoto(
         orderId: String,
         photoFile: File
@@ -170,5 +205,14 @@ class OrderRepositoryImpl(
         } catch (e: Exception) {
             Result.Error(e)
         }
+    }
+
+    companion object {
+        /** Статусы, из которых курьер может отменить заказ (до доставки). */
+        private val CANCELLABLE_STATUSES = setOf(
+            OrderStatus.ASSIGNED,
+            OrderStatus.PICKED_UP,
+            OrderStatus.NEAR_CUSTOMER
+        )
     }
 }

@@ -59,7 +59,12 @@ export class CourierOrdersController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateStatusDto,
   ) {
-    return this.orders.updateStatus(requireUserId(user), id, dto.status);
+    return this.orders.updateStatus(
+      requireUserId(user),
+      id,
+      dto.status,
+      dto.cancellationReason,
+    );
   }
 }
 

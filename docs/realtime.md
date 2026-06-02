@@ -53,6 +53,7 @@ clients can patch local state without an extra mapper.
 | `orders:updated` | server → `admin` | `OrderAdminResponse` (photos: `[]`) | order create / update / reassign / every status transition |
 | `orders:new` | server → `courier:<id>` | `OrderCourierResponse` (photos: `[]`) | auto-assign on create, queue drainer on `returned`, queue drainer on resume |
 | `orders:reassigned` | server → `courier:<id>` | `OrderCourierResponse` (photos: `[]`) | admin reassigns the order — fired to **both** previous and new courier |
+| `orders:cancelled` | server → `courier:<id>` | `OrderCourierResponse` (photos: `[]`) | order cancelled (courier or admin) — fired to the courier who held it so the active list drops it |
 | `couriers:status` | server → `admin` | `CourierAdminResponse` | pause / resume / soft-delete |
 
 `photos` is always emitted as `[]` even on detail-style transitions. Clients
@@ -72,6 +73,9 @@ Keep this in sync with `backend/src/orders/orders.service.ts` and
 | `OrdersService.reassign` | admin reassigns | `emitOrderReassigned(order, previousCourierId)` |
 | `OrdersService.updateStatus` | any forward transition incl. `returned` | `emitOrderUpdated(order)` |
 | `OrdersService.updateStatus` (`returned`) | drainer pulled a queued order | `emitOrderAssigned(drained)` |
+| `OrdersService.applyCancellation` | courier/admin cancels an assigned order | `emitOrderCancelled(order, previousCourierId)` |
+| `OrdersService.applyCancellation` | cancelling an unassigned `new` order | `emitOrderUpdated(order)` |
+| `OrdersService.applyCancellation` | drainer pulled a queued order to the freed courier | `emitOrderAssigned(drained)` |
 | `CouriersService.pause` | admin pauses | `emitCourierStatus(courier)` |
 | `CouriersService.resume` | admin resumes | `emitCourierStatus(courier)` + `emitOrderAssigned(drained)` if drainer fired |
 | `CouriersService.softDelete` | admin "fires" courier | `emitCourierStatus(courier)` |
@@ -85,6 +89,7 @@ room maps:
 emitOrderUpdated(order: Order): void
 emitOrderAssigned(order: Order): void                                   // admin + courier
 emitOrderReassigned(order: Order, previousCourierId: string | null): void // admin + ≤2 couriers
+emitOrderCancelled(order: Order, previousCourierId: string | null): void   // admin + freed courier
 emitCourierStatus(courier: CourierAdminResponse): void
 ```
 

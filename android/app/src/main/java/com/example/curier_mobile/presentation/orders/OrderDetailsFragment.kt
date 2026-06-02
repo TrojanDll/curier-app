@@ -5,6 +5,7 @@ import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -17,7 +18,10 @@ import com.example.curier_mobile.domain.model.OrderPriority
 import com.example.curier_mobile.domain.model.OrderStatus
 import com.example.curier_mobile.presentation.common.BaseFragment
 import com.example.curier_mobile.presentation.ViewModelFactory
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -85,6 +89,11 @@ class OrderDetailsFragment : BaseFragment<FragmentOrderDetailsBinding>() {
             viewModel.updateOrderStatus(OrderStatus.RETURNED)
         }
 
+        // Cancel order button — открывает диалог с вводом причины отмены
+        binding.btnCancelOrder.setOnClickListener {
+            showCancelOrderDialog()
+        }
+
         // Photo capture button
         binding.btnTakePhoto.setOnClickListener {
             navigateToPhotoCapture()
@@ -138,10 +147,23 @@ class OrderDetailsFragment : BaseFragment<FragmentOrderDetailsBinding>() {
             } else {
                 binding.cardNotes.visibility = View.GONE
             }
+
+            // Show cancellation reason when the order has been cancelled
+            if (order.status == OrderStatus.CANCELLED && !order.cancellationReason.isNullOrBlank()) {
+                binding.tvCancellationReason.visibility = View.VISIBLE
+                binding.tvCancellationReason.text =
+                    getString(R.string.cancellation_reason_format, order.cancellationReason)
+            } else {
+                binding.tvCancellationReason.visibility = View.GONE
+            }
         }
 
         // Update status buttons visibility based on available transitions
-        updateStatusButtons(state.availableStatusTransitions, state.isUpdatingStatus || state.isUploadingPhoto)
+        updateStatusButtons(
+            state.availableStatusTransitions,
+            state.isUpdatingStatus || state.isUploadingPhoto,
+            state.canCancel
+        )
 
         // Show uploading indicator
         if (state.isUploadingPhoto) {
@@ -156,6 +178,11 @@ class OrderDetailsFragment : BaseFragment<FragmentOrderDetailsBinding>() {
             viewModel.clearStatusUpdateSuccess()
         }
 
+        if (state.cancelSuccess) {
+            Snackbar.make(binding.root, R.string.order_cancelled_successfully, Snackbar.LENGTH_SHORT).show()
+            viewModel.clearCancelSuccess()
+        }
+
         if (state.photoUploadSuccess) {
             Snackbar.make(binding.root, R.string.photo_uploaded_successfully, Snackbar.LENGTH_SHORT).show()
             viewModel.clearPhotoUploadSuccess()
@@ -168,13 +195,18 @@ class OrderDetailsFragment : BaseFragment<FragmentOrderDetailsBinding>() {
         }
     }
 
-    private fun updateStatusButtons(availableTransitions: List<OrderStatus>, isUpdating: Boolean) {
+    private fun updateStatusButtons(
+        availableTransitions: List<OrderStatus>,
+        isUpdating: Boolean,
+        canCancel: Boolean
+    ) {
         // Hide all buttons first
         binding.btnStatusPickedUp.visibility = View.GONE
         binding.btnStatusNearCustomer.visibility = View.GONE
         binding.btnStatusDelivered.visibility = View.GONE
         binding.btnStatusReturned.visibility = View.GONE
         binding.btnTakePhoto.visibility = View.GONE
+        binding.btnCancelOrder.visibility = View.GONE
 
         // Show only available transitions
         availableTransitions.forEach { status ->
@@ -199,6 +231,9 @@ class OrderDetailsFragment : BaseFragment<FragmentOrderDetailsBinding>() {
                     binding.btnStatusReturned.visibility = View.VISIBLE
                     binding.btnStatusReturned.isEnabled = !isUpdating
                 }
+                OrderStatus.CANCELLED -> {
+                    // Терминальный статус — forward-кнопок нет.
+                }
             }
         }
 
@@ -207,6 +242,12 @@ class OrderDetailsFragment : BaseFragment<FragmentOrderDetailsBinding>() {
         if (currentOrder?.status == OrderStatus.DELIVERED) {
             binding.btnTakePhoto.visibility = View.VISIBLE
             binding.btnTakePhoto.isEnabled = !isUpdating
+        }
+
+        // Show cancel button while the order can still be aborted (before delivery)
+        if (canCancel) {
+            binding.btnCancelOrder.visibility = View.VISIBLE
+            binding.btnCancelOrder.isEnabled = !isUpdating
         }
     }
 
@@ -218,6 +259,7 @@ class OrderDetailsFragment : BaseFragment<FragmentOrderDetailsBinding>() {
             OrderStatus.NEAR_CUSTOMER -> android.R.color.holo_orange_light
             OrderStatus.DELIVERED -> android.R.color.holo_green_light
             OrderStatus.RETURNED -> android.R.color.darker_gray
+            OrderStatus.CANCELLED -> android.R.color.holo_red_dark
         }
     }
 
@@ -227,6 +269,53 @@ class OrderDetailsFragment : BaseFragment<FragmentOrderDetailsBinding>() {
             OrderPriority.NORMAL -> android.R.color.darker_gray
             OrderPriority.LOW -> android.R.color.holo_blue_light
         }
+    }
+
+    /**
+     * Диалог отмёны заказа с обязательным вводом причины. Кнопка подтверждения
+     * не закрывает диалог при пустом поле — показываем ошибку прямо в поле.
+     */
+    private fun showCancelOrderDialog() {
+        val context = requireContext()
+        val pad = (16 * resources.displayMetrics.density).toInt()
+
+        val inputLayout = TextInputLayout(context).apply {
+            hint = getString(R.string.cancel_order_reason_hint)
+            boxBackgroundMode = TextInputLayout.BOX_BACKGROUND_OUTLINE
+        }
+        val input = TextInputEditText(context).apply {
+            isSingleLine = false
+            maxLines = 4
+        }
+        inputLayout.addView(input)
+
+        val container = FrameLayout(context).apply {
+            setPadding(pad, pad / 2, pad, 0)
+            addView(inputLayout)
+        }
+
+        val dialog = MaterialAlertDialogBuilder(context)
+            .setTitle(R.string.cancel_order_dialog_title)
+            .setMessage(R.string.cancel_order_dialog_message)
+            .setView(container)
+            .setPositiveButton(R.string.cancel_order_confirm, null)
+            .setNegativeButton(R.string.cancel_order_dismiss, null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog
+                .getButton(android.content.DialogInterface.BUTTON_POSITIVE)
+                .setOnClickListener {
+                    val reason = input.text?.toString()?.trim().orEmpty()
+                    if (reason.isEmpty()) {
+                        inputLayout.error = getString(R.string.cancel_order_reason_required)
+                    } else {
+                        viewModel.cancelOrder(reason)
+                        dialog.dismiss()
+                    }
+                }
+        }
+        dialog.show()
     }
 
     private fun makePhoneCall(phoneNumber: String) {

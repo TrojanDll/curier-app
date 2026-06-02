@@ -5,7 +5,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { OrderPriority, OrderStatus, Prisma } from '@prisma/client';
+import { Order, OrderPriority, OrderStatus, Prisma } from '@prisma/client';
 import { AssignmentService } from '../assignment/assignment.service';
 import { PhotosService } from '../photos/photos.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -22,7 +22,9 @@ import {
 } from './order.mappers';
 import { buildDateRange } from './order-queries';
 import {
+  ADMIN_CANCELLABLE_STATUSES,
   COURIER_ACTIVE_STATUSES,
+  COURIER_CANCELLABLE_STATUSES,
   COURIER_HISTORY_STATUSES,
   REASSIGNABLE_STATUSES,
   validateCourierTransition,
@@ -287,6 +289,27 @@ export class OrdersService {
     return toOrderAdminResponse(updated, photos);
   }
 
+  /**
+   * Admin cancels an order. Allowed up until delivery
+   * (`ADMIN_CANCELLABLE_STATUSES`); `delivered`/`returned`/`cancelled` → 409.
+   * The shared `applyCancellation` frees the assigned courier (if any), drains
+   * the queue, and broadcasts realtime events.
+   */
+  async cancelByAdmin(id: string, reason: string): Promise<OrderAdminResponse> {
+    const order = await this.prisma.order.findUnique({ where: { id } });
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+    if (!ADMIN_CANCELLABLE_STATUSES.includes(order.status)) {
+      throw new ConflictException(
+        `Cannot cancel order in status "${order.status}"`,
+      );
+    }
+    const updated = await this.applyCancellation(order, reason.trim());
+    const photos = await this.photosService.listForOrder(id);
+    return toOrderAdminResponse(updated, photos);
+  }
+
   // ── Courier ────────────────────────────────────────────────────────────────
 
   async listActive(courierId: string): Promise<OrderCourierResponse[]> {
@@ -337,11 +360,30 @@ export class OrdersService {
     courierId: string,
     id: string,
     target: OrderStatus,
+    cancellationReason?: string,
   ): Promise<OrderCourierResponse> {
     const order = await this.prisma.order.findUnique({ where: { id } });
     if (!order || order.courierId !== courierId) {
       throw new NotFoundException('Order not found');
     }
+
+    // Cancellation is a side-transition, not part of the forward-only chain —
+    // handle it before validateCourierTransition (which only knows COURIER_NEXT).
+    if (target === OrderStatus.cancelled) {
+      if (!COURIER_CANCELLABLE_STATUSES.includes(order.status)) {
+        throw new ConflictException(
+          `Cannot cancel order in status "${order.status}"`,
+        );
+      }
+      const reason = cancellationReason?.trim();
+      if (!reason) {
+        throw new BadRequestException('Cancellation reason is required');
+      }
+      const updated = await this.applyCancellation(order, reason);
+      const photos = await this.photosService.listForOrder(id);
+      return toOrderCourierResponse(updated, photos);
+    }
+
     const decision = validateCourierTransition(order.status, target);
     if (!decision.ok) {
       // "Missing timestamp mapping" is unreachable for any allowed transition —
@@ -388,6 +430,55 @@ export class OrdersService {
     this.realtime.emitOrderUpdated(updated);
     const photos = await this.photosService.listForOrder(id);
     return toOrderCourierResponse(updated, photos);
+  }
+
+  /**
+   * Shared cancellation routine for the courier + admin paths. Stamps the
+   * terminal `cancelled` status, `cancelledAt`, and the reason. When the order
+   * is on a courier we also stamp `last_returned_at` (the courier physically
+   * returns to base with the goods) and drain the next queued order to them —
+   * mirroring the `returned` branch in `updateStatus`. Returns the persisted
+   * order so the caller can wrap it in the right response shape.
+   */
+  private async applyCancellation(
+    order: Order,
+    reason: string,
+  ): Promise<Order> {
+    const now = new Date();
+    const data: Prisma.OrderUpdateInput = {
+      status: OrderStatus.cancelled,
+      cancelledAt: now,
+      cancellationReason: reason,
+    };
+    const courierId = order.courierId;
+
+    // Unassigned `new` order — nobody to free, no queue to drain.
+    if (!courierId) {
+      const updated = await this.prisma.order.update({
+        where: { id: order.id },
+        data,
+      });
+      this.realtime.emitOrderUpdated(updated);
+      return updated;
+    }
+
+    // Free the courier (last_returned_at drives the "longest at base"
+    // tie-break) atomically with the order update.
+    const [updated] = await this.prisma.$transaction([
+      this.prisma.order.update({ where: { id: order.id }, data }),
+      this.prisma.courier.update({
+        where: { id: courierId },
+        data: { lastReturnedAt: now },
+      }),
+    ]);
+    // Admin sees `orders:updated`; the freed courier sees `orders:cancelled`.
+    this.realtime.emitOrderCancelled(updated, courierId);
+    // Queue drain — same trigger as `returned`.
+    const drained = await this.assignment.tryAssignToFreeCourier(courierId);
+    if (drained) {
+      this.realtime.emitOrderAssigned(drained);
+    }
+    return updated;
   }
 
   // ── Internal helpers ───────────────────────────────────────────────────────

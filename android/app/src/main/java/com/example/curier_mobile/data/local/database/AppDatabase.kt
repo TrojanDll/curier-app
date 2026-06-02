@@ -16,10 +16,10 @@ import com.example.curier_mobile.data.local.entity.UserEntity
         OrderEntity::class,
         UserEntity::class
     ],
-    // v4: OrderEntity.priority (см. docs/assignment.md). Кэш заказов
-    // пересоздаётся через fallbackToDestructiveMigration — потеря кэша
+    // v5: OrderEntity.cancelledAt + cancellationReason (отмена заказа). Кэш
+    // заказов пересоздаётся через fallbackToDestructiveMigration — потеря кэша
     // безопасна, активные заказы перезагружаются с бэка при следующем fetch.
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 // @TypeConverters(Converters::class) - будет добавлено при необходимости конвертации сложных типов

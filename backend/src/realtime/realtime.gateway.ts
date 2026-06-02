@@ -180,9 +180,24 @@ export class RealtimeGateway
       // courier's perspective. Match the auto-assign event shape so the
       // Android client treats it the same way.
       const event = previousCourierId ? 'orders:reassigned' : 'orders:new';
+      this.server.to(`courier:${order.courierId}`).emit(event, courierPayload);
+    }
+  }
+
+  /**
+   * "Order was cancelled" (courier or admin) — admin sees `orders:updated` so
+   * the row flips to `cancelled`. The courier who held it (if any) gets
+   * `orders:cancelled` to drop it from their active list. The freshly drained
+   * queue order, if any, is emitted separately via `emitOrderAssigned`.
+   */
+  emitOrderCancelled(order: Order, previousCourierId: string | null): void {
+    this.server
+      .to('admin')
+      .emit('orders:updated', toOrderAdminResponse(order, []));
+    if (previousCourierId) {
       this.server
-        .to(`courier:${order.courierId}`)
-        .emit(event, courierPayload);
+        .to(`courier:${previousCourierId}`)
+        .emit('orders:cancelled', toOrderCourierResponse(order, []));
     }
   }
 

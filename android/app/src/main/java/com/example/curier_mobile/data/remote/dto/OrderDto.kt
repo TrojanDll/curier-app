@@ -26,14 +26,18 @@ data class OrderDto(
     val nearCustomerAt: String? = null,
     val deliveredAt: String? = null,
     val returnedAt: String? = null,
+    val cancelledAt: String? = null,
+    val cancellationReason: String? = null,
     val photos: List<PhotoMetaDto> = emptyList()
 )
 
 /**
  * Body для `PUT /api/courier/orders/:id/status`. Бэк ставит timestamp сам,
- * клиентский timestamp не нужен.
+ * клиентский timestamp не нужен. `cancellationReason` обязателен только при
+ * `status = "cancelled"` — иначе не отправляется (null).
  */
 @JsonClass(generateAdapter = true)
 data class UpdateStatusRequest(
-    val status: String
+    val status: String,
+    val cancellationReason: String? = null
 )

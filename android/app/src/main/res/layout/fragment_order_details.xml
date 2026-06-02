@@ -66,6 +66,17 @@
                         android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                         android:textColor="?android:attr/textColorSecondary"
                         tools:text="Назначен: 15.01.2025 10:30" />
+
+                    <TextView
+                        android:id="@+id/tvCancellationReason"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                        android:textColor="@android:color/holo_red_dark"
+                        android:visibility="gone"
+                        tools:text="Причина отмены: клиент не отвечает"
+                        tools:visibility="visible" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -270,9 +281,24 @@
             style="@style/Widget.Material3.Button.OutlinedButton.Icon"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
             android:text="@string/take_photo"
             android:visibility="gone"
             app:icon="@android:drawable/ic_menu_camera"
+            tools:visibility="visible" />
+
+        <!-- Cancel Order Button — отдельное «боковое» действие до доставки -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCancelOrder"
+            style="@style/Widget.Material3.Button.OutlinedButton.Icon"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/cancel_order"
+            android:textColor="@android:color/holo_red_dark"
+            android:visibility="gone"
+            app:icon="@android:drawable/ic_menu_close_clear_cancel"
+            app:iconTint="@android:color/holo_red_dark"
+            app:strokeColor="@android:color/holo_red_dark"
             tools:visibility="visible" />
     </LinearLayout>
 

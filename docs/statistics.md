@@ -55,6 +55,7 @@ All metrics filter by `orders.created_at BETWEEN from AND to`.
 |---|---|
 | `totalOrders` | `COUNT(*)` regardless of status. |
 | `delivered` (KPI) | `COUNT(*) WHERE status = 'delivered'`. **Excludes** `returned` — once a courier closes the loop the order moves out of "delivered" KPI. |
+| `cancelled` (KPI) | `COUNT(*) WHERE status = 'cancelled'` in window. Cancelled orders never reach `delivered_at`, so they are absent from `revenue`/`avgDeliveryMinutes` automatically. |
 | `returned` (in `ordersPerBucket`) | `COUNT(*) WHERE status = 'returned'` — i.e. courier returned to base after this delivery. |
 | `avgDeliveryMinutes` | `AVG(delivered_at − assigned_at)` in minutes, only over rows with both timestamps present. `null` if no completed deliveries in window. Rounded to a whole minute. |
 | `revenue` | `SUM(price) WHERE delivered_at IS NOT NULL`. Only orders that physically reached the customer count. Decimal serialised as `"123.45"`; `"0.00"` if no revenue. |
@@ -90,6 +91,7 @@ SELECT s.bucket, ... FROM series s LEFT JOIN orders o ON ...
   bucket: 'hour' | 'day' | 'week',
   totalOrders: number,
   delivered: number,
+  cancelled: number,
   avgDeliveryMinutes: number | null,
   revenue: string,                              // "123.45" or "0.00"
   ordersPerBucket: [
@@ -119,6 +121,7 @@ SELECT s.bucket, ... FROM series s LEFT JOIN orders o ON ...
       totalOrders: number,
       delivered: number,
       returned: number,
+      cancelled: number,
       avgDeliveryMinutes: number | null,
       revenue: string,                          // "123.45" or "0.00"
     },
@@ -137,6 +140,7 @@ SELECT s.bucket, ... FROM series s LEFT JOIN orders o ON ...
   totalDeliveries: number,                      // all orders for this courier in window
   successfulDeliveries: number,                 // status IN (delivered, returned)
   returnedOrders: number,                       // status = returned (full cycle complete)
+  cancelledOrders: number,                      // status = cancelled (delivery aborted)
   avgDeliveryTimeMinutes: number | null,
 }
 ```

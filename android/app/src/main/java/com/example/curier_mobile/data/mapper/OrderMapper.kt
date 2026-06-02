@@ -26,6 +26,8 @@ fun OrderDto.toDomainModel(): Order {
         nearCustomerAt = nearCustomerAt,
         deliveredAt = deliveredAt,
         returnedAt = returnedAt,
+        cancelledAt = cancelledAt,
+        cancellationReason = cancellationReason,
         photos = photos.map { it.toDomainModel() }
     )
 }
@@ -52,7 +54,9 @@ fun Order.toEntity(): OrderEntity {
         pickedUpAt = pickedUpAt,
         nearCustomerAt = nearCustomerAt,
         deliveredAt = deliveredAt,
-        returnedAt = returnedAt
+        returnedAt = returnedAt,
+        cancelledAt = cancelledAt,
+        cancellationReason = cancellationReason
     )
 }
 
@@ -76,6 +80,8 @@ fun OrderEntity.toDomainModel(): Order {
         nearCustomerAt = nearCustomerAt,
         deliveredAt = deliveredAt,
         returnedAt = returnedAt,
+        cancelledAt = cancelledAt,
+        cancellationReason = cancellationReason,
         photos = emptyList()
     )
 }

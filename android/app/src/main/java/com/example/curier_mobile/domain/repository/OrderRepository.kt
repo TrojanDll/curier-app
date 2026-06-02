@@ -39,6 +39,16 @@ interface OrderRepository {
     ): Result<Order>
 
     /**
+     * Отменить заказ с обязательной причиной. Доступно из активных статусов
+     * до доставки (assigned/picked_up/near_customer). Шлёт на бэк статус
+     * `cancelled` + причину; ответ кэшируется (заказ уходит в историю).
+     */
+    suspend fun cancelOrder(
+        orderId: String,
+        reason: String
+    ): Result<Order>
+
+    /**
      * Возвращает метаданные загруженной фотографии (id + timestamps).
      * Сами байты выдаются отдельным защищённым endpoint-ом.
      */

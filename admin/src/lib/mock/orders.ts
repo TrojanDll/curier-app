@@ -178,6 +178,16 @@ const SCENARIOS: OrderScenario[] = [
             { status: "near_customer", afterHours: 1.1 },
         ],
     },
+    {
+        status: "cancelled",
+        courierIndex: 1,
+        history: [
+            { status: "assigned", afterHours: 0.1 },
+            { status: "picked_up", afterHours: 0.6 },
+            { status: "near_customer", afterHours: 1.1 },
+            { status: "cancelled", afterHours: 1.5 },
+        ],
+    },
 ];
 
 function pad(n: number, width = 4): string {
@@ -245,6 +255,8 @@ export const MOCK_ORDERS: Order[] = SCENARIOS.map((scenario, index) => {
         nearCustomerAt: stepMap.get("near_customer") ?? null,
         deliveredAt: stepMap.get("delivered") ?? null,
         returnedAt: stepMap.get("returned") ?? null,
+        cancelledAt: stepMap.get("cancelled") ?? null,
+        cancellationReason: scenario.status === "cancelled" ? "Клиент не отвечает" : null,
         photos: [],
     } satisfies Order;
 });

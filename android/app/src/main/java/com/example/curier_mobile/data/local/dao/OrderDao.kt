@@ -10,18 +10,18 @@ import kotlinx.coroutines.flow.Flow
 /**
  * DAO для заказов курьера.
  *
- * Активные = всё кроме `returned`, отсортировано по `createdAt DESC`
- * (новые сверху). История = только `returned`, отсортировано по
- * `returnedAt DESC` (последний возврат сверху). Если `returnedAt` null —
- * Room сортирует null в конец списка при DESC, что нас устраивает.
+ * Активные = всё кроме завершённых (`returned`/`cancelled`), отсортировано по
+ * `createdAt DESC` (новые сверху). История = завершённые (`returned` после
+ * доставки или `cancelled` при отмене), отсортировано по моменту завершения
+ * `COALESCE(returnedAt, cancelledAt) DESC` (последнее завершение сверху).
  */
 @Dao
 interface OrderDao {
 
-    @Query("SELECT * FROM orders WHERE status != 'returned' ORDER BY createdAt DESC")
+    @Query("SELECT * FROM orders WHERE status NOT IN ('returned', 'cancelled') ORDER BY createdAt DESC")
     fun getActiveOrders(): Flow<List<OrderEntity>>
 
-    @Query("SELECT * FROM orders WHERE status = 'returned' ORDER BY returnedAt DESC LIMIT :limit")
+    @Query("SELECT * FROM orders WHERE status IN ('returned', 'cancelled') ORDER BY COALESCE(returnedAt, cancelledAt) DESC LIMIT :limit")
     fun getOrderHistory(limit: Int = 100): Flow<List<OrderEntity>>
 
     @Query("SELECT * FROM orders WHERE id = :orderId")

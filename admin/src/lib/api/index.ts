@@ -16,6 +16,7 @@ export {
 } from "./backups";
 export {
     useAutoAssignOrder,
+    useCancelOrder,
     useCreateOrder,
     useOrder,
     useOrders,

@@ -66,6 +66,7 @@ export function DashboardClient() {
         : null;
     const avgDeliveryMinutes = statsQuery.data?.avgDeliveryMinutes ?? null;
     const revenueToday = statsQuery.data?.revenue ?? null;
+    const cancelledToday = statsQuery.data?.cancelled ?? null;
 
     return (
         <>
@@ -73,7 +74,7 @@ export function DashboardClient() {
 
             <div className="flex flex-col gap-6 px-8 py-6">
                 {/* KPI cards */}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
                     <KpiCard
                         label="Активных заказов"
                         value={formatCount(activeOrdersCount)}
@@ -99,6 +100,10 @@ export function DashboardClient() {
                                 ? "…"
                                 : formatCurrency(revenueToday)
                         }
+                    />
+                    <KpiCard
+                        label="Отмен за сегодня"
+                        value={!statsQuery.data ? "…" : formatCount(cancelledToday)}
                     />
                 </div>
 

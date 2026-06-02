@@ -20,6 +20,7 @@ const ORDER_STATUS_STYLES: Record<OrderStatus, string> = {
     near_customer: "bg-utility-yellow-50 text-utility-yellow-700 ring-utility-yellow-200",
     delivered: "bg-utility-green-50 text-utility-green-700 ring-utility-green-200",
     returned: "bg-utility-green-50 text-utility-green-700 ring-utility-green-200",
+    cancelled: "bg-utility-red-50 text-utility-red-700 ring-utility-red-200",
 };
 
 const COURIER_STATUS_STYLES: Record<CourierDisplayStatus, string> = {

@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "./client";
-import { orderKeys } from "./keys";
+import { orderKeys, statisticsKeys } from "./keys";
 import type { Order, OrderPriority, OrderStatus, PhotoMeta } from "@/types/order";
 
 /**
@@ -37,6 +37,8 @@ export interface OrderAdminDto {
     nearCustomerAt: string | null;
     deliveredAt: string | null;
     returnedAt: string | null;
+    cancelledAt: string | null;
+    cancellationReason: string | null;
     photos: PhotoMetaDto[];
 }
 
@@ -96,6 +98,8 @@ function mapOrder(dto: OrderAdminDto): Order {
         nearCustomerAt: dto.nearCustomerAt,
         deliveredAt: dto.deliveredAt,
         returnedAt: dto.returnedAt,
+        cancelledAt: dto.cancelledAt,
+        cancellationReason: dto.cancellationReason,
         photos: dto.photos.map(mapPhoto),
     };
 }
@@ -221,6 +225,35 @@ export function useAutoAssignOrder() {
         },
         onSuccess: (order) => {
             queryClient.invalidateQueries({ queryKey: orderKeys.lists() });
+            queryClient.setQueryData(orderKeys.detail(order.id), order);
+        },
+    });
+}
+
+interface CancelInput {
+    orderId: string;
+    reason: string;
+}
+
+/**
+ * Отменить заказ с обязательной причиной (`POST /admin/orders/:id/cancel`).
+ * Доступно до доставки; backend освобождает назначенного курьера и выдаёт ему
+ * следующий заказ из очереди. Инвалидируем и статистику — метрика отмен и
+ * счётчики дашборда меняются.
+ */
+export function useCancelOrder() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async ({ orderId, reason }: CancelInput): Promise<Order> => {
+            const { data } = await apiClient.post<OrderAdminDto>(
+                `/admin/orders/${orderId}/cancel`,
+                { reason },
+            );
+            return mapOrder(data);
+        },
+        onSuccess: (order) => {
+            queryClient.invalidateQueries({ queryKey: orderKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: statisticsKeys.all });
             queryClient.setQueryData(orderKeys.detail(order.id), order);
         },
     });

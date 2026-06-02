@@ -87,6 +87,7 @@ class OrderAdapter(
                 OrderStatus.NEAR_CUSTOMER -> android.R.color.holo_orange_light
                 OrderStatus.DELIVERED -> android.R.color.holo_green_light
                 OrderStatus.RETURNED -> android.R.color.darker_gray
+                OrderStatus.CANCELLED -> android.R.color.holo_red_dark
             }
         }
 

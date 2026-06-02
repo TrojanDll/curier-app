@@ -29,5 +29,7 @@ data class OrderEntity(
     val pickedUpAt: String?,
     val nearCustomerAt: String?,
     val deliveredAt: String?,
-    val returnedAt: String?
+    val returnedAt: String?,
+    val cancelledAt: String?,
+    val cancellationReason: String?
 )

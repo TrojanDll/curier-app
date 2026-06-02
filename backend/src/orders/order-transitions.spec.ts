@@ -1,6 +1,8 @@
 import { OrderStatus } from '@prisma/client';
 import {
+  ADMIN_CANCELLABLE_STATUSES,
   COURIER_ACTIVE_STATUSES,
+  COURIER_CANCELLABLE_STATUSES,
   COURIER_HISTORY_STATUSES,
   COURIER_NEXT,
   REASSIGNABLE_STATUSES,
@@ -31,6 +33,8 @@ describe('order-transitions', () => {
     it('terminal/inaccessible statuses have no next', () => {
       expect(COURIER_NEXT[OrderStatus.new]).toBeUndefined();
       expect(COURIER_NEXT[OrderStatus.returned]).toBeUndefined();
+      // Cancellation is a side-transition, never part of the forward chain.
+      expect(COURIER_NEXT[OrderStatus.cancelled]).toBeUndefined();
     });
   });
 
@@ -93,6 +97,15 @@ describe('order-transitions', () => {
       );
       expect(r.ok).toBe(false);
     });
+
+    it('does not allow cancellation via the forward machine', () => {
+      // Cancellation is handled separately (applyCancellation), so the
+      // forward-only validator must reject any → cancelled here.
+      for (const from of COURIER_CANCELLABLE_STATUSES) {
+        const r = validateCourierTransition(from, OrderStatus.cancelled);
+        expect(r.ok).toBe(false);
+      }
+    });
   });
 
   describe('getNextCourierStatus', () => {
@@ -121,10 +134,11 @@ describe('order-transitions', () => {
       ]);
     });
 
-    it('COURIER_HISTORY_STATUSES covers closed cycles', () => {
+    it('COURIER_HISTORY_STATUSES covers closed cycles incl. cancelled', () => {
       expect([...COURIER_HISTORY_STATUSES]).toEqual([
         OrderStatus.delivered,
         OrderStatus.returned,
+        OrderStatus.cancelled,
       ]);
     });
 
@@ -133,6 +147,38 @@ describe('order-transitions', () => {
         OrderStatus.new,
         OrderStatus.assigned,
       ]);
+    });
+
+    it('COURIER_CANCELLABLE_STATUSES covers held-but-not-delivered orders', () => {
+      expect([...COURIER_CANCELLABLE_STATUSES]).toEqual([
+        OrderStatus.assigned,
+        OrderStatus.picked_up,
+        OrderStatus.near_customer,
+      ]);
+    });
+
+    it('ADMIN_CANCELLABLE_STATUSES additionally includes unassigned new', () => {
+      expect([...ADMIN_CANCELLABLE_STATUSES]).toEqual([
+        OrderStatus.new,
+        OrderStatus.assigned,
+        OrderStatus.picked_up,
+        OrderStatus.near_customer,
+      ]);
+    });
+
+    it('delivered/returned/cancelled are not cancellable', () => {
+      for (const terminal of [
+        OrderStatus.delivered,
+        OrderStatus.returned,
+        OrderStatus.cancelled,
+      ]) {
+        expect(ADMIN_CANCELLABLE_STATUSES).not.toContain(terminal);
+        expect(COURIER_CANCELLABLE_STATUSES).not.toContain(terminal);
+      }
+    });
+
+    it('cancelled maps to the cancelledAt timestamp column', () => {
+      expect(STATUS_TIMESTAMP_FIELD[OrderStatus.cancelled]).toBe('cancelledAt');
     });
 
     it('every OrderStatus has a timestamp mapping (null or column)', () => {

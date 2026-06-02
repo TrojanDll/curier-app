@@ -16,6 +16,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import type { AuthenticatedUser } from '../auth/types/jwt-payload';
+import { CancelOrderDto } from './dto/cancel-order.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { ListOrdersQueryDto } from './dto/list-orders.query.dto';
 import { ReassignOrderDto } from './dto/reassign-order.dto';
@@ -76,6 +77,17 @@ export class AdminOrdersController {
   @HttpCode(HttpStatus.OK)
   autoAssign(@Param('id', ParseUUIDPipe) id: string) {
     return this.orders.autoAssign(id);
+  }
+
+  /**
+   * Cancel an order with a mandatory reason. Allowed up until delivery; the
+   * assigned courier (if any) is freed and the next queued order drains to
+   * them. 409 if the order is already delivered/returned/cancelled.
+   */
+  @Post(':id/cancel')
+  @HttpCode(HttpStatus.OK)
+  cancel(@Param('id', ParseUUIDPipe) id: string, @Body() dto: CancelOrderDto) {
+    return this.orders.cancelByAdmin(id, dto.reason);
   }
 }
 

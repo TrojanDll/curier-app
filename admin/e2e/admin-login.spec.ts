@@ -8,7 +8,7 @@ import { expect, test } from '@playwright/test';
 test.describe('Admin login', () => {
   test('login page renders the form', async ({ page }) => {
     await page.goto('/login');
-    await expect(page).toHaveTitle(/Вход — Курьер/);
+    await expect(page).toHaveTitle(/Вход — Администратор/);
     await expect(page.getByText('Вход в админ-панель')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Войти' })).toBeVisible();
   });

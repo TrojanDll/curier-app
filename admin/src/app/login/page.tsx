@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { LoginForm } from "@/components/forms/LoginForm";
 
 export const metadata = {
-    title: "Вход — Курьер",
+    title: "Вход — Администратор",
 };
 
 export default function LoginPage() {
@@ -10,7 +10,7 @@ export default function LoginPage() {
         <main className="flex min-h-screen items-center justify-center bg-secondary px-4 py-12">
             <div className="w-full max-w-sm">
                 <div className="mb-8 flex flex-col items-center gap-2 text-center">
-                    <span className="text-display-xs font-semibold text-primary">Курьер</span>
+                    <span className="text-display-xs font-semibold text-primary">Администратор</span>
                     <p className="text-sm text-tertiary">Вход в админ-панель</p>
                 </div>
                 <div className="rounded-xl border border-secondary bg-primary p-6 shadow-sm">
